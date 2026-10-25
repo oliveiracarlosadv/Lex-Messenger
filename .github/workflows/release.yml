@@ -40,6 +40,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          LEX_REQUIRE_KEYS: '1'
       - run: ${{ matrix.cmd }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

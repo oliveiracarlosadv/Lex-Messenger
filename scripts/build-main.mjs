@@ -12,7 +12,14 @@ if (existsSync('.env')) {
 }
 const apiId = process.env.TELEGRAM_API_ID || env.TELEGRAM_API_ID || '';
 const apiHash = process.env.TELEGRAM_API_HASH || env.TELEGRAM_API_HASH || '';
-if (!apiId || !apiHash) console.warn('Aviso: TELEGRAM_API_ID/TELEGRAM_API_HASH ausentes no .env — o login não vai funcionar.');
+if (!apiId || !apiHash) {
+  // Instalador para distribuir nunca pode sair sem as chaves: o usuário veria "Falta configurar o aplicativo".
+  if (process.env.LEX_REQUIRE_KEYS) {
+    console.error('Erro: faltam TELEGRAM_API_ID/TELEGRAM_API_HASH (.env ou segredos do GitHub). Instalador não gerado.');
+    process.exit(1);
+  }
+  console.warn('Aviso: TELEGRAM_API_ID/TELEGRAM_API_HASH ausentes no .env — o login não vai funcionar (só modo LEX_DEMO).');
+}
 
 const common = {
   bundle: true,
