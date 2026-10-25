@@ -133,8 +133,8 @@ Com a caixa de texto vazia, o botão **Enviar** vira um **🎤**.
 - Na primeira vez, o sistema pede permissão para usar o **microfone**: permita.
 - Para ouvir, toque no **▶**. Toque na onda para pular para um trecho, e no **1x** para ouvir em 1,5x ou 2x.
 - **🔁 Ouvir áudios em sequência** (na barra de baixo): ao terminar um áudio, o próximo toca sozinho.
-- **Aa** transforma o áudio em texto. É um recurso do **Telegram Premium**: sem a assinatura, o Telegram às vezes
-  libera algumas transcrições de cortesia.
+- Contas **Telegram Premium** também veem o botão **Aa**, que transforma o áudio em texto. Nas demais contas, ele não
+  aparece.
 
 ### Câmera: foto, vídeo e recado 📷
 Toque no **📷** da barra de baixo da conversa e escolha:

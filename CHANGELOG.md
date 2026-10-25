@@ -1,6 +1,8 @@
 # Histórico de versões
 
 ## v0.4.1
+- **Correção**: a foto nova não aparecia depois de trocada. Agora aparece na hora, e fotos trocadas em outro aparelho são atualizadas quando você volta ao Lex (ou quando o computador sai da suspensão).
+- O botão **Aa** (transcrever áudio) só aparece para contas Telegram Premium; nas demais, some o botão e o aviso de “recurso Premium”.
 - **Correção**: o recado (vídeo redondo) chegava como áudio. A biblioteca do Telegram marcava o arquivo também como mensagem de voz; agora vai só como vídeo redondo. Recados antigos passam a aparecer como vídeo no Lex.
 - Quem tem foto aparece com a **foto** no lugar do bonequinho (na lista, na conversa e ao encaminhar), com uma **borda da cor do status**: verde disponível, laranja ausente, vermelha ocupado, cinza offline. Sem foto, continua o bonequinho.
 

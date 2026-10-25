@@ -214,7 +214,7 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
                 <b>Telegram Premium:</b>{' '}
                 {me.premium
                   ? 'ativo. O Lex usa a transcrição de áudios e envia arquivos de até 4 GB.'
-                  : 'não assinado. A assinatura é feita no app oficial do Telegram; depois disso, o Lex passa a usar os recursos Premium.'}
+                  : 'não assinado.'}
               </p>
               <button className="btn" onClick={() => void run(() => lex.clearCache(), 'Arquivos temporários apagados.')}>
                 Limpar arquivos temporários

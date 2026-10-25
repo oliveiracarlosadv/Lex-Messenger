@@ -1,5 +1,5 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, shell, systemPreferences, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, shell, systemPreferences, Tray } from 'electron';
 import { join } from 'node:path';
 import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
@@ -24,6 +24,7 @@ let tray: Tray | null = null;
 let quitting = false;
 let prefs: Prefs = loadPrefs();
 let lastOnlineSound = 0;
+let lastResync = Date.now();
 const lastNudgeSent = new Map<string, number>();
 
 function allWindows() {
@@ -235,6 +236,13 @@ function createListWindow() {
     }
   });
   listWin.on('closed', () => (listWin = null));
+  // Ao voltar para o Lex: confere o que mudou (mensagens, foto trocada em outro aparelho…), no máximo 1x por minuto.
+  listWin.on('focus', () => {
+    if (Date.now() - lastResync > 60_000) {
+      lastResync = Date.now();
+      void tg.resync();
+    }
+  });
   load(listWin, '/');
 }
 
@@ -555,6 +563,8 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
+    // Computador voltou da suspensão: reconecta e busca o que chegou.
+    powerMonitor.on('resume', () => setTimeout(() => void tg.resync(), 3000));
     tray = new Tray(trayIcon());
     tray.setToolTip('Lex Messenger');
     tray.on('click', () => (process.platform === 'darwin' ? tray?.popUpContextMenu() : showList()));

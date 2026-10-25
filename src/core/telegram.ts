@@ -270,6 +270,7 @@ export class TelegramService {
   private previews = new Map<string, string | null>();
   private me: Me | null = null;
   private appearOffline = false;
+  private myPhotoId = '';
   private abouts = new Map<string, string>();
   private aboutQueue: string[] = [];
   private aboutTimer: NodeJS.Timeout | null = null;
@@ -487,6 +488,8 @@ export class TelegramService {
       premium: !!u.premium,
     };
     this.entities.set('me', u);
+    this.entities.set(u.id.toString(), u);
+    this.myPhotoId = u.photo instanceof Api.UserProfilePhoto ? u.photo.photoId.toString() : '';
     this.hooks.emit('me:changed', this.me);
   }
 
@@ -612,6 +615,7 @@ export class TelegramService {
       if (!this.client.connected) await this.client.connect();
       await this.client.invoke(new Api.updates.GetState());
       await this.loadDialogs();
+      await this.refreshMyPhoto();
       this.hooks.emit('chat:resync', true);
       await this.applyStatus();
     } catch (e) {
@@ -1219,9 +1223,20 @@ export class TelegramService {
     const jpeg = await this.platform.squareJpeg(input);
     const file = await this.client.uploadFile({ file: new CustomFile('foto.jpg', jpeg.length, '', jpeg), workers: 1 });
     await this.client.invoke(new Api.photos.UploadProfilePhoto({ file }));
+    // Busca o perfil de novo: sem isso, o Lex baixaria a foto antiga (a referência guardada era a anterior).
+    await this.refreshMyPhoto(true);
+  }
+
+  /** Relê o meu perfil e, se a foto mudou (aqui ou em outro aparelho), faz as janelas recarregarem a imagem. */
+  private async refreshMyPhoto(force = false) {
+    if (!this.client || !this.me) return;
+    const before = this.myPhotoId;
+    const version = this.me.photoVersion;
+    await this.loadMe();
+    if (!force && before === this.myPhotoId) return;
     this.avatars.delete('me');
-    this.avatars.delete(this.me.id);
-    this.me = { ...this.me, hasPhoto: true, photoVersion: this.me.photoVersion + 1 };
+    this.avatars.delete(this.me!.id);
+    this.me = { ...this.me!, photoVersion: version + 1 };
     this.hooks.emit('me:changed', this.me);
   }
 }
