@@ -68,7 +68,8 @@ export function showToast(data: ToastData, setup: Setup, preload: string) {
     webPreferences: { preload, contextIsolation: true, sandbox: true, nodeIntegration: false },
   });
   win.setAlwaysOnTop(true, 'pop-up-menu');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // skipTransformProcessType: sem isso, o macOS tira o Lex do Dock e do Cmd+Tab.
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   toasts.push(win);
   win.on('closed', () => {
     const i = toasts.indexOf(win);

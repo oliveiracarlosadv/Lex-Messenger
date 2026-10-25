@@ -132,7 +132,8 @@ function nudgePopup(chatId: string, name: string, hasPhoto: boolean) {
     webPreferences: webPreferences(),
   });
   w.setAlwaysOnTop(true, 'pop-up-menu');
-  w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // skipTransformProcessType: sem isso, o macOS tira o Lex do Dock e do Cmd+Tab.
+  w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   secure(w);
   w.once('ready-to-show', () => {
     w.show();
@@ -561,6 +562,11 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', showList);
   app.whenReady().then(async () => {
+    // Mac: o Lex é um app "normal": fica no Dock e aparece no Cmd+Tab.
+    if (process.platform === 'darwin') {
+      app.setActivationPolicy('regular');
+      void app.dock?.show();
+    }
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
     // Computador voltou da suspensão: reconecta e busca o que chegou.

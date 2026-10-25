@@ -1,6 +1,7 @@
 # Histórico de versões
 
 ## v0.4.1
+- **Mac**: o Lex volta a aparecer sempre no **Cmd + Tab** e no Dock (os avisos no canto o tiravam de lá).
 - **Correção**: a foto nova não aparecia depois de trocada. Agora aparece na hora, e fotos trocadas em outro aparelho são atualizadas quando você volta ao Lex (ou quando o computador sai da suspensão).
 - O botão **Aa** (transcrever áudio) só aparece para contas Telegram Premium; nas demais, some o botão e o aviso de “recurso Premium”.
 - **Correção**: o recado (vídeo redondo) chegava como áudio. A biblioteca do Telegram marcava o arquivo também como mensagem de voz; agora vai só como vídeo redondo. Recados antigos passam a aparecer como vídeo no Lex.
