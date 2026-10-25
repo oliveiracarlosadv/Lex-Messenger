@@ -309,6 +309,9 @@ export class TelegramService {
   private previews = new Map<string, string | null>();
   private me: Me | null = null;
   private appearOffline = false;
+  /** Botão "Desligado": sem conexão até a hora marcada. */
+  private paused = false;
+  private wakeTimer: ReturnType<typeof setTimeout> | null = null;
   private pickDocs = new Map<string, Api.Document>();
   private inlinePicks = new Map<string, { queryId: bigInt.BigInteger; id: string }>();
   private favorites = new Set<string>();
@@ -571,7 +574,7 @@ export class TelegramService {
       subtitle = kind === 'bot' ? 'robô' : kind === 'self' ? 'suas anotações' : p.subtitle;
       if (p.wasOnline) this.wasOnline.set(id, p.wasOnline);
       hasPhoto = e.photo instanceof Api.UserProfilePhoto;
-      base = { premium: !!e.premium, ...base };
+      base = { premium: !!e.premium, phone: e.phone ? `+${e.phone}` : undefined, ...base };
     } else if (e instanceof Api.Channel) {
       kind = e.megagroup || e.gigagroup ? 'group' : 'channel';
       subtitle = e.participantsCount ? `${e.participantsCount} membros` : kind === 'channel' ? 'canal' : 'grupo';
@@ -673,7 +676,7 @@ export class TelegramService {
    * recarrega a lista e avisa as conversas abertas para buscarem o que chegou.
    */
   async resync() {
-    if (!this.client || this.state !== 'ready') return;
+    if (!this.client || this.state !== 'ready' || this.paused) return;
     try {
       if (!this.client.connected) await this.client.connect();
       await this.client.invoke(new Api.updates.GetState());
@@ -1311,6 +1314,19 @@ export class TelegramService {
     this.patch(chatId, { favorite });
   }
 
+  // ---------- Push (Android, via Firebase) ----------
+
+  /** Registra este aparelho para receber as notificações push do Telegram, criptografadas com a chave dele. */
+  async registerPush(token: string, secretB64: string) {
+    await this.client!.invoke(
+      new Api.account.RegisterDevice({ tokenType: 2, token, appSandbox: false, secret: Buffer.from(secretB64, 'base64'), otherUids: [] }),
+    );
+  }
+
+  async unregisterPush(token: string) {
+    await this.client?.invoke(new Api.account.UnregisterDevice({ tokenType: 2, token, otherUids: [] })).catch(() => {});
+  }
+
   // ---------- Grupos ----------
 
   async createGroup(title: string, memberIds: string[]): Promise<{ chatId: string; notAdded: string[] }> {
@@ -1399,13 +1415,13 @@ export class TelegramService {
     void this.platform.clearTemp();
   }
 
-  async sendFiles(chatId: string, files: FileInput[]) {
+  async sendFiles(chatId: string, files: FileInput[], sensitive = false) {
     if (!this.client) return;
     for (const [i, f] of files.entries()) {
       const name = fileName(f);
       const ext = name.toLowerCase().split('.').pop() ?? '';
       const visual = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'photo' : ['mp4', 'mov', 'm4v', 'webm'].includes(ext) ? 'video' : null;
-      if (this.sensitiveChats.has(chatId) && visual) {
+      if ((sensitive || this.sensitiveChats.has(chatId)) && visual) {
         const data = typeof f === 'string' ? await this.platform.readFile?.(f) : f.data;
         if (data) {
           await this.sendSpoiler(chatId, name, data, visual);
@@ -1620,8 +1636,38 @@ export class TelegramService {
   }
 
   private async applyStatus() {
-    if (!this.client || this.state !== 'ready') return;
+    if (!this.client || this.state !== 'ready' || this.paused) return;
     await this.client.invoke(new Api.account.UpdateStatus({ offline: this.appearOffline })).catch(() => {});
+  }
+
+  /** Desliga a conexão (aparece offline e não recebe nada). until: hora em ms, ou -1 = até ligar de novo. */
+  async pause(until: number) {
+    if (!this.client) return;
+    this.paused = true;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    await this.client.invoke(new Api.account.UpdateStatus({ offline: true })).catch(() => {});
+    await this.client.disconnect().catch(() => {});
+    this.hooks.emit('connection:changed', { connected: false, offlineUntil: until });
+    if (until > 0) this.wakeTimer = setTimeout(() => void this.unpause(), Math.max(0, until - Date.now()));
+  }
+
+  /** Liga de novo e busca tudo o que chegou enquanto estava desligado. */
+  async unpause() {
+    if (!this.paused || !this.client) return;
+    this.paused = false;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = null;
+    try {
+      await this.client.connect();
+    } catch {
+      /* tenta de novo no resync */
+    }
+    this.hooks.emit('connection:changed', { connected: true, offlineUntil: 0 });
+    await this.resync();
+  }
+
+  get isPaused() {
+    return this.paused;
   }
 
   async goOffline() {

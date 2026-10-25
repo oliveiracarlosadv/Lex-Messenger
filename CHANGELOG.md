@@ -4,6 +4,13 @@
 - **iPhone sem App Store**: app pelo Safari (“Adicionar à Tela de Início”), com as mesmas telas do Android; áudios no formato de voz do Telegram também no iPhone.
 - **Mensagens que se autodestroem** (30 s a 24 h), apagadas para os dois lados; o aviso 🔥 some em 12 horas.
 - **Criar conta do Telegram** pelo Lex, para quem ainda não tem (código por SMS, nome e aceite dos Termos de Serviço do Telegram na própria tela).
+- **Online / Invisível / Desligado** numa barra rápida; **Desligado por um tempo** (30 min a 3 dias, prazo livre ou até ligar), voltando sozinho no fim.
+- **Silencioso** 🔕: mensagens chegam, mas sem som, vibração nem avisos.
+- **SMS / RCS** 💬: abre o app de mensagens do aparelho com o número e o texto prontos (usa RCS quando disponível).
+- **Android**: notificações com a **foto** de quem mandou; **push do Telegram via Firebase** pronto para ligar (notificações na hora com o app fechado e sem o aviso fixo).
+- **Celular**: a tela não arrasta mais para os lados; “chamou a sua atenção” e nomes longos quebram linha; menus (emojis, figurinhas, autodestruição) viram painéis que sobem de baixo, sempre dentro da tela.
+- Autodestruição com escolha em botões grandes, mais moderna (em todas as versões).
+- 🔞 agora aparece só na confirmação de envio (e na prévia da câmera).
 - **Mídia sensível** 🔞: foto, vídeo ou recado vai coberto (spoiler do Telegram) e só aparece quando a pessoa toca; ao fechar, cobre de novo.
 - **Lista de tarefas** na conversa: um cria, o outro marca como feito, com progresso para os dois.
 - **Figurinhas e GIFs**: recentes, pacotes, GIFs salvos e busca; GIFs e figurinhas animadas tocam na conversa.

@@ -73,6 +73,16 @@ jobs:
         env:
           LEX_REQUIRE_KEYS: '1'
       - run: npx cap sync android
+      - name: Firebase (notificações push), se configurado
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "Push ligado (google-services.json presente)."
+          else
+            echo "::warning::Sem GOOGLE_SERVICES_JSON: o .apk sai sem notificações push (usa o modo conectado em segundo plano)."
+          fi
       - name: Gerar o .apk
         working-directory: android
         run: |

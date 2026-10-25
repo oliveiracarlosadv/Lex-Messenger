@@ -9,6 +9,7 @@ import { ContactIcon } from './ContactIcon';
 import { ProfileDialog } from './ProfileDialog';
 import { SettingsDialog } from './SettingsDialog';
 import { NewGroupDialog } from './NewGroupDialog';
+import { QuickBar } from './QuickBar';
 
 type Section = 'favorites' | 'online' | 'offline' | 'groups' | 'others';
 const TITLES: Record<Section, string> = {
@@ -174,6 +175,8 @@ export function ContactList() {
           {presence?.musicError && <div className="music-error">{presence.musicError}</div>}
         </div>
       </header>
+
+      {prefs && <QuickBar prefs={prefs} />}
 
       <div className="search">
         <button className="gear-btn" onClick={() => setSettingsOpen(true)} title="Configurações" aria-label="Configurações">

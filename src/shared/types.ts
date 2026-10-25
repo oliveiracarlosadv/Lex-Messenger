@@ -27,6 +27,8 @@ export interface Contact {
   premium?: boolean;
   /** Está na pasta "⭐ Favoritos" do Telegram. */
   favorite?: boolean;
+  /** Telefone, quando a pessoa compartilha com você no Telegram (para SMS/RCS). */
+  phone?: string;
   /** Até que mensagem minha a pessoa já leu (para os ✓✓). */
   readOutboxMaxId?: number;
 }
@@ -163,6 +165,10 @@ export interface Prefs {
   background: boolean;
   /** Android: já pedimos para o sistema não economizar bateria no app. */
   batteryAsked: boolean;
+  /** Silencioso: sem som, sem vibração e sem avisos na tela (as mensagens continuam chegando). */
+  silent: boolean;
+  /** Desligado até esta hora (ms). 0 = ligado; -1 = desligado até a pessoa ligar de novo. */
+  offlineUntil: number;
 }
 
 export interface PresenceInfo {
@@ -202,6 +208,8 @@ export interface LexEvents {
   /** Transcrição de áudio pronta (ou em andamento). */
   transcription: { chatId: string; id: number; text: string; pending: boolean };
   'settings:open': true;
+  /** Ligou/desligou a conexão (botão Desligado). */
+  'connection:changed': { connected: boolean; offlineUntil: number };
 }
 
 export interface LexApi {
@@ -222,7 +230,10 @@ export interface LexApi {
   history(chatId: string, beforeId?: number): Promise<ChatMessage[]>;
   sendText(chatId: string, text: string): Promise<void>;
   sendNudge(chatId: string): Promise<boolean>;
-  sendFiles(chatId: string, paths?: string[], images?: boolean): Promise<void>;
+  /** Escolhe arquivos (sem enviar ainda): devolve referências e nomes para a confirmação. */
+  pickFiles(images?: boolean): Promise<{ id: string; name: string }[]>;
+  /** Envia os arquivos escolhidos; sensitive = fotos e vídeos vão cobertos (🔞). */
+  sendFiles(chatId: string, ids?: string[], images?: boolean, sensitive?: boolean): Promise<void>;
   sendImageData(chatId: string, dataUrl: string): Promise<void>;
   /** Envia uma mensagem de voz já em Ogg/Opus. */
   sendVoice(chatId: string, ogg: Uint8Array, duration: number, waveform: number[]): Promise<void>;
@@ -256,6 +267,8 @@ export interface LexApi {
   setFavorite(chatId: string, favorite: boolean): Promise<void>;
   /** Liga/desliga "próximas fotos e vídeos como sensíveis" nesta conversa. */
   setSensitive(chatId: string, on: boolean): Promise<void>;
+  /** Desliga o app por um tempo (minutos; 0 = até ligar de novo) ou liga de novo (null). */
+  setOffline(minutes: number | null): Promise<void>;
   getSensitive(chatId: string): Promise<boolean>;
   /** Figurinhas recentes, pacotes instalados e GIFs salvos. */
   stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }>;
@@ -265,6 +278,8 @@ export interface LexApi {
   pickThumb(key: string): Promise<{ url: string; video: boolean } | null>;
   sendPick(chatId: string, key: string): Promise<void>;
   openSystemNotificationSettings?(): void;
+  /** Celular: as notificações push (Firebase) estão funcionando? */
+  pushActive?(): Promise<boolean>;
   copyText(text: string): void;
   pathForFile(file: File): string;
   typing(chatId: string): void;
@@ -284,4 +299,6 @@ export interface LexApi {
   setPrefs(p: Partial<Prefs>): Promise<Prefs>;
   shakeMe(): void;
   openExternal(url: string): void;
+  /** Abre o app de mensagens do aparelho (SMS/RCS) com o número e o texto prontos. */
+  openSms(phone: string, text: string): void;
 }

@@ -26,7 +26,8 @@ const api: LexApi = {
   history: (chatId, beforeId) => invoke('history', chatId, beforeId),
   sendText: (chatId, text) => invoke('send:text', chatId, text),
   sendNudge: (chatId) => invoke('send:nudge', chatId),
-  sendFiles: (chatId, paths, images) => invoke('send:files', chatId, paths, images),
+  pickFiles: (images) => invoke('files:pick', images),
+  sendFiles: (chatId, paths, images, sensitive) => invoke('send:files', chatId, paths, images, sensitive),
   sendImageData: (chatId, dataUrl) => invoke('send:image', chatId, dataUrl),
   sendVoice: (chatId, ogg, duration, waveform) => invoke('send:voice', chatId, ogg, duration, waveform),
   mediaData: (chatId, msgId) => invoke('media:data', chatId, msgId),
@@ -51,6 +52,7 @@ const api: LexApi = {
   setSelfDestruct: (chatId, s) => invoke('ttl:set', chatId, s),
   setFavorite: (chatId, fav) => invoke('fav:set', chatId, fav),
   setSensitive: (chatId, on) => invoke('sens:set', chatId, on),
+  setOffline: (minutes) => invoke('offline:set', minutes),
   getSensitive: (chatId) => invoke('sens:get', chatId),
   stickerPanel: () => invoke('stk:panel'),
   stickerPack: (id) => invoke('stk:pack', id),
@@ -76,6 +78,7 @@ const api: LexApi = {
   setPrefs: (p) => invoke('prefs:set', p),
   shakeMe: () => ipcRenderer.send('shake-me'),
   openExternal: (url) => ipcRenderer.send('open-external', url),
+  openSms: (phone, text) => ipcRenderer.send('open-sms', phone, text),
 };
 
 contextBridge.exposeInMainWorld('lex', api);

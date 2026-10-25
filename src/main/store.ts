@@ -42,6 +42,8 @@ const defaults: Prefs = {
   notifPrimed: false,
   background: true,
   batteryAsked: false,
+  silent: false,
+  offlineUntil: 0,
 };
 
 export function loadPrefs(): Prefs {

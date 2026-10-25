@@ -27,6 +27,8 @@ const defaults: Prefs = {
   notifPrimed: false,
   background: true,
   batteryAsked: false,
+  silent: false,
+  offlineUntil: 0,
 };
 
 const CHANNEL = 'mensagens';
@@ -48,6 +50,11 @@ export class MobileBridge {
   private tg: TelegramService;
   private presence: PresenceManager;
   private notifId = 1;
+  /** Push do Telegram (Firebase) ligado: as notificações com o app fechado vêm por ele. */
+  private pushToken: string | null = null;
+  /** Arquivos escolhidos esperando a confirmação de envio (só na memória). */
+  private picked = new Map<string, { name: string; data: Uint8Array }>();
+  private pickSeq = 1;
   /** Notificações abertas por conversa, para tirar da barra quando a conversa for lida. */
   private shown = new Map<string, number[]>();
   private lastNudge = new Map<string, number>();
@@ -65,7 +72,13 @@ export class MobileBridge {
         unreadChanged: () => {},
         ready: (me) => {
           this.presence.start(me);
-          void this.setupBackground();
+          void this.setupBackground().then(() => {
+            const until = this.prefs.offlineUntil;
+            if (until === -1 || until > Date.now()) {
+              void this.tg.pause(until);
+              void LexNative.stopKeepAlive().catch(() => {});
+            } else if (until) void this.savePrefs({ offlineUntil: 0 });
+          });
         },
         onContactOnline: (c) => this.onContactOnline(c),
         onIncoming: (m, c) => this.onIncoming(m, c),
@@ -110,6 +123,11 @@ export class MobileBridge {
         },
       ],
     }).catch(() => {});
+    // Toque numa notificação nativa (com foto) do Lex: abre a conversa.
+    void LexNative.addListener?.('notificationOpen', ({ chatId }) => chatId && this.openChat(chatId)).catch(() => {});
+    void LexNative.takePendingOpen()
+      .then(({ chatId }) => chatId && setTimeout(() => this.openChat(chatId), 600))
+      .catch(() => {});
     void LocalNotifications.addListener('localNotificationActionPerformed', (a) => {
       if (a.actionId === 'later') return;
       const chatId = a.notification.extra?.chatId;
@@ -121,7 +139,15 @@ export class MobileBridge {
 
   /** Ao voltar para o app: busca o que chegou enquanto ele estava parado. */
   resync() {
-    if (!this.demo) void this.tg.resync();
+    if (this.demo) return;
+    // Prazo do "Desligado" venceu enquanto o app estava parado: liga de novo.
+    const until = this.prefs.offlineUntil;
+    if (this.tg.isPaused && until > 0 && until <= Date.now()) {
+      void this.savePrefs({ offlineUntil: 0 });
+      void this.tg.unpause().then(() => this.applyBackground());
+      return;
+    }
+    void this.tg.resync();
   }
 
   // ---------- Eventos ----------
@@ -133,6 +159,10 @@ export class MobileBridge {
   }
 
   emit<K extends keyof LexEvents>(event: K | 'toast' | 'nudge-popup', data: LexEvents[K] | InAppToast | NudgeData) {
+    if (event === 'connection:changed' && (data as LexEvents['connection:changed']).connected && this.prefs.offlineUntil) {
+      void this.savePrefs({ offlineUntil: 0 });
+      void this.applyBackground();
+    }
     // Conversa lida (aqui ou em outro aparelho): some da barra de notificações.
     if (event === 'contact:patch') {
       const p = data as LexEvents['contact:patch'];
@@ -142,7 +172,7 @@ export class MobileBridge {
   }
 
   private sound(name: LexEvents['sound']) {
-    if (this.prefs.sounds) this.emit('sound', name);
+    if (this.prefs.sounds && !this.prefs.silent) this.emit('sound', name);
   }
 
   private async savePrefs(p: Partial<Prefs>) {
@@ -169,11 +199,25 @@ export class MobileBridge {
         lights: true,
         lightColor: '#2b6cc4',
       });
+      // Modo silencioso: as notificações continuam na barra, mas sem som nem vibração.
+      await LocalNotifications.createChannel({ id: 'silencioso', name: 'Mensagens (silencioso)', importance: 2, visibility: 1, vibration: false });
     } catch {
       /* navegador comum: sem notificações do sistema */
     }
+    // Push do Telegram: se o Firebase estiver configurado, as notificações chegam na hora, com o app fechado,
+    // e o aviso fixo "Conectado ao Telegram" deixa de ser necessário.
+    try {
+      const { token, secret } = await LexNative.pushSetup();
+      if (token && secret && !this.demo) {
+        await this.tg.registerPush(token, secret);
+        this.pushToken = token;
+        await LexNative.pushSilent({ silent: this.prefs.silent });
+      }
+    } catch (e) {
+      console.warn('Push indisponível:', e);
+    }
     await this.applyBackground();
-    if (this.prefs.background && !this.prefs.batteryAsked) {
+    if (!this.pushToken && this.prefs.background && !this.prefs.batteryAsked) {
       const { unrestricted } = await LexNative.batteryStatus().catch(() => ({ unrestricted: true }));
       await this.savePrefs({ batteryAsked: true });
       if (!unrestricted) await LexNative.requestBatteryExemption().catch(() => {});
@@ -182,7 +226,8 @@ export class MobileBridge {
 
   private async applyBackground() {
     if (this.demo) return;
-    if (this.prefs.background) await LexNative.startKeepAlive().catch(() => {});
+    // Com push funcionando, não precisa ficar conectado escondido (nem do aviso fixo).
+    if (this.prefs.background && !this.pushToken && !this.prefs.offlineUntil) await LexNative.startKeepAlive().catch(() => {});
     else await LexNative.stopKeepAlive().catch(() => {});
   }
 
@@ -190,6 +235,7 @@ export class MobileBridge {
     const ids = this.shown.get(chatId);
     if (!ids?.length) return;
     this.shown.delete(chatId);
+    if (isNative) void LexNative.cancel({ ids }).catch(() => {});
     void LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => {});
     void LocalNotifications.removeDeliveredNotifications?.({ notifications: ids.map((id) => ({ id, title: '', body: '' })) }).catch(() => {});
   }
@@ -198,6 +244,27 @@ export class MobileBridge {
     if (!this.prefs.notifications) return;
     const id = this.notifId++;
     this.shown.set(chatId, [...(this.shown.get(chatId) ?? []), id]);
+    // Com push ligado e o app em segundo plano, quem avisa é o push (evita aviso duplicado).
+    if (this.pushToken && document.visibilityState !== 'visible') return;
+    if (isNative) {
+      // Notificação nativa do Lex, com a foto redonda de quem mandou.
+      void this.tg
+        .avatar(chatId)
+        .catch(() => null)
+        .then((url) =>
+          LexNative.notify({
+            id,
+            chatId,
+            title,
+            body,
+            avatar: url?.split(',')[1],
+            silent: this.prefs.silent,
+            nudge: actionTypeId === 'NUDGE',
+          }),
+        )
+        .catch(() => {});
+      return;
+    }
     LocalNotifications.schedule({
       notifications: [
         {
@@ -205,7 +272,7 @@ export class MobileBridge {
           title,
           body,
           largeBody: body,
-          channelId: CHANNEL,
+          channelId: this.prefs.silent ? 'silencioso' : CHANNEL,
           group: chatId,
           extra: { chatId },
           actionTypeId,
@@ -222,7 +289,7 @@ export class MobileBridge {
     const inGroup = c && c.kind !== 'user' && c.kind !== 'self';
     const title = inGroup ? `${m.senderName} em ${c.name}` : m.senderName;
     if (m.nudge) {
-      void Haptics.vibrate({ duration: 700 }).catch(() => {});
+      if (!this.prefs.silent) void Haptics.vibrate({ duration: 700 }).catch(() => {});
       this.sound('nudge');
       const who = c?.name ?? m.senderName;
       if (visible) {
@@ -238,7 +305,7 @@ export class MobileBridge {
     const body = m.text || (m.media ? 'enviou um anexo 📎' : '');
     if (visible) {
       this.sound('message');
-      if (this.prefs.notifications)
+      if (this.prefs.notifications && !this.prefs.silent)
         this.emit('toast', { kind: 'message', chatId: m.chatId, title, body, hasPhoto: !!c?.hasPhoto, name: c?.name ?? m.senderName });
     } else this.notify(m.chatId, `${title} diz:`, body);
   }
@@ -248,7 +315,7 @@ export class MobileBridge {
     if (Date.now() - this.lastOnlineAlert < 15000) return;
     this.lastOnlineAlert = Date.now();
     this.sound('online');
-    if (this.prefs.notifications)
+    if (this.prefs.notifications && !this.prefs.silent)
       this.emit('toast', { kind: 'online', chatId: c.id, title: c.name, body: 'acabou de entrar.', hasPhoto: c.hasPhoto, name: c.name });
   }
 
@@ -280,13 +347,21 @@ export class MobileBridge {
       loginCancel: () => tg.cancelLogin(),
       logout: async () => {
         this.presence.stop();
+        if (this.pushToken) await tg.unregisterPush(this.pushToken);
+        this.pushToken = null;
+        await LexNative.clearAvatars().catch(() => {});
         await LexNative.stopKeepAlive().catch(() => {});
         await tg.logout();
       },
       me: async () => tg.getMe(),
       contacts: async () => tg.listContacts(),
       contact: async (id) => tg.getContact(id),
-      avatar: (id) => tg.avatar(id),
+      avatar: async (id) => {
+        const url = await tg.avatar(id);
+        // Guarda a foto (pequena) para as notificações push, que chegam com o app fechado.
+        if (url && isNative && id !== 'me') void LexNative.cacheAvatar({ chatId: id, avatar: url.split(',')[1] }).catch(() => {});
+        return url;
+      },
       history: (id, before) => tg.history(id, before),
       sendText: async (id, text) => {
         await tg.sendText(id, text);
@@ -300,9 +375,20 @@ export class MobileBridge {
         this.sound('nudge');
         return true;
       },
-      sendFiles: async (id, _paths, images) => {
+      pickFiles: async (images) => {
         const files = await pickFiles(images ? 'image/*,video/*' : '*/*');
-        if (files.length) await tg.sendFiles(id, files);
+        return files.map((f) => {
+          const key = `escolhido:${this.pickSeq++}`;
+          this.picked.set(key, f);
+          return { id: key, name: f.name };
+        });
+      },
+      sendFiles: async (id, ids, images, sensitive) => {
+        const files = ids?.length
+          ? ids.map((k) => this.picked.get(k)).filter((f): f is { name: string; data: Uint8Array } => !!f)
+          : await pickFiles(images ? 'image/*,video/*' : '*/*');
+        ids?.forEach((k) => this.picked.delete(k));
+        if (files.length) await tg.sendFiles(id, files, !!sensitive);
       },
       sendImageData: (id, dataUrl) => tg.sendImageData(id, dataUrl),
       sendVoice: async (id, ogg, duration, waveform) => {
@@ -338,6 +424,19 @@ export class MobileBridge {
       setSelfDestruct: async (id, s) => tg.setSelfDestruct(id, s),
       setFavorite: (id, fav) => tg.setFavorite(id, fav),
       setSensitive: async (id, on) => tg.setSensitive(id, on),
+      setOffline: async (minutes) => {
+        if (minutes == null) {
+          await this.savePrefs({ offlineUntil: 0 });
+          await tg.unpause();
+          await this.applyBackground();
+          return;
+        }
+        const until = minutes > 0 ? Date.now() + minutes * 60_000 : -1;
+        await this.savePrefs({ offlineUntil: until });
+        await tg.pause(until);
+        // Desligado: o aviso fixo do Android também sai.
+        await LexNative.stopKeepAlive().catch(() => {});
+      },
       getSensitive: async (id) => tg.getSensitive(id),
       stickerPanel: () => tg.stickerPanel(),
       stickerPack: (id) => tg.stickerPack(id),
@@ -349,6 +448,7 @@ export class MobileBridge {
       },
       getSelfDestruct: async (id) => tg.getSelfDestruct(id),
       openSystemNotificationSettings: () => void LexNative.openNotificationSettings().catch(() => {}),
+      pushActive: async () => !!this.pushToken,
       copyText: (text) => void navigator.clipboard?.writeText(text).catch(() => {}),
       pathForFile: () => '',
       typing: (id) => tg.typing(id),
@@ -380,6 +480,7 @@ export class MobileBridge {
       refreshContact: (id) => tg.refreshContact(id),
       prefs: async () => this.prefs,
       setPrefs: async (p) => {
+        if ('silent' in p) void LexNative.pushSilent({ silent: !!p.silent }).catch(() => {});
         // Ligou a música sem a permissão do Android: abre a tela para liberar.
         if (p.shareMusic && !this.demo && !(await LexNative.musicAccess().catch(() => ({ granted: true }))).granted)
           await LexNative.requestMusicAccess().catch(() => {});
@@ -389,6 +490,17 @@ export class MobileBridge {
         return this.prefs;
       },
       shakeMe: () => this.shake(),
+      // Android: abre o Mensagens do Google (que usa RCS quando os dois têm); iPhone: o app Mensagens.
+      openSms: (phone, text) => {
+        const num = phone.replace(/[^\d+]/g, '');
+        if (!num) return;
+        const url = `sms:${num}${text ? `${isIOS ? '&' : '?'}body=${encodeURIComponent(text)}` : ''}`;
+        const a = document.createElement('a');
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      },
       openExternal: (url) => {
         if (/^https?:\/\//i.test(url)) void Browser.open({ url });
       },

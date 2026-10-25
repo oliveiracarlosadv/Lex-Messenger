@@ -34,12 +34,16 @@ function allWindows() {
 function emit<K extends keyof LexEvents>(event: K, data: LexEvents[K]) {
   for (const w of allWindows()) w.webContents.send(event, data);
   if (event === 'auth:state') buildMenus();
+  if (event === 'connection:changed' && (data as LexEvents['connection:changed']).connected && prefs.offlineUntil) {
+    prefs = { ...prefs, offlineUntil: 0 };
+    savePrefs(prefs);
+  }
   // Conversa lida (aqui ou em outro aparelho): somem os avisos dela.
   if (event === 'contact:patch' && (data as LexEvents['contact:patch']).unread === 0) closeToasts((data as LexEvents['contact:patch']).id);
 }
 
 function playSound(name: SoundName) {
-  if (!prefs.sounds) return;
+  if (!prefs.sounds || prefs.silent) return;
   listWin?.webContents.send('sound', name);
 }
 
@@ -60,6 +64,10 @@ const tg = new TelegramService(
   ready: (me) => {
     presence.start(me);
     askNotificationPermission();
+    // Estava "Desligado" com prazo ainda valendo: continua desligado até a hora marcada.
+    const until = prefs.offlineUntil;
+    if (until === -1 || until > Date.now()) void tg.pause(until);
+    else if (until) updatePrefs({ offlineUntil: 0 });
   },
   onContactOnline: (c) => {
     if (!prefs.onlineAlerts) return;
@@ -80,14 +88,14 @@ const tg = new TelegramService(
       if (win && !win.isDestroyed()) shake(win);
       if (!focused) {
         nudgePopup(msg.chatId, contact?.name ?? msg.senderName, !!contact?.hasPhoto);
-        if (process.platform === 'darwin') app.dock?.bounce('critical');
+        if (process.platform === 'darwin' && !prefs.silent) app.dock?.bounce('critical');
       }
       return;
     }
     if (focused) return;
     playSound('message');
     if (win && !win.isDestroyed()) win.flashFrame(true);
-    if (process.platform === 'darwin') app.dock?.bounce('informational');
+    if (process.platform === 'darwin' && !prefs.silent) app.dock?.bounce('informational');
     const body = msg.text || (msg.media ? 'enviou um anexo 📎' : '');
     toastFor(msg.chatId, contact, msg.senderName, body, 'message');
   },
@@ -166,7 +174,7 @@ function askNotificationPermission() {
 }
 
 function toast(data: ToastData) {
-  if (!prefs.notifications) return;
+  if (!prefs.notifications || prefs.silent) return;
   showToast(
     data,
     (w, hash) => {
@@ -336,6 +344,7 @@ function buildMenus() {
     click: () => void setStatus(s),
   }));
   const toggles: Electron.MenuItemConstructorOptions[] = [
+    { label: '🔕 Silencioso (sem sons nem avisos)', type: 'checkbox', checked: prefs.silent, click: (i) => updatePrefs({ silent: i.checked }) },
     { label: 'Sons', type: 'checkbox', checked: prefs.sounds, click: (i) => updatePrefs({ sounds: i.checked }) },
     { label: 'Notificações', type: 'checkbox', checked: prefs.notifications, click: (i) => updatePrefs({ notifications: i.checked }) },
     { label: 'Avisar quando contatos entrarem', type: 'checkbox', checked: prefs.onlineAlerts, click: (i) => updatePrefs({ onlineAlerts: i.checked }) },
@@ -348,6 +357,21 @@ function buildMenus() {
     { label: 'Abrir Lex Messenger', click: showList },
     { type: 'separator' },
     { label: 'Meu status', submenu: statusItems },
+    {
+      label: 'Desligar',
+      enabled: ready,
+      submenu: [
+        ...([
+          [30, 'Por 30 minutos'],
+          [60, 'Por 1 hora'],
+          [480, 'Por 8 horas'],
+          [1440, 'Por 1 dia'],
+          [0, 'Até eu ligar de novo'],
+        ] as [number, string][]).map(([m, label]) => ({ label, click: () => void setOffline(m) })),
+        { type: 'separator' as const },
+        { label: 'Ligar agora', enabled: tg.isPaused, click: () => void setOffline(null) },
+      ],
+    },
     profileItem,
     settingsItem,
     ...toggles,
@@ -437,6 +461,18 @@ async function setStatus(status: MyStatus) {
   updatePrefs({ status });
 }
 
+/** Botão Desligado: minutos (0 = até ligar de novo) ou null para ligar. */
+async function setOffline(minutes: number | null) {
+  if (minutes == null) {
+    updatePrefs({ offlineUntil: 0 });
+    await tg.unpause();
+    return;
+  }
+  const until = minutes > 0 ? Date.now() + minutes * 60_000 : -1;
+  updatePrefs({ offlineUntil: until });
+  await tg.pause(until);
+}
+
 function openSettings() {
   showList();
   listWin?.webContents.send('settings:open', true);
@@ -478,7 +514,17 @@ function registerIpc() {
     playSound('nudge');
     return true;
   });
-  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[], images?: boolean) => {
+  ipcMain.handle('files:pick', async (e, images?: boolean) => {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(w!, {
+      title: images ? 'Escolher fotos e vídeos' : 'Escolher arquivos',
+      buttonLabel: 'Escolher',
+      properties: ['openFile', 'multiSelections'],
+      filters: images ? [{ name: 'Fotos e vídeos', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'm4v'] }] : undefined,
+    });
+    return r.canceled ? [] : r.filePaths.map((p) => ({ id: p, name: p.split(/[\\/]/).pop() ?? p }));
+  });
+  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[], images?: boolean, sensitive?: boolean) => {
     let files = paths?.filter(Boolean) ?? [];
     if (!files.length) {
       const w = BrowserWindow.fromWebContents(e.sender);
@@ -491,7 +537,7 @@ function registerIpc() {
       if (r.canceled) return;
       files = r.filePaths;
     }
-    await tg.sendFiles(chatId, files);
+    await tg.sendFiles(chatId, files, !!sensitive);
   });
   ipcMain.handle('send:image', (_e, chatId: string, dataUrl: string) => tg.sendImageData(chatId, dataUrl));
   ipcMain.handle('send:voice', async (_e, chatId: string, ogg: Uint8Array, duration: number, waveform: number[]) => {
@@ -523,6 +569,7 @@ function registerIpc() {
     await tg.sendPick(String(chatId), String(key));
     playSound('sent');
   });
+  ipcMain.handle('offline:set', (_e, minutes: number | null) => setOffline(minutes));
   ipcMain.handle('sens:set', (_e, chatId: string, on: boolean) => tg.setSensitive(String(chatId), !!on));
   ipcMain.handle('sens:get', (_e, chatId: string) => tg.getSensitive(String(chatId)));
   ipcMain.handle('fav:set', (_e, chatId: string, fav: boolean) => tg.setFavorite(String(chatId), !!fav));
@@ -572,6 +619,11 @@ function registerIpc() {
   ipcMain.on('shake-me', (e) => {
     const w = BrowserWindow.fromWebContents(e.sender);
     if (w) shake(w);
+  });
+  // SMS/RCS: o Mac abre o app Mensagens; o Windows, o app de mensagens/Vincular ao Celular.
+  ipcMain.on('open-sms', (_e, phone: string, text: string) => {
+    const num = String(phone).replace(/[^\d+]/g, '');
+    if (num) void shell.openExternal(`sms:${num}${text ? `${process.platform === 'darwin' ? '&' : '?'}body=${encodeURIComponent(String(text))}` : ''}`);
   });
   ipcMain.on('open-external', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url);

@@ -49,6 +49,25 @@ O `.env` está no `.gitignore`: nunca vai para o GitHub.
 - `src/renderer` — telas em React: entrada, lista de contatos e conversa; sons em `lib/sounds.ts`.
 - `src/shared/types.ts` — tipos compartilhados e o texto do “chamar atenção” (`NUDGE_TEXT`).
 
+## Notificações push no Android
+
+Sem push, o Android (principalmente Samsung e Xiaomi) “adormece” o Lex depois de um tempo e as notificações atrasam.
+Com push, elas chegam na hora, com o app fechado, e o aviso fixo “Conectado ao Telegram” some. São três passos, uma
+vez só:
+
+1. **Criar o projeto no Firebase** (grátis): <https://console.firebase.google.com> > **Adicionar projeto** (nome:
+   `Lex Messenger`; o Google Analytics pode ficar desligado). Dentro dele: **Adicionar app** > **Android** > nome do
+   pacote **`br.com.lextecnologias.messenger`** > **Registrar app** > baixe o **`google-services.json`**.
+2. **Dar ao Telegram a chave do Firebase**: no Firebase, ⚙️ **Configurações do projeto** > **Contas de serviço** >
+   **Gerar nova chave privada** (baixa um arquivo `.json`). Em <https://my.telegram.org> > **API development tools** >
+   **Push credentials** > **FCM — FCM service account** > **Update** e envie esse arquivo.
+3. **Cadastrar o `google-services.json` no GitHub**: no repositório, **Settings > Secrets and variables > Actions >
+   New repository secret**, nome **`GOOGLE_SERVICES_JSON`**, e cole todo o conteúdo do arquivo.
+
+Pronto: a próxima geração do `.apk` já sai com push. Em **Configurações > Avisos**, o Lex mostra
+“✅ Notificações instantâneas (push) ligadas”. O conteúdo das notificações vem do Telegram **criptografado com uma
+chave criada no próprio celular**; só ele consegue ler.
+
 ## Android: assinatura
 O `.apk` do GitHub é assinado com uma chave **de teste** (`android/app/lex-teste.keystore`, senha pública no
 `build.gradle`), só para que cada versão instale por cima da anterior. Para publicar na Play Store, crie uma chave

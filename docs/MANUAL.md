@@ -35,7 +35,11 @@
 - **Chamar atenção** faz o celular **vibrar** e a tela tremer.
 - **Abrir** mostra o arquivo pelo menu **“Abrir com…”** sem guardar nada; **Salvar…** abre o menu do Android para você
   escolher onde guardar (Arquivos, Drive, galeria etc.).
-- **Em segundo plano**: o Lex continua conectado e avisando com o app fora da tela. Fica um aviso fixo e discreto
+- **Notificações na hora (push)**: quando o Lex é gerado com o Firebase configurado (veja
+  [Desenvolvimento](DESENVOLVIMENTO.md#notificações-push-no-android)), as notificações chegam como no Telegram oficial,
+  na hora, **mesmo com o app fechado**, com a **foto** de quem mandou, e sem o aviso fixo “Conectado ao Telegram”.
+- **Sem push** (modo “Manter conectado em segundo plano”, em Configurações > Avisos): o Lex continua conectado e
+  avisando com o app fora da tela. Fica um aviso fixo e discreto
   **“Conectado ao Telegram”** na barra de notificações: é ele que impede o Android de desligar o app. Na primeira vez,
   o Android pergunta se o Lex pode **rodar em segundo plano sem economia de bateria**: toque em **Permitir**.
 - Se você **fechar o app arrastando-o para fora** da lista de apps recentes, alguns celulares desligam tudo; aí os
@@ -104,6 +108,16 @@ Você só faz isso uma vez: nas próximas aberturas, o Lex Messenger entra sozin
   o status e a música.
 
 Pessoas que escondem o “visto por último” no Telegram aparecem como Offline.
+
+### Online, Invisível, Desligado e Silencioso
+Logo abaixo do seu nome há uma barra rápida:
+- **🟢 Online**: conectado e aparecendo online.
+- **👻 Invisível**: você **aparece offline**, mas continua **recebendo** mensagens normalmente.
+- **⏻ Desligado**: desliga o Lex por um tempo — **30 min, 1 hora, 2 horas, 8 horas, 1 dia, 3 dias**, um prazo seu
+  (em minutos, horas ou dias) ou **até você ligar de novo**. Desligado, você aparece offline e não recebe nada; no fim
+  do prazo o Lex liga sozinho e busca tudo o que chegou. Para voltar antes, toque em **Ligar agora**.
+- **🔔/🔕 Silencioso**: as mensagens continuam chegando e contando, mas **sem som, sem vibração e sem avisos** na
+  tela. No celular, elas ficam quietinhas na barra de notificações.
 
 ### Como os status chegam aos outros
 O Telegram só conhece “online” e “offline”. Por isso o Lex Messenger coloca o status no começo da sua bio, por exemplo
@@ -181,11 +195,17 @@ os dois lados** quando o tempo acaba. No lugar, fica o aviso **“🔥 Mensagem 
 - O Lex guarda só o **número** da mensagem e a hora de apagar — nunca o conteúdo.
 
 ### Mídia sensível 🔞
-Para mandar uma foto, vídeo ou recado **coberto**, toque no **🔞** da barra de baixo (vale para as próximas fotos e
-vídeos daquela conversa) ou marque **🔞 Marcar como sensível** na prévia da câmera. Quem recebe vê só um quadro
+Ao enviar fotos ou vídeos (📎, 🖼️ ou arrastando para a janela), aparece a confirmação **“Enviar … para Fulano?”**
+com a opção **🔞 Sensível**; na câmera, a opção fica na prévia, antes de **Enviar**. Quem recebe vê só um quadro
 escuro **“🔞 Mídia sensível — Toque para ver”**: a mídia aparece ao tocar e **volta a ficar coberta** ao tocar em
 **🙈 Ocultar de novo**, quando o vídeo termina ou ao sair da conversa. Antes de a pessoa tocar, nem a miniatura é
 baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada até tocar).
+
+### SMS / RCS 💬
+O botão **💬** no alto da conversa abre o **app de mensagens do aparelho** (no Android, o Mensagens do Google; no
+iPhone e no Mac, o Mensagens) com o número da pessoa e o texto que você estava escrevendo. Se os dois aparelhos
+tiverem **RCS**, ele envia por RCS; senão, vai como **SMS** (pode ter custo da operadora). O Lex não envia SMS/RCS
+sozinho — isso é feito pelo app de mensagens. O número vem do Telegram quando a pessoa o compartilha; senão, digite.
 
 ### Lista de tarefas 📋
 Toque no **📋**, dê um título e escreva os itens (um por linha). A outra pessoa **toca nos quadradinhos** para marcar

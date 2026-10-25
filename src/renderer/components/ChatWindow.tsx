@@ -15,6 +15,7 @@ import { ChecklistCard, NewChecklistDialog } from './Checklist';
 import { LoopMedia, StickerPicker } from './StickerPicker';
 import { VideoPlayer } from './VideoPlayer';
 import { SensitiveCover } from './SensitiveCover';
+import { SmsDialog } from './SmsDialog';
 import { applyToggle, parseChecklist, parseToggle, type Checklist } from '../../shared/checklist';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏'];
@@ -37,7 +38,9 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [typing, setTyping] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ label: string; progress: number | null } | null>(null);
   const [picker, setPicker] = useState(false);
-  const [pendingFiles, setPendingFiles] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<{ id: string; name: string }[]>([]);
+  const [pendingImages, setPendingImages] = useState(false);
+  const [pendingSensitive, setPendingSensitive] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [notice, setNotice] = useState('');
   const [sequential, setSeq] = useState(getSequential);
@@ -49,8 +52,8 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [ttl, setTtl] = useState(0);
   const [ttlMenu, setTtlMenu] = useState(false);
   const [newList, setNewList] = useState(false);
+  const [sms, setSms] = useState(false);
   const [stickers, setStickers] = useState(false);
-  const [sensitive, setSensitive] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -72,7 +75,6 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     lex.markRead(chatId);
     lex.refreshContact(chatId);
     void lex.getSelfDestruct(chatId).then(setTtl);
-    void lex.getSensitive(chatId).then(setSensitive);
     const offs = [
       lex.on('message:new', (m) => {
         if (m.chatId !== chatId) return;
@@ -266,11 +268,20 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     if (!ok) flashNotice('Espere um pouquinho antes de chamar a atenção de novo.');
   };
 
-  const sendFiles = async (paths?: string[], images?: boolean) => {
+  /** Escolhe os arquivos e mostra a confirmação (onde fica a opção 🔞). */
+  const chooseFiles = async (images?: boolean) => {
+    const files = await lex.pickFiles(images).catch(() => []);
+    if (!files.length) return;
+    setPendingImages(!!images);
+    setPendingSensitive(false);
+    setPendingFiles(files);
+  };
+
+  const sendFiles = async (paths?: string[], images?: boolean, sensitive?: boolean) => {
     setPendingFiles([]);
     stickBottom.current = true;
     try {
-      await lex.sendFiles(chatId, paths, images);
+      await lex.sendFiles(chatId, paths, images, sensitive);
     } catch {
       flashNotice('Não foi possível enviar o arquivo.');
     }
@@ -280,7 +291,10 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     e.preventDefault();
     setDragOver(false);
     const paths = [...e.dataTransfer.files].map((f) => lex.pathForFile(f)).filter(Boolean);
-    if (paths.length) setPendingFiles(paths);
+    if (paths.length) {
+      setPendingSensitive(false);
+      setPendingFiles(paths.map((p) => ({ id: p, name: p.split(/[\\/]/).pop() ?? p })));
+    }
   };
 
   const onPaste = (e: React.ClipboardEvent) => {
@@ -288,7 +302,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     if (!files.length) return;
     const paths = files.map((f) => lex.pathForFile(f)).filter(Boolean);
     e.preventDefault();
-    if (paths.length) return setPendingFiles(paths);
+    if (paths.length) return setPendingFiles(paths.map((p) => ({ id: p, name: p.split(/[\\/]/).pop() ?? p })));
     const img = files.find((f) => f.type.startsWith('image/'));
     if (!img) return;
     const reader = new FileReader();
@@ -350,6 +364,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           <span className="chat-sub">
             {d?.label ? ` (${d.label})` : ''} {contact?.subtitle && `— ${contact.subtitle}`}
           </span>
+          {contact?.kind === 'user' && (
+            <button className="mute-btn sms-btn" onClick={() => setSms(true)} title="Enviar por SMS/RCS pelo app de mensagens do aparelho">
+              💬
+            </button>
+          )}
           {contact && (
             <button
               className="mute-btn fav-btn"
@@ -428,9 +447,19 @@ export function ChatWindow({ chatId }: { chatId: string }) {
 
           {pendingFiles.length > 0 && (
             <div className="confirm-bar">
-              Enviar {pendingFiles.length === 1 ? `"${pendingFiles[0].split('/').pop()}"` : `${pendingFiles.length} arquivos`} para{' '}
-              {name}?
-              <button className="btn btn-primary" onClick={() => void sendFiles(pendingFiles)}>
+              <span className="confirm-text">
+                Enviar {pendingFiles.length === 1 ? `“${pendingFiles[0].name}”` : `${pendingFiles.length} arquivos`} para {name}?
+              </span>
+              {pendingFiles.some((f) => /\.(jpe?g|png|webp|gif|heic|mp4|mov|m4v|webm)$/i.test(f.name)) && (
+                <label className="confirm-sensitive" title="Fotos e vídeos chegam cobertos e só aparecem quando a pessoa toca">
+                  <input type="checkbox" checked={pendingSensitive} onChange={(e) => setPendingSensitive(e.target.checked)} />
+                  🔞 Sensível
+                </label>
+              )}
+              <button
+                className="btn btn-primary"
+                onClick={() => void sendFiles(pendingFiles.map((f) => f.id), pendingImages, pendingSensitive)}
+              >
                 Enviar
               </button>
               <button className="btn" onClick={() => setPendingFiles([])}>
@@ -491,28 +520,14 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                     />
                   )}
                 </div>
-                <button className="mini-btn" onClick={() => void sendFiles()} title="Enviar arquivos" aria-label="Enviar arquivos">
+                <button className="mini-btn" onClick={() => void chooseFiles()} title="Enviar arquivos" aria-label="Enviar arquivos">
                   📎
                 </button>
-                <button className="mini-btn" onClick={() => void sendFiles(undefined, true)} title="Enviar fotos e vídeos da galeria" aria-label="Enviar fotos e vídeos">
+                <button className="mini-btn" onClick={() => void chooseFiles(true)} title="Enviar fotos e vídeos da galeria" aria-label="Enviar fotos e vídeos">
                   🖼️
                 </button>
                 <button className="mini-btn" onClick={() => setNewList(true)} title="Lista de tarefas" aria-label="Criar lista de tarefas">
                   📋
-                </button>
-                <button
-                  className={`mini-btn sens-btn ${sensitive ? 'on' : ''}`}
-                  onClick={() => {
-                    const on = !sensitive;
-                    setSensitive(on);
-                    void lex.setSensitive(chatId, on);
-                    flashNotice(on ? '🔞 Próximas fotos e vídeos vão como mídia sensível (cobertos até a pessoa tocar).' : 'Fotos e vídeos voltam a ir sem cobertura.');
-                  }}
-                  title="Mandar as próximas fotos e vídeos como mídia sensível"
-                  aria-label="Mídia sensível"
-                  aria-pressed={sensitive}
-                >
-                  🔞
                 </button>
                 <button className="mini-btn" onClick={() => setCamera(true)} title="Câmera: foto, vídeo ou recado" aria-label="Abrir a câmera">
                   📷
@@ -537,26 +552,31 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                     ⏱{ttl ? <span>{TTL_OPTIONS.find(([v]) => v === ttl)?.[1].replace('segundos', 's').replace('minutos', 'min').replace('minuto', 'min').replace('horas', 'h').replace('hora', 'h')}</span> : null}
                   </button>
                   {ttlMenu && (
-                    <div className="ttl-menu" role="menu">
-                      <b>Autodestruir as próximas mensagens</b>
-                      {TTL_OPTIONS.map(([v, label]) => (
-                        <button
-                          key={v}
-                          role="menuitemradio"
-                          aria-checked={ttl === v}
-                          className={ttl === v ? 'on' : ''}
-                          onClick={() => {
-                            setTtl(v);
-                            setTtlMenu(false);
-                            void lex.setSelfDestruct(chatId, v);
-                            flashNotice(v ? `Mensagens temporárias ligadas: somem em ${label}.` : 'Mensagens temporárias desligadas.');
-                          }}
-                        >
-                          {ttl === v ? '● ' : '○ '}
-                          {label}
-                        </button>
-                      ))}
-                      <span className="hint">Apaga para os dois lados. Depois fica o aviso 🔥, que some em 12 horas.</span>
+                    <div className="ttl-menu" role="dialog" aria-label="Autodestruição">
+                      <span className="ttl-title">⏱ Autodestruir as próximas mensagens</span>
+                      <div className="ttl-chips" role="radiogroup">
+                        {TTL_OPTIONS.map(([v, label]) => {
+                          const [num, ...unit] = v ? label.split(' ') : ['—', 'Desligado'];
+                          return (
+                            <button
+                              key={v}
+                              role="radio"
+                              aria-checked={ttl === v}
+                              className={`${ttl === v ? 'on' : ''} ${v ? '' : 'off'}`}
+                              onClick={() => {
+                                setTtl(v);
+                                setTtlMenu(false);
+                                void lex.setSelfDestruct(chatId, v);
+                                flashNotice(v ? `⏱ Mensagens temporárias ligadas: somem em ${label}.` : 'Mensagens temporárias desligadas.');
+                              }}
+                            >
+                              <b>{num}</b>
+                              <span>{unit.join(' ')}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span className="hint">Apaga para os dois lados. Depois fica o aviso 🔥, que também some em 12 horas.</span>
                     </div>
                   )}
                 </div>
@@ -641,6 +661,17 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           onDelete={(all) => void remove(menu.m, all)}
         />
       )}
+      {(picker || stickers || ttlMenu) && (
+        <div
+          className="sheet-back"
+          onClick={() => {
+            setPicker(false);
+            setStickers(false);
+            setTtlMenu(false);
+          }}
+        />
+      )}
+      {sms && contact && <SmsDialog name={contact.name} phone={contact.phone} text={text} onClose={() => setSms(false)} />}
       {newList && (
         <NewChecklistDialog
           chatId={chatId}
@@ -653,7 +684,6 @@ export function ChatWindow({ chatId }: { chatId: string }) {
       {camera && (
         <CameraDialog
           chatId={chatId}
-          sensitiveDefault={sensitive}
           onClose={() => {
             setCamera(false);
             stickBottom.current = true;
@@ -736,7 +766,9 @@ function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump, c
         {day}
         <div className="nudge-msg" id={`msg-${m.id}`}>
           <hr />
-          {m.out ? 'Você chamou a atenção.' : `${m.senderName} chamou a sua atenção!`} <span className="time">{formatTime(m.date)}</span>
+          <span className="nudge-text">
+            {m.out ? 'Você chamou a atenção.' : `${m.senderName} chamou a sua atenção!`} <span className="time">{formatTime(m.date)}</span>
+          </span>
           <hr />
         </div>
       </>

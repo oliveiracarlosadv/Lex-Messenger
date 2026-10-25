@@ -30,6 +30,15 @@
             android:exported="false"
             android:foregroundServiceType="remoteMessaging" />
 
+        <receiver android:name=".LexDismissReceiver" android:exported="false" />
+
+        <!-- Push do Telegram via Firebase (chega com o app fechado). -->
+        <service android:name=".LexPushService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- Permite ver a música tocando (para "🎵 música que estou ouvindo"). -->
         <service
             android:name=".LexMusicListener"
