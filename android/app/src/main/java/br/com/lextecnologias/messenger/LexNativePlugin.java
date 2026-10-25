@@ -207,4 +207,12 @@ public class LexNativePlugin extends Plugin {
         getContext().getSharedPreferences("lex-avatars", Context.MODE_PRIVATE).edit().clear().apply();
         call.resolve();
     }
+
+    /** O sistema avisou de print ("screenshot") ou gravação ("recording"/"recording-stop") desta tela. */
+    static void capture(String kind) {
+        if (instance == null) return;
+        JSObject d = new JSObject();
+        d.put("kind", kind);
+        instance.notifyListeners("screenCapture", d);
+    }
 }

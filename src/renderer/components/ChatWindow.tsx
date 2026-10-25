@@ -130,6 +130,18 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     if (el && stickBottom.current) el.scrollTop = el.scrollHeight;
   }, [messages, typing]);
 
+  // Informa ao app o que está na tela (para avisar a outra pessoa sobre prints e gravações).
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last) return;
+    lex.reportView(chatId, {
+      lastId: last.id,
+      sensitive: messages.some((m) => m.media?.sensitive),
+      temporary: messages.some((m) => m.selfDestruct),
+    });
+  }, [chatId, messages]);
+  useEffect(() => () => lex.reportView(chatId, null), [chatId]);
+
   // Abre sempre na última mensagem: se fotos, áudios e prévias terminam de carregar depois
   // (ou o teclado do celular abre), a conversa continua grudada no fim.
   useEffect(() => {
@@ -331,6 +343,16 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const canWrite = contact?.kind !== 'channel';
   const readMax = contact?.kind === 'user' ? contact.readOutboxMaxId ?? 0 : 0;
 
+  const exportChat = async () => {
+    if (!confirm(`Exportar esta conversa para um arquivo?\n\n${name} será avisado(a) de que a conversa foi exportada.`)) return;
+    try {
+      flashNotice('Exportando… (conversas longas podem levar alguns segundos)');
+      if (await lex.exportChat(chatId)) flashNotice(`📤 Conversa exportada. ${name} foi avisado(a).`);
+    } catch {
+      flashNotice('Não foi possível exportar a conversa.');
+    }
+  };
+
   // Listas de tarefas: o estado de cada lista é o texto dela + as marcações respondidas a ela.
   const lists = new Map<number, Checklist>();
   for (const m of messages) {
@@ -364,6 +386,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           <span className="chat-sub">
             {d?.label ? ` (${d.label})` : ''} {contact?.subtitle && `— ${contact.subtitle}`}
           </span>
+          {contact && (
+            <button className="mute-btn export-btn" onClick={() => void exportChat()} title="Exportar a conversa (a outra pessoa é avisada)">
+              📤
+            </button>
+          )}
           {contact?.kind === 'user' && (
             <button className="mute-btn sms-btn" onClick={() => setSms(true)} title="Enviar por SMS/RCS pelo app de mensagens do aparelho">
               💬
@@ -746,6 +773,16 @@ function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump, c
         <div className="service-msg checklist-note" id={`msg-${m.id}`}>
           {toggle.done ? '✅' : '↩️'} {m.out ? 'Você' : m.senderName} {toggle.done ? 'marcou' : 'desmarcou'} “{toggle.item}”{' '}
           <span className="time">{formatTime(m.date)}</span>
+        </div>
+      </>
+    );
+  }
+  if (m.systemNotice) {
+    return (
+      <>
+        {day}
+        <div className="service-msg destroyed" id={`msg-${m.id}`}>
+          {m.out ? 'Você' : m.senderName}: {m.text} <span className="time">{formatTime(m.date)}</span>
         </div>
       </>
     );

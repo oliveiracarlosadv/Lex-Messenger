@@ -9,7 +9,11 @@ import { CustomFile } from 'telegram/client/uploads';
 import type { Entity } from 'telegram/define';
 import bigInt from 'big-integer';
 import {
+  EXPORT_NOTICE,
   NUDGE_TEXT,
+  PRINT_CONTEXT_NOTICE,
+  RECORDING_NOTICE,
+  isSystemNotice,
   type AuthState,
   type ChatMessage,
   type Contact,
@@ -868,6 +872,7 @@ export class TelegramService {
       text,
       selfDestruct: ttlMatch?.[1].trim(),
       destroyedNotice: text === DESTROYED_NOTICE,
+      systemNotice: isSystemNotice(text),
       media: mediaOf(msg),
       nudge: msg.message === NUDGE_TEXT,
       edited: !!msg.editDate && !msg.editHide,
@@ -1237,6 +1242,93 @@ export class TelegramService {
       if ((x instanceof Api.UpdateNewMessage || x instanceof Api.UpdateNewChannelMessage) && x.message instanceof Api.Message) return x.message;
     }
     return undefined;
+  }
+
+  // ---------- Exportar e avisos de print/gravação ----------
+
+  private lastShot = new Map<string, number>();
+
+  /** Avisa a outra pessoa que alguém tirou print (aviso oficial do Telegram, aparece em qualquer app). */
+  async notifyScreenshot(chatId: string, lastId: number, context: string[] = []) {
+    if (!this.client || this.paused) return;
+    if (Date.now() - (this.lastShot.get(chatId) ?? 0) < 4000) return;
+    this.lastShot.set(chatId, Date.now());
+    try {
+      const u = await this.client.invoke(
+        new Api.messages.SendScreenshotNotification({
+          peer: this.entity(chatId),
+          replyTo: new Api.InputReplyToMessage({ replyToMsgId: lastId }),
+          randomId: bigInt(Math.floor(Math.random() * 1e15)),
+        }),
+      );
+      const m = this.messageFromUpdates(u);
+      if (m) await this.emitSent(chatId, m, false);
+    } catch {
+      /* alguns tipos de conversa não aceitam */
+    }
+    if (context.length) await this.sendNotice(chatId, `${PRINT_CONTEXT_NOTICE} ${context.join(' e ')}`);
+  }
+
+  async notifyRecording(chatId: string) {
+    await this.sendNotice(chatId, RECORDING_NOTICE);
+  }
+
+  private async sendNotice(chatId: string, text: string) {
+    if (!this.client || this.paused) return;
+    try {
+      const n = await this.client.sendMessage(this.entity(chatId), { message: text, silent: true });
+      await this.emitSent(chatId, n, false);
+    } catch {
+      /* sem conexão */
+    }
+  }
+
+  /** Exporta a conversa (texto, em ordem) para um arquivo HTML e avisa a outra pessoa. */
+  async exportChat(chatId: string): Promise<boolean> {
+    const c = this.client!;
+    const contact = this.contacts.get(chatId);
+    const name = contact?.name ?? 'Conversa';
+    const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
+    const rows: string[] = [];
+    let day = '';
+    for await (const m of c.iterMessages(this.entity(chatId), { reverse: true, limit: 20000 })) {
+      const cm = await this.toChatMessage(m as Api.Message, chatId);
+      const d = new Date(cm.date * 1000);
+      const dd = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+      if (dd !== day) {
+        day = dd;
+        rows.push(`<h2>${esc(dd)}</h2>`);
+      }
+      const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (cm.service || cm.systemNotice || cm.destroyedNotice) {
+        rows.push(`<p class="sys">${esc(`${cm.senderName} ${cm.text}`)} · ${hora}</p>`);
+        continue;
+      }
+      const media = cm.media ? `<span class="midia">[${esc(cm.media.sensitive ? '🔞 mídia sensível' : mediaLabel(cm.media))}]</span> ` : '';
+      const reply = cm.replyTo?.text ? `<blockquote>${esc(cm.replyTo.senderName)}: ${esc(cm.replyTo.text)}</blockquote>` : '';
+      const flags = [cm.selfDestruct && `⏱ temporária (${cm.selfDestruct})`, cm.edited && 'editada', cm.forwardedFrom && `encaminhada de ${cm.forwardedFrom}`]
+        .filter(Boolean)
+        .join(' · ');
+      rows.push(
+        `<div class="m ${cm.out ? 'eu' : ''}"><div class="h"><b>${esc(cm.senderName)}</b> <span>${hora}${flags ? ' · ' + esc(flags) : ''}</span></div>${reply}<div class="t">${media}${esc(cm.nudge ? '📳 chamou a atenção' : cm.text).replace(/\n/g, '<br>')}</div></div>`,
+      );
+    }
+    const now = new Date().toLocaleString('pt-BR');
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Conversa com ${esc(name)}</title><style>
+body{font-family:Arial,Helvetica,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#1d2733;line-height:1.5}
+header{border-bottom:2px solid #2b6cc4;margin-bottom:12px}h1{color:#174a8f;margin:0}header p{color:#6b7a8c;margin:4px 0 10px}
+h2{font-size:13px;color:#6b7a8c;text-transform:capitalize;text-align:center;margin:18px 0 6px}
+.m{padding:6px 0;border-bottom:1px solid #eef2f8}.h b{color:#174a8f}.eu .h b{color:#2f7d1f}.h span{color:#9aa7b8;font-size:12px}
+.t{padding-left:12px;white-space:pre-wrap;word-break:break-word}.midia{color:#5a6fb0}.sys{text-align:center;color:#b35a00;font-style:italic;font-size:13px}
+blockquote{margin:2px 0 2px 12px;padding:2px 8px;border-left:3px solid #2b6cc4;color:#6b7a8c;font-size:13px}
+footer{margin-top:20px;color:#9aa7b8;font-size:12px;text-align:center}</style></head><body>
+<header><h1>Conversa com ${esc(name)}</h1><p>Exportada por ${esc(this.me?.name ?? '')} em ${esc(now)} · Lex Messenger — Comunicação em primeiro lugar!</p></header>
+${rows.join('\n')}
+<footer>Arquivos, fotos e vídeos não são incluídos; aparecem como [anexo].</footer></body></html>`;
+    const fileName = `Conversa com ${name.replace(/[\\/:*?"<>|]/g, '_')} - ${new Date().toISOString().slice(0, 10)}.html`;
+    const saved = await this.platform.saveAs(fileName, Buffer.from(html, 'utf8'));
+    if (saved) await this.sendNotice(chatId, EXPORT_NOTICE);
+    return saved;
   }
 
   // ---------- Lista de tarefas ----------

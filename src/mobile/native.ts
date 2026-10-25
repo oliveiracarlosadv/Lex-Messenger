@@ -18,6 +18,7 @@ export interface LexNativePlugin {
   cacheAvatar(o: { chatId: string; avatar: string }): Promise<void>;
   clearAvatars(): Promise<void>;
   addListener(event: 'notificationOpen', cb: (d: { chatId: string }) => void): Promise<{ remove: () => void }>;
+  addListener(event: 'screenCapture', cb: (d: { kind: 'screenshot' | 'recording' | 'recording-stop' }) => void): Promise<{ remove: () => void }>;
 }
 
 export const LexNative = registerPlugin<LexNativePlugin>('LexNative', {

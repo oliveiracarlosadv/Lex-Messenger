@@ -2448,8 +2448,12 @@ body.toast-body {
   background: #fff;
 }
 
-.sms-btn {
+.export-btn {
   margin-left: auto;
+}
+.export-btn + .sms-btn,
+.sms-btn + .fav-btn {
+  margin-left: 0;
 }
 .sms-btn + .fav-btn {
   margin-left: 0;

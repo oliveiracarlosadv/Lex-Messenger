@@ -50,6 +50,9 @@ export class MobileBridge {
   private tg: TelegramService;
   private presence: PresenceManager;
   private notifId = 1;
+  /** O que a conversa aberta está mostrando (para os avisos de print e gravação). */
+  private views = new Map<string, { lastId: number; sensitive: boolean; temporary: boolean }>();
+  private recordingNotified = false;
   /** Push do Telegram (Firebase) ligado: as notificações com o app fechado vêm por ele. */
   private pushToken: string | null = null;
   /** Arquivos escolhidos esperando a confirmação de envio (só na memória). */
@@ -122,6 +125,23 @@ export class MobileBridge {
           ],
         },
       ],
+    }).catch(() => {});
+    // Print ou gravação da tela com uma conversa aberta: avisa a outra pessoa.
+    void LexNative.addListener?.('screenCapture', ({ kind }) => {
+      const chat = this.currentChat;
+      const view = chat ? this.views.get(chat) : undefined;
+      if (kind === 'recording-stop') {
+        this.recordingNotified = false;
+        return;
+      }
+      if (!chat || !view || this.demo) return;
+      if (kind === 'screenshot') {
+        const ctx = [view.temporary && 'mensagens temporárias', view.sensitive && 'mídia sensível'].filter(Boolean) as string[];
+        void this.tg.notifyScreenshot(chat, view.lastId, ctx);
+      } else if (kind === 'recording' && !this.recordingNotified) {
+        this.recordingNotified = true;
+        void this.tg.notifyRecording(chat);
+      }
     }).catch(() => {});
     // Toque numa notificação nativa (com foto) do Lex: abre a conversa.
     void LexNative.addListener?.('notificationOpen', ({ chatId }) => chatId && this.openChat(chatId)).catch(() => {});
@@ -424,6 +444,11 @@ export class MobileBridge {
       setSelfDestruct: async (id, s) => tg.setSelfDestruct(id, s),
       setFavorite: (id, fav) => tg.setFavorite(id, fav),
       setSensitive: async (id, on) => tg.setSensitive(id, on),
+      exportChat: (id) => tg.exportChat(id),
+      reportView: (id, view) => {
+        if (view) this.views.set(id, view);
+        else this.views.delete(id);
+      },
       setOffline: async (minutes) => {
         if (minutes == null) {
           await this.savePrefs({ offlineUntil: 0 });

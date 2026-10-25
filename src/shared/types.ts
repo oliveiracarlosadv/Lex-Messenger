@@ -92,6 +92,8 @@ export interface ChatMessage {
   selfDestruct?: string;
   /** Aviso "🔥 Mensagem autodestruída" (também some em 12 h). */
   destroyedNotice?: boolean;
+  /** Aviso do Lex: exportou a conversa, gravou a tela… */
+  systemNotice?: boolean;
 }
 
 /** Figurinha ou GIF no seletor. */
@@ -183,6 +185,12 @@ export interface PresenceInfo {
 
 export type SoundName = 'message' | 'online' | 'nudge' | 'sent';
 
+/** Avisos que o Lex manda para a outra pessoa (aparecem como aviso no meio da conversa). */
+export const EXPORT_NOTICE = '📤 Exportou esta conversa';
+export const RECORDING_NOTICE = '🎥 Começou a gravar a tela nesta conversa';
+export const PRINT_CONTEXT_NOTICE = '⚠️ O print incluiu';
+export const isSystemNotice = (t: string) => t === EXPORT_NOTICE || t === RECORDING_NOTICE || t.startsWith(PRINT_CONTEXT_NOTICE);
+
 /** Texto enviado para "chamar a atenção". Outro Lex Messenger reconhece e faz a janela tremer. */
 export const NUDGE_TEXT = '📳 Chamou sua atenção!';
 
@@ -269,6 +277,10 @@ export interface LexApi {
   setSensitive(chatId: string, on: boolean): Promise<void>;
   /** Desliga o app por um tempo (minutos; 0 = até ligar de novo) ou liga de novo (null). */
   setOffline(minutes: number | null): Promise<void>;
+  /** Exporta a conversa para um arquivo (a outra pessoa é avisada). Devolve false se desistir. */
+  exportChat(chatId: string): Promise<boolean>;
+  /** O que está na tela da conversa agora (para avisar sobre prints e gravações). */
+  reportView(chatId: string, view: { lastId: number; sensitive: boolean; temporary: boolean } | null): void;
   getSensitive(chatId: string): Promise<boolean>;
   /** Figurinhas recentes, pacotes instalados e GIFs salvos. */
   stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }>;

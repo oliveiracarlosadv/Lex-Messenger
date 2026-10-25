@@ -203,6 +203,17 @@ escuro **“🔞 Mídia sensível — Toque para ver”**: a mídia aparece ao t
 **🙈 Ocultar de novo**, quando o vídeo termina ou ao sair da conversa. Antes de a pessoa tocar, nem a miniatura é
 baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada até tocar).
 
+### Exportar a conversa 📤 e avisos de print
+- **📤 Exportar**, no alto da conversa, salva toda a conversa num arquivo (abre no navegador e pode ser impresso ou
+  salvo em PDF), com datas, horários, respostas e marcas de mensagem temporária. Fotos e arquivos aparecem como
+  [anexo]. **A outra pessoa é avisada**: “📤 Exportou esta conversa”.
+- **Print da tela** com uma conversa aberta: a outra pessoa recebe o aviso **oficial do Telegram** (“Fulano tirou uma
+  captura de tela”, visto até no app oficial). Se havia **mensagem temporária** ou **mídia sensível** na tela, o aviso
+  diz isso (“⚠️ O print incluiu mídia sensível”).
+- **Gravação da tela**: “🎥 Começou a gravar a tela nesta conversa”.
+- Onde funciona: **Android 14 ou mais novo** (gravação: Android 15+), **Mac** e **Windows** (prints e gravações
+  feitos pelo próprio sistema, salvos na pasta padrão). No **iPhone pelo Safari** não é possível saber de prints.
+
 ### SMS / RCS 💬
 O botão **💬** no alto da conversa abre o **app de mensagens do aparelho** (no Android, o Mensagens do Google; no
 iPhone e no Mac, o Mensagens) com o número da pessoa e o texto que você estava escrevendo. Se os dois aparelhos

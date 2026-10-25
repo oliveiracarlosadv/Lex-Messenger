@@ -9,6 +9,7 @@ import { PresenceManager } from '../core/presence';
 import { TelegramService } from '../core/telegram';
 import { desktopPlatform, desktopPresence } from './platform';
 import { closeToasts, showToast, type ToastData } from './toast';
+import { watchCaptures } from './screenshots';
 
 app.setName('Lex Messenger');
 // Os sons tocam sozinhos, sem precisar de um clique antes (o padrão do Chromium bloqueia).
@@ -25,6 +26,11 @@ let quitting = false;
 let prefs: Prefs = loadPrefs();
 let lastOnlineSound = 0;
 let lastResync = Date.now();
+type ChatView = { lastId: number; sensitive: boolean; temporary: boolean };
+/** O que cada janela de conversa está mostrando (para o aviso de print). */
+const chatViews = new Map<string, ChatView>();
+/** Quando cada janela de conversa esteve na frente pela última vez (o print do Mac tira o foco por um instante). */
+const lastChatFocus = new WeakMap<BrowserWindow, number>();
 const lastNudgeSent = new Map<string, number>();
 
 function allWindows() {
@@ -295,6 +301,7 @@ function openChat(chatId: string, focus = true): BrowserWindow {
   secure(win);
   const w = win;
   w.once('ready-to-show', () => (focus ? w.show() : w.showInactive()));
+  w.on('blur', () => lastChatFocus.set(w, Date.now()));
   w.on('focus', () => {
     w.flashFrame(false);
     tg.markRead(chatId);
@@ -569,6 +576,11 @@ function registerIpc() {
     await tg.sendPick(String(chatId), String(key));
     playSound('sent');
   });
+  ipcMain.handle('chat:export', (_e, chatId: string) => tg.exportChat(String(chatId)));
+  ipcMain.on('chat:view', (_e, chatId: string, view: ChatView | null) => {
+    if (view) chatViews.set(String(chatId), view);
+    else chatViews.delete(String(chatId));
+  });
   ipcMain.handle('offline:set', (_e, minutes: number | null) => setOffline(minutes));
   ipcMain.handle('sens:set', (_e, chatId: string, on: boolean) => tg.setSensitive(String(chatId), !!on));
   ipcMain.handle('sens:get', (_e, chatId: string) => tg.getSensitive(String(chatId)));
@@ -650,6 +662,20 @@ if (!app.requestSingleInstanceLock()) {
     });
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
+    // Print ou gravação feitos com uma conversa na frente: avisa a outra pessoa.
+    watchCaptures((kind) => {
+      const now = Date.now();
+      const entry = [...chatWins.entries()].find(([, w]) => !w.isDestroyed() && (w.isFocused() || now - (lastChatFocus.get(w) ?? 0) < 15_000));
+      if (!entry) return;
+      const [chatId] = entry;
+      const view = chatViews.get(chatId);
+      if (!view) return;
+      if (kind === 'recording') void tg.notifyRecording(chatId);
+      else {
+        const ctx = [view.temporary && 'mensagens temporárias', view.sensitive && 'mídia sensível'].filter(Boolean) as string[];
+        void tg.notifyScreenshot(chatId, view.lastId, ctx);
+      }
+    });
     // Computador voltou da suspensão: reconecta e busca o que chegou.
     powerMonitor.on('resume', () => setTimeout(() => void tg.resync(), 3000));
     tray = new Tray(trayIcon());
