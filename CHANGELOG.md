@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## v0.4.0
+- **Mensagens de áudio** em todas as versões: segurar para gravar, ou **mãos livres** (um toque grava sem segurar). Tocador com onda sonora, velocidade e “ouvir em sequência”. Áudios no formato de voz do Telegram.
+- **Ações nas mensagens**: responder citando, editar, apagar para mim/para todos, encaminhar, reações, copiar; ✓/✓✓ de lido; “(editada)”; mensagens encaminhadas identificadas.
+- **Prévias de links** (cartão com site, título e imagem).
+- **Silenciar conversas** (🔕), que também deixam de contar no número de não lidas.
+- **Configurações**: avisos, privacidade, aparelhos conectados, bloqueados, verificação em duas etapas e limpeza de temporários.
+- **Telegram Premium**: transcrição de áudios em texto, selo ⭐ e arquivos de até 4 GB (para contas Premium).
+- **Android em segundo plano**: serviço de conexão (“Conectado ao Telegram”), pedido de liberação de bateria, canal de notificação de alta prioridade e sincronização ao voltar para o app.
+- **Android**: seta de voltar com o número de não lidas nas outras conversas.
+- Lista de contatos em duas linhas: nome em cima; status e mensagem pessoal (ou música) embaixo, em letra menor.
+- Botões de arquivo, foto e chamar atenção agora ficam só na barra de baixo da conversa.
+
 ## v0.3.0
 - **Versão para Android** (`LexMessenger-Android.apk`): mesma conta, contatos e visual. Lista de contatos como tela inicial, conversa com botão de voltar, aviso estilo MSN no topo, notificações do Android com o app em segundo plano, vibração ao chamar atenção, envio de fotos e arquivos, abrir e compartilhar anexos, Meu perfil e status.
 - No Android ainda não há “música que estou ouvindo” nem avisos com o app totalmente fechado.

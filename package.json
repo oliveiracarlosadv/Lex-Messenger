@@ -1,6 +1,6 @@
 {
   "name": "lex-messenger",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Mensageiro no estilo classico, usando sua conta do Telegram.",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -29,6 +29,7 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
+    "big-integer": "^1.6.52",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -91,7 +92,8 @@
       "artifactName": "LexMessenger-macOS-${arch}.${ext}",
       "hardenedRuntime": false,
       "extendInfo": {
-        "NSAppleEventsUsageDescription": "O Lex Messenger lê a música que está tocando no Apple Music ou no Spotify para mostrar na sua mensagem pessoal, se você ativar essa opção."
+        "NSAppleEventsUsageDescription": "O Lex Messenger lê a música que está tocando no Apple Music ou no Spotify para mostrar na sua mensagem pessoal, se você ativar essa opção.",
+        "NSMicrophoneUsageDescription": "O Lex Messenger usa o microfone para gravar mensagens de voz, só quando você aperta o botão de gravar."
       }
     },
     "dmg": {

@@ -40,6 +40,8 @@ const defaults: Prefs = {
   shareMusic: false,
   autoAway: true,
   notifPrimed: false,
+  background: true,
+  batteryAsked: false,
 };
 
 export function loadPrefs(): Prefs {

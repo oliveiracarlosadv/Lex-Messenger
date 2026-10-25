@@ -7,6 +7,7 @@ import { NewMessage, NewMessageEvent, Raw } from 'telegram/events';
 import { LogLevel } from 'telegram/extensions/Logger';
 import { CustomFile } from 'telegram/client/uploads';
 import type { Entity } from 'telegram/define';
+import bigInt from 'big-integer';
 import {
   NUDGE_TEXT,
   type AuthState,
@@ -14,8 +15,12 @@ import {
   type Contact,
   type LexEvents,
   type LoginStep,
+  type AccountSettings,
   type MediaInfo,
   type Me,
+  type PrivacyKey,
+  type PrivacyValue,
+  type Reaction,
   type Presence,
 } from '../shared/types';
 import { parseBio } from '../shared/status';
@@ -136,8 +141,15 @@ function mediaOf(msg: Api.Message): MediaInfo | undefined {
     for (const a of doc.attributes) {
       if (a instanceof Api.DocumentAttributeFilename) info.name = a.fileName;
       if (a instanceof Api.DocumentAttributeSticker) info.kind = 'sticker';
-      if (a instanceof Api.DocumentAttributeVideo && info.kind === 'file') info.kind = 'video';
-      if (a instanceof Api.DocumentAttributeAudio) info.kind = a.voice ? 'voice' : 'audio';
+      if (a instanceof Api.DocumentAttributeVideo && info.kind === 'file') {
+        info.kind = 'video';
+        info.duration = a.duration;
+      }
+      if (a instanceof Api.DocumentAttributeAudio) {
+        info.kind = a.voice ? 'voice' : 'audio';
+        info.duration = a.duration;
+        if (a.waveform?.length) info.waveform = unpackWaveform(a.waveform);
+      }
     }
     if (!info.name) {
       const ext = (doc.mimeType.split('/')[1] ?? 'bin').replace('mpeg', 'mp3').replace('quicktime', 'mov');
@@ -146,12 +158,68 @@ function mediaOf(msg: Api.Message): MediaInfo | undefined {
     }
     return info;
   }
-  if (m instanceof Api.MessageMediaWebPage) return undefined;
+  if (m instanceof Api.MessageMediaWebPage) {
+    const w = m.webpage;
+    if (!(w instanceof Api.WebPage)) return undefined;
+    return {
+      kind: 'webpage',
+      link: { url: w.url, site: w.siteName, title: w.title, description: w.description, hasPhoto: w.photo instanceof Api.Photo },
+    };
+  }
   return { kind: 'other' };
+}
+
+/** O Telegram guarda a onda em 5 bits por ponto. */
+function unpackWaveform(buf: Buffer): number[] {
+  const n = Math.floor((buf.length * 8) / 5);
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const bit = i * 5;
+    const byte = bit >> 3;
+    const word = buf[byte] | ((buf[byte + 1] ?? 0) << 8);
+    out.push((word >> (bit & 7)) & 31);
+  }
+  return out;
+}
+
+function packWaveform(values: number[]): Buffer {
+  const out = Buffer.alloc(Math.ceil((values.length * 5) / 8));
+  values.forEach((v, i) => {
+    const bit = i * 5;
+    const byte = bit >> 3;
+    const val = (Math.max(0, Math.min(31, Math.round(v))) << (bit & 7)) & 0xffff;
+    out[byte] |= val & 0xff;
+    if (byte + 1 < out.length) out[byte + 1] |= val >> 8;
+  });
+  return out;
+}
+
+function reactionsOf(msg: Api.Message): Reaction[] | undefined {
+  const r = msg.reactions?.results;
+  if (!r?.length) return undefined;
+  return r
+    .filter((x) => x.reaction instanceof Api.ReactionEmoji)
+    .map((x) => ({ emoji: (x.reaction as Api.ReactionEmoji).emoticon, count: x.count, mine: x.chosenOrder != null }));
+}
+
+const PRIVACY_KEYS: Record<PrivacyKey, () => Api.TypeInputPrivacyKey> = {
+  lastSeen: () => new Api.InputPrivacyKeyStatusTimestamp(),
+  photo: () => new Api.InputPrivacyKeyProfilePhoto(),
+  phone: () => new Api.InputPrivacyKeyPhoneNumber(),
+  invites: () => new Api.InputPrivacyKeyChatInvite(),
+  forwards: () => new Api.InputPrivacyKeyForwards(),
+  calls: () => new Api.InputPrivacyKeyPhoneCall(),
+};
+
+function privacyValue(rules: Api.TypePrivacyRule[]): PrivacyValue {
+  if (rules.some((r) => r instanceof Api.PrivacyValueAllowAll)) return 'everybody';
+  if (rules.some((r) => r instanceof Api.PrivacyValueAllowContacts)) return 'contacts';
+  return 'nobody';
 }
 
 function mediaLabel(media: MediaInfo | undefined): string {
   if (!media) return '';
+  if (media.kind === 'webpage') return media.link?.url ?? '🔗 Link';
   return (
     { photo: '📷 Foto', video: '🎬 Vídeo', audio: '🎵 Áudio', voice: '🎤 Mensagem de voz', sticker: '🙂 Figurinha', file: '📎 ' + (media.name ?? 'Arquivo'), other: '📎 Anexo' }[media.kind] ?? ''
   );
@@ -406,6 +474,7 @@ export class TelegramService {
       about,
       hasPhoto: u.photo instanceof Api.UserProfilePhoto,
       photoVersion: this.me?.photoVersion ?? 0,
+      premium: !!u.premium,
     };
     this.entities.set('me', u);
     this.hooks.emit('me:changed', this.me);
@@ -427,6 +496,7 @@ export class TelegramService {
       subtitle = kind === 'bot' ? 'robô' : kind === 'self' ? 'suas anotações' : p.subtitle;
       if (p.wasOnline) this.wasOnline.set(id, p.wasOnline);
       hasPhoto = e.photo instanceof Api.UserProfilePhoto;
+      base = { premium: !!e.premium, ...base };
     } else if (e instanceof Api.Channel) {
       kind = e.megagroup || e.gigagroup ? 'group' : 'channel';
       subtitle = e.participantsCount ? `${e.participantsCount} membros` : kind === 'channel' ? 'canal' : 'grupo';
@@ -469,6 +539,8 @@ export class TelegramService {
           lastDate: d.date,
           unread: d.unreadCount,
           pinned: d.pinned,
+          muted: (d.dialog.notifySettings?.muteUntil ?? 0) > Date.now() / 1000,
+          readOutboxMaxId: d.dialog.readOutboxMaxId,
         }),
       );
     }
@@ -520,6 +592,23 @@ export class TelegramService {
     }, delay);
   }
 
+  /**
+   * Depois de o app ficar parado (celular em repouso, computador dormindo): garante a conexão,
+   * recarrega a lista e avisa as conversas abertas para buscarem o que chegou.
+   */
+  async resync() {
+    if (!this.client || this.state !== 'ready') return;
+    try {
+      if (!this.client.connected) await this.client.connect();
+      await this.client.invoke(new Api.updates.GetState());
+      await this.loadDialogs();
+      this.hooks.emit('chat:resync', true);
+      await this.applyStatus();
+    } catch (e) {
+      console.error('Falha ao sincronizar:', e);
+    }
+  }
+
   refreshContact(id: string) {
     if (this.contacts.get(id)?.kind === 'user') this.queueAbouts([id], true);
   }
@@ -537,7 +626,7 @@ export class TelegramService {
 
   private updateUnread() {
     let total = 0;
-    for (const c of this.contacts.values()) if (c.kind !== 'channel') total += c.unread;
+    for (const c of this.contacts.values()) if (c.kind !== 'channel' && !c.muted) total += c.unread;
     this.hooks.unreadChanged(total);
   }
 
@@ -546,7 +635,7 @@ export class TelegramService {
     if (!c) return;
     Object.assign(c, p);
     this.hooks.emit('contact:patch', { id, ...p });
-    if ('unread' in p) this.updateUnread();
+    if ('unread' in p || 'muted' in p) this.updateUnread();
   }
 
   listContacts(): Contact[] {
@@ -608,6 +697,16 @@ export class TelegramService {
         chatId: utils.getPeerId(new Api.PeerChannel({ channelId: u.channelId })),
         ids: u.messages,
       });
+    } else if (u instanceof Api.UpdateReadHistoryOutbox) {
+      // A pessoa leu minhas mensagens: ✓✓.
+      this.patch(utils.getPeerId(u.peer), { readOutboxMaxId: u.maxId });
+    } else if (u instanceof Api.UpdateMessageReactions) {
+      const reactions = (u.reactions.results ?? [])
+        .filter((x) => x.reaction instanceof Api.ReactionEmoji)
+        .map((x) => ({ emoji: (x.reaction as Api.ReactionEmoji).emoticon, count: x.count, mine: x.chosenOrder != null }));
+      this.hooks.emit('message:patch', { chatId: utils.getPeerId(u.peer), id: u.msgId, reactions });
+    } else if (u instanceof Api.UpdateTranscribedAudio) {
+      this.hooks.emit('transcription', { chatId: utils.getPeerId(u.peer), id: u.msgId, text: u.text, pending: !!u.pending });
     } else if (u instanceof Api.UpdateReadHistoryInbox || u instanceof Api.UpdateReadChannelInbox) {
       // Lido em outro aparelho: zera o contador aqui também.
       const chatId =
@@ -648,7 +747,7 @@ export class TelegramService {
     if (!msg.out) this.hooks.onIncoming(cm, c);
   }
 
-  private async toChatMessage(msg: Api.Message, chatId: string): Promise<ChatMessage> {
+  private async toChatMessage(msg: Api.Message, chatId: string, replies?: Map<number, Api.Message>): Promise<ChatMessage> {
     const senderId = msg.senderId?.toString() ?? chatId;
     let senderName: string;
     if (msg.out) senderName = this.me?.name ?? 'Eu';
@@ -667,7 +766,7 @@ export class TelegramService {
     if (msg.action) {
       return { id: msg.id, chatId, out: !!msg.out, senderId, senderName, date: msg.date, text: serviceText(msg.action), service: true };
     }
-    return {
+    const cm: ChatMessage = {
       id: msg.id,
       chatId,
       out: !!msg.out,
@@ -677,7 +776,35 @@ export class TelegramService {
       text: msg.message ?? '',
       media: mediaOf(msg),
       nudge: msg.message === NUDGE_TEXT,
+      edited: !!msg.editDate && !msg.editHide,
+      reactions: reactionsOf(msg),
     };
+    const fwd = msg.fwdFrom;
+    if (fwd) {
+      let from = fwd.fromName ?? '';
+      if (!from && fwd.fromId) {
+        const fid = utils.getPeerId(fwd.fromId);
+        from = this.contacts.get(fid)?.name ?? fullName(this.entities.get(fid));
+        if (from === 'Desconhecido') from = '';
+      }
+      cm.forwardedFrom = from || 'alguém';
+    }
+    const replyId = msg.replyTo instanceof Api.MessageReplyHeader ? msg.replyTo.replyToMsgId : undefined;
+    if (replyId) {
+      let r = replies?.get(replyId);
+      if (!r && !replies) {
+        try {
+          r = (await msg.getReplyMessage()) ?? undefined;
+        } catch {
+          /* ignora */
+        }
+      }
+      if (r) {
+        const rs = r.out ? this.me?.name ?? 'Você' : fullName((r.sender as Entity | undefined) ?? this.entities.get(r.senderId?.toString() ?? ''));
+        cm.replyTo = { id: replyId, senderName: rs === 'Desconhecido' ? 'Mensagem' : rs, text: this.preview(r) };
+      } else cm.replyTo = { id: replyId, senderName: 'Mensagem', text: '' };
+    }
+    return cm;
   }
 
   // ---------- Conversas ----------
@@ -689,9 +816,25 @@ export class TelegramService {
   async history(chatId: string, beforeId?: number): Promise<ChatMessage[]> {
     if (!this.client) return [];
     const msgs = await this.client.getMessages(this.entity(chatId), { limit: 40, offsetId: beforeId ?? 0 });
+    // Busca de uma vez as mensagens respondidas que não vieram neste lote.
+    const replies = new Map<number, Api.Message>(msgs.map((m) => [m.id, m]));
+    const missing = [
+      ...new Set(
+        msgs
+          .map((m) => (m.replyTo instanceof Api.MessageReplyHeader ? m.replyTo.replyToMsgId : undefined))
+          .filter((id): id is number => !!id && !replies.has(id)),
+      ),
+    ];
+    if (missing.length) {
+      try {
+        for (const r of await this.client.getMessages(this.entity(chatId), { ids: missing })) if (r) replies.set(r.id, r);
+      } catch {
+        /* ignora */
+      }
+    }
     const out: ChatMessage[] = [];
     for (const m of msgs) {
-      const cm = await this.toChatMessage(m, chatId);
+      const cm = await this.toChatMessage(m, chatId, replies);
       if (!(cm.service && !cm.text)) out.push(cm);
     }
     return out.reverse();
@@ -703,10 +846,136 @@ export class TelegramService {
     this.patch(chatId, { lastMessage: this.preview(sent), lastDate: sent.date, unread: 0 });
   }
 
-  async sendText(chatId: string, text: string) {
+  async sendText(chatId: string, text: string, replyTo?: number) {
     if (!this.client || !text.trim()) return;
-    const sent = await this.client.sendMessage(this.entity(chatId), { message: text, parseMode: undefined });
+    // linkPreview: o Telegram monta a prévia (título, imagem) dos links da mensagem.
+    const sent = await this.client.sendMessage(this.entity(chatId), { message: text, parseMode: undefined, linkPreview: true, replyTo });
     await this.emitSent(chatId, sent);
+  }
+
+  // ---------- Ações em mensagens ----------
+
+  async editMessage(chatId: string, id: number, text: string) {
+    if (!this.client || !text.trim()) return;
+    const m = await this.client.editMessage(this.entity(chatId), { message: id, text, linkPreview: true });
+    this.hooks.emit('message:patch', { chatId, id, text: m.message ?? text, edited: true, media: mediaOf(m) });
+  }
+
+  async deleteMessages(chatId: string, ids: number[], forEveryone: boolean) {
+    if (!this.client) return;
+    await this.client.deleteMessages(this.entity(chatId), ids, { revoke: forEveryone });
+    this.hooks.emit('message:deleted', { chatId, ids });
+  }
+
+  async forwardMessages(fromChat: string, ids: number[], toChat: string) {
+    if (!this.client) return;
+    const sent = await this.client.forwardMessages(this.entity(toChat), { messages: ids, fromPeer: this.entity(fromChat) });
+    for (const m of sent) if (m) await this.emitSent(toChat, m);
+  }
+
+  async react(chatId: string, id: number, emoji: string | null) {
+    if (!this.client) return;
+    await this.client.invoke(
+      new Api.messages.SendReaction({
+        peer: this.entity(chatId),
+        msgId: id,
+        reaction: emoji ? [new Api.ReactionEmoji({ emoticon: emoji })] : [],
+      }),
+    );
+  }
+
+  /** Telegram Premium: transforma o áudio em texto. */
+  async transcribe(chatId: string, id: number): Promise<{ text: string; pending: boolean }> {
+    if (!this.client) return { text: '', pending: false };
+    try {
+      const r = await this.client.invoke(new Api.messages.TranscribeAudio({ peer: this.entity(chatId), msgId: id }));
+      return { text: r.text, pending: !!r.pending };
+    } catch (e) {
+      const code = (e as { errorMessage?: string }).errorMessage ?? '';
+      if (code.includes('PREMIUM')) throw new Error('Transcrever áudios é um recurso do Telegram Premium.');
+      if (code.startsWith('FLOOD') || code.includes('TRIAL')) throw new Error('Você usou as transcrições gratuitas desta semana. Com o Telegram Premium não há limite.');
+      throw new Error('Não foi possível transcrever este áudio.');
+    }
+  }
+
+  async setMuted(chatId: string, muted: boolean) {
+    if (!this.client) return;
+    await this.client.invoke(
+      new Api.account.UpdateNotifySettings({
+        peer: new Api.InputNotifyPeer({ peer: await this.client.getInputEntity(this.entity(chatId)) }),
+        settings: new Api.InputPeerNotifySettings({ muteUntil: muted ? 2147483647 : 0 }),
+      }),
+    );
+    this.patch(chatId, { muted });
+  }
+
+  // ---------- Configurações da conta ----------
+
+  async accountSettings(): Promise<AccountSettings> {
+    const c = this.client!;
+    const privacy = {} as AccountSettings['privacy'];
+    for (const [k, make] of Object.entries(PRIVACY_KEYS) as [PrivacyKey, () => Api.TypeInputPrivacyKey][]) {
+      try {
+        const r = await c.invoke(new Api.account.GetPrivacy({ key: make() }));
+        privacy[k] = privacyValue(r.rules);
+      } catch {
+        privacy[k] = 'everybody';
+      }
+    }
+    const pwd = await c.invoke(new Api.account.GetPassword()).catch(() => null);
+    const blockedRes = await c.invoke(new Api.contacts.GetBlocked({ offset: 0, limit: 200 })).catch(() => null);
+    const blocked = (blockedRes?.users ?? []).filter((u): u is Api.User => u instanceof Api.User).map((u) => ({ id: u.id.toString(), name: fullName(u) }));
+    const auths = await c.invoke(new Api.account.GetAuthorizations()).catch(() => null);
+    const sessions = (auths?.authorizations ?? []).map((a) => ({
+      hash: a.hash.toString(),
+      device: [a.deviceModel, a.platform, a.systemVersion].filter(Boolean).join(' · '),
+      app: `${a.appName} ${a.appVersion}`.trim(),
+      place: [a.region, a.country].filter(Boolean).join(', '),
+      lastActive: a.dateActive,
+      current: !!a.current,
+    }));
+    return { privacy, twoStep: !!pwd?.hasPassword, blocked, sessions };
+  }
+
+  /** Muda a regra principal e mantém as exceções (pessoas e grupos) que já existiam. */
+  async setPrivacy(key: PrivacyKey, value: PrivacyValue) {
+    const c = this.client!;
+    const current = await c.invoke(new Api.account.GetPrivacy({ key: PRIVACY_KEYS[key]() }));
+    const exceptions: Api.TypeInputPrivacyRule[] = [];
+    for (const r of current.rules) {
+      if (r instanceof Api.PrivacyValueAllowUsers || r instanceof Api.PrivacyValueDisallowUsers) {
+        const users = await Promise.all(r.users.map((id) => c.getInputEntity(id).catch(() => null)));
+        const list = users.filter((u): u is Api.TypeInputPeer => !!u).map((u) => utils.getInputUser(u));
+        if (list.length)
+          exceptions.push(r instanceof Api.PrivacyValueAllowUsers ? new Api.InputPrivacyValueAllowUsers({ users: list }) : new Api.InputPrivacyValueDisallowUsers({ users: list }));
+      } else if (r instanceof Api.PrivacyValueAllowChatParticipants) exceptions.push(new Api.InputPrivacyValueAllowChatParticipants({ chats: r.chats }));
+      else if (r instanceof Api.PrivacyValueDisallowChatParticipants) exceptions.push(new Api.InputPrivacyValueDisallowChatParticipants({ chats: r.chats }));
+    }
+    const main =
+      value === 'everybody'
+        ? new Api.InputPrivacyValueAllowAll()
+        : value === 'contacts'
+          ? new Api.InputPrivacyValueAllowContacts()
+          : new Api.InputPrivacyValueDisallowAll();
+    await c.invoke(new Api.account.SetPrivacy({ key: PRIVACY_KEYS[key](), rules: [...exceptions, main] }));
+  }
+
+  async endSession(hash: string | 'others') {
+    const c = this.client!;
+    if (hash === 'others') await c.invoke(new Api.auth.ResetAuthorizations());
+    else await c.invoke(new Api.account.ResetAuthorization({ hash: bigInt(hash) }));
+  }
+
+  async setBlocked(id: string, blocked: boolean) {
+    const c = this.client!;
+    const peer = await c.getInputEntity(this.entity(id));
+    await c.invoke(blocked ? new Api.contacts.Block({ id: peer }) : new Api.contacts.Unblock({ id: peer }));
+  }
+
+  clearCache() {
+    this.previews.clear();
+    this.avatars.clear();
+    this.downloaded.clear();
   }
 
   async sendFiles(chatId: string, files: FileInput[]) {
@@ -734,6 +1003,39 @@ export class TelegramService {
     if (!m) return;
     const name = `imagem-colada-${Date.now()}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`;
     await this.sendFiles(chatId, [{ name, data: Buffer.from(m[2], 'base64') }]);
+  }
+
+  async sendVoice(chatId: string, ogg: Uint8Array, duration: number, waveform: number[]) {
+    if (!this.client || !ogg.length) return;
+    const label = 'Enviando áudio';
+    this.hooks.emit('send:progress', { chatId, label, progress: 0 });
+    try {
+      const sent = await this.client.sendFile(this.entity(chatId), {
+        file: new CustomFile(`audio-${Date.now()}.ogg`, ogg.length, '', Buffer.from(ogg)),
+        voiceNote: true,
+        attributes: [new Api.DocumentAttributeAudio({ voice: true, duration: Math.round(duration), waveform: packWaveform(waveform) })],
+        progressCallback: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
+      });
+      await this.emitSent(chatId, sent);
+    } finally {
+      this.hooks.emit('send:progress', { chatId, label: '', progress: null });
+    }
+  }
+
+  /** Baixa o anexo inteiro para tocar dentro do app (áudios, até 25 MB). */
+  async mediaData(chatId: string, msgId: number): Promise<string | null> {
+    const key = `data:${chatId}:${msgId}`;
+    if (this.previews.has(key)) return this.previews.get(key)!;
+    if (!this.client) return null;
+    const msg = await this.getMessage(chatId, msgId);
+    const info = msg && mediaOf(msg);
+    if (!msg || !info || (info.size ?? 0) > 25 * 1024 * 1024) return null;
+    const buf = await this.client.downloadMedia(msg, {});
+    if (!buf || !Buffer.isBuffer(buf)) return null;
+    const mime = info.kind === 'voice' ? 'audio/ogg' : info.mime || 'application/octet-stream';
+    const url = `data:${mime};base64,${buf.toString('base64')}`;
+    this.previews.set(key, url);
+    return url;
   }
 
   typing(chatId: string) {
@@ -786,7 +1088,7 @@ export class TelegramService {
       if (msg && info) {
         let buf: string | Buffer | undefined;
         let mime = 'image/jpeg';
-        if (info.kind === 'photo') buf = await this.client.downloadMedia(msg, {});
+        if (info.kind === 'photo' || (info.kind === 'webpage' && info.link?.hasPhoto)) buf = await this.client.downloadMedia(msg, {});
         else if (info.kind === 'sticker' && info.mime === 'image/webp') {
           buf = await this.client.downloadMedia(msg, {});
           mime = 'image/webp';

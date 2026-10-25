@@ -1,5 +1,5 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, shell, systemPreferences, Tray } from 'electron';
 import { join } from 'node:path';
 import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
@@ -67,7 +67,7 @@ const tg = new TelegramService(
     }
   },
   onIncoming: (msg, contact) => {
-    const muted = contact?.kind === 'channel';
+    const muted = contact?.kind === 'channel' || !!contact?.muted;
     if (muted) return;
     const win = chatWins.get(msg.chatId);
     const focused = !!win && !win.isDestroyed() && win.isFocused();
@@ -284,11 +284,13 @@ function buildMenus() {
     { label: 'Ficar Ausente quando o computador estiver parado', type: 'checkbox', checked: prefs.autoAway, click: (i) => updatePrefs({ autoAway: i.checked }) },
   ];
   const profileItem: Electron.MenuItemConstructorOptions = { label: 'Editar meu perfil…', enabled: ready, click: openProfile };
+  const settingsItem: Electron.MenuItemConstructorOptions = { label: 'Configurações…', accelerator: 'CmdOrCtrl+,', enabled: ready, click: openSettings };
   const trayMenu = Menu.buildFromTemplate([
     { label: 'Abrir Lex Messenger', click: showList },
     { type: 'separator' },
     { label: 'Meu status', submenu: statusItems },
     profileItem,
+    settingsItem,
     ...toggles,
     { type: 'separator' },
     { label: 'Tocar som de teste', click: () => playSound('message') },
@@ -309,6 +311,7 @@ function buildMenus() {
           { type: 'separator' },
           { label: 'Meu status', submenu: statusItems },
           profileItem,
+          settingsItem,
           ...toggles,
           { type: 'separator' },
           {
@@ -375,6 +378,11 @@ async function setStatus(status: MyStatus) {
   updatePrefs({ status });
 }
 
+function openSettings() {
+  showList();
+  listWin?.webContents.send('settings:open', true);
+}
+
 function openProfile() {
   showList();
   listWin?.webContents.send('profile:open', true);
@@ -411,14 +419,15 @@ function registerIpc() {
     playSound('nudge');
     return true;
   });
-  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[]) => {
+  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[], images?: boolean) => {
     let files = paths?.filter(Boolean) ?? [];
     if (!files.length) {
       const w = BrowserWindow.fromWebContents(e.sender);
       const r = await dialog.showOpenDialog(w!, {
-        title: 'Enviar arquivos ou fotos',
+        title: images ? 'Enviar fotos e vídeos' : 'Enviar arquivos',
         buttonLabel: 'Enviar',
         properties: ['openFile', 'multiSelections'],
+        filters: images ? [{ name: 'Fotos e vídeos', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'm4v'] }] : undefined,
       });
       if (r.canceled) return;
       files = r.filePaths;
@@ -426,6 +435,33 @@ function registerIpc() {
     await tg.sendFiles(chatId, files);
   });
   ipcMain.handle('send:image', (_e, chatId: string, dataUrl: string) => tg.sendImageData(chatId, dataUrl));
+  ipcMain.handle('send:voice', async (_e, chatId: string, ogg: Uint8Array, duration: number, waveform: number[]) => {
+    await tg.sendVoice(chatId, ogg, Number(duration), Array.isArray(waveform) ? waveform : []);
+    playSound('sent');
+  });
+  ipcMain.handle('media:data', (_e, chatId: string, id: number) => tg.mediaData(chatId, id));
+  ipcMain.handle('send:reply', async (_e, chatId: string, text: string, replyTo: number) => {
+    await tg.sendText(chatId, text, Number(replyTo));
+    playSound('sent');
+  });
+  ipcMain.handle('msg:edit', (_e, chatId: string, id: number, text: string) => tg.editMessage(chatId, Number(id), String(text)));
+  ipcMain.handle('msg:delete', (_e, chatId: string, ids: number[], all: boolean) => tg.deleteMessages(chatId, ids.map(Number), !!all));
+  ipcMain.handle('msg:forward', (_e, from: string, ids: number[], to: string) => tg.forwardMessages(from, ids.map(Number), to));
+  ipcMain.handle('msg:react', (_e, chatId: string, id: number, emoji: string | null) => tg.react(chatId, Number(id), emoji));
+  ipcMain.handle('msg:transcribe', (_e, chatId: string, id: number) => tg.transcribe(chatId, Number(id)));
+  ipcMain.handle('chat:mute', (_e, chatId: string, muted: boolean) => tg.setMuted(chatId, !!muted));
+  ipcMain.handle('settings:get', () => tg.accountSettings());
+  ipcMain.handle('settings:privacy', (_e, key, value) => tg.setPrivacy(key, value));
+  ipcMain.handle('settings:end-session', (_e, hash: string) => tg.endSession(String(hash)));
+  ipcMain.handle('settings:block', (_e, id: string, blocked: boolean) => tg.setBlocked(String(id), !!blocked));
+  ipcMain.handle('settings:clear-cache', () => tg.clearCache());
+  ipcMain.on('settings:open', () => openSettings());
+  ipcMain.on('copy', (_e, text: string) => clipboard.writeText(String(text)));
+  ipcMain.handle('mic:ask', async () => {
+    if (process.platform !== 'darwin') return true;
+    if (systemPreferences.getMediaAccessStatus('microphone') === 'granted') return true;
+    return systemPreferences.askForMediaAccess('microphone');
+  });
   ipcMain.on('typing', (_e, chatId: string) => tg.typing(chatId));
   ipcMain.on('mark-read', (_e, chatId: string) => tg.markRead(chatId));
   ipcMain.handle('media:preview', (_e, chatId: string, id: number) => tg.mediaPreview(chatId, id));

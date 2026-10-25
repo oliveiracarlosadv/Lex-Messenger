@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AuthState } from '../shared/types';
+import type { AuthState, Contact } from '../shared/types';
 import { Avatar } from '../renderer/components/Avatar';
 import { ChatWindow } from '../renderer/components/ChatWindow';
 import { ContactList } from '../renderer/components/ContactList';
@@ -17,6 +17,7 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [chat, setChat] = useState<string | null>(chatFromHash);
   const [toast, setToast] = useState<InAppToast | null>(null);
+  const [unread, setUnread] = useState<Record<string, number>>({});
   const toastTimer = useRef(0);
 
   useEffect(() => {
@@ -26,7 +27,15 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
     const unlock = () => unlockAudio();
     window.addEventListener('touchstart', unlock, { once: true });
     window.addEventListener('click', unlock, { once: true });
+    // Não lidas por conversa, para o contador do botão voltar (canais não contam).
+    const fromList = (list: Contact[]) =>
+      setUnread(Object.fromEntries(list.filter((c) => c.kind !== 'channel').map((c) => [c.id, c.unread])));
+    void lex.contacts().then(fromList);
     const offs = [
+      lex.on('contacts:changed', fromList),
+      lex.on('contact:patch', (p) => {
+        if (typeof p.unread === 'number') setUnread((u) => (p.id in u ? { ...u, [p.id]: p.unread! } : u));
+      }),
       lex.on('auth:state', setAuth),
       lex.on('sound', playSound),
       bridge.on('toast', (t) => {
@@ -46,6 +55,8 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
     if (chat) setToast((t) => (t?.chatId === chat ? null : t));
   }, [bridge, chat]);
 
+  const otherUnread = Object.entries(unread).reduce((n, [id, v]) => (id === chat ? n : n + v), 0);
+
   if (!auth) return null;
   if (auth !== 'ready') return <Login auth={auth} />;
 
@@ -57,8 +68,15 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
       {chat && (
         <div className="screen chat-screen" key={chat}>
           <div className="mobile-topbar">
-            <button className="back-btn" onClick={() => history.back()} aria-label="Voltar para os contatos">
-              ‹ Contatos
+            <button
+              className="back-btn"
+              onClick={() => history.back()}
+              aria-label={otherUnread ? `Voltar. ${otherUnread} mensagens não lidas em outras conversas` : 'Voltar'}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {otherUnread > 0 && <span className="back-badge">{otherUnread > 99 ? '99+' : otherUnread}</span>}
             </button>
           </div>
           <ChatWindow chatId={chat} />

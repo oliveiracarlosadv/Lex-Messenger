@@ -34,8 +34,14 @@
   Android.
 - **Chamar atenção** faz o celular **vibrar** e a tela tremer.
 - Arquivos recebidos abrem pelo menu **“Abrir com…”**; o botão **Compartilhar** permite salvar ou mandar para outro app.
-- Ainda não tem: “música que estou ouvindo” e avisos com o app **totalmente fechado** (virão numa próxima versão).
-  Se o Android fechar o app para economizar bateria, os avisos param até você abri-lo de novo.
+- **Em segundo plano**: o Lex continua conectado e avisando com o app fora da tela. Fica um aviso fixo e discreto
+  **“Conectado ao Telegram”** na barra de notificações: é ele que impede o Android de desligar o app. Na primeira vez,
+  o Android pergunta se o Lex pode **rodar em segundo plano sem economia de bateria**: toque em **Permitir**.
+- Se você **fechar o app arrastando-o para fora** da lista de apps recentes, alguns celulares desligam tudo; aí os
+  avisos voltam quando você abrir o Lex de novo. Em celulares Xiaomi, Samsung e Motorola, vale também liberar o
+  “início automático”/“sem restrições de bateria” para o Lex nos ajustes do aparelho.
+- Na conversa, a **seta ‹** volta para a lista e mostra quantas mensagens não lidas há nas outras conversas.
+- Ainda não tem: “música que estou ouvindo”.
 
 ## 2. Entrar com a sua conta do Telegram
 
@@ -77,14 +83,26 @@ O Telegram só conhece “online” e “offline”. Por isso o Lex Messenger co
 esse texto no seu perfil. **Aparecer offline** deixa você offline no Telegram e não mostra status nem música. Ao sair
 do Lex Messenger, a bio volta a ser só a sua mensagem pessoal.
 
-## 3.1 Meu perfil
+## 3.1 Configurações ⚙️
+
+Clique na **engrenagem ⚙️** ao lado da busca (no Mac, também em **Lex Messenger > Configurações…** ou Cmd + ,):
+- **Avisos**: som, aviso de mensagem nova, aviso de contato entrando; no Android, também “continuar recebendo em
+  segundo plano” e um atalho para os ajustes de notificação do sistema.
+- **Privacidade**: quem vê seu visto por último, sua foto e seu telefone, quem pode adicionar você em grupos,
+  encaminhar suas mensagens com seu nome e ligar para você (Todos, Meus contatos ou Ninguém). As exceções que você
+  já tinha no Telegram são mantidas.
+- **Aparelhos**: onde sua conta está conectada; dá para desconectar um aparelho ou todos os outros.
+- **Bloqueados**: lista de bloqueados, com a opção de desbloquear.
+- **Conta**: dados da conta, verificação em duas etapas, Telegram Premium e limpeza de arquivos temporários.
+
+## 3.2 Meu perfil
 
 Clique na **sua foto** ou no **seu nome**, no topo da lista (ou no menu **Lex Messenger > Editar meu perfil…**):
 - **Trocar foto…**: escolha uma imagem; ela é cortada em quadrado e vira sua foto no Telegram.
 - **Nome e Sobrenome**: mude e clique em **Salvar**.
 - **Status**, **mensagem pessoal**, **música** e **Ausente automático**.
 
-## 3.2 Música que estou ouvindo 🎵
+## 3.3 Música que estou ouvindo 🎵
 
 Clique no botão **🎵** ao lado da sua mensagem pessoal (ou marque a opção em Meu perfil). Enquanto uma música toca, a
 mensagem pessoal vira **“🎵 Nome da música — Artista”**; quando para, volta ao texto normal.
@@ -102,6 +120,27 @@ mensagem pessoal vira **“🎵 Nome da música — Artista”**; quando para, v
 - Cada mensagem mostra **quem enviou e a hora** em cima, com o texto logo abaixo. Seu nome fica em verde; o do contato, em azul.
 - **Carregar mensagens anteriores** fica no topo do histórico.
 - Links são clicáveis e abrem no navegador.
+
+### Mensagens de áudio 🎤
+Com a caixa de texto vazia, o botão **Enviar** vira um **🎤**.
+- **Segure** o 🎤 enquanto fala e **solte** para enviar. Para desistir, **arraste para a esquerda** antes de soltar.
+- **Mãos livres:** dê **um toque** no 🎤 (ou arraste para cima) e fale à vontade, sem segurar. Depois toque em
+  **Enviar ➤**, ou em **🗑 Cancelar**.
+- Na primeira vez, o sistema pede permissão para usar o **microfone**: permita.
+- Para ouvir, toque no **▶**. Toque na onda para pular para um trecho, e no **1x** para ouvir em 1,5x ou 2x.
+- **🔁 Ouvir áudios em sequência** (na barra de baixo): ao terminar um áudio, o próximo toca sozinho.
+- **Aa** transforma o áudio em texto. É um recurso do **Telegram Premium**: sem a assinatura, o Telegram às vezes
+  libera algumas transcrições de cortesia.
+
+### Responder, reagir, editar, apagar, encaminhar
+Clique com o **botão direito** numa mensagem (no celular, **toque e segure**), ou no **⋯** ao lado da hora:
+- **Reações**: escolha um emoji na linha de cima; para tirar, toque de novo nele.
+- **Responder**: a mensagem aparece citada acima da sua resposta. Clique na citação para ir até a original.
+- **Editar** (só as suas mensagens de texto): o texto volta para a caixa; corrija e clique em **Salvar**.
+- **Apagar para mim** ou **para todos**, **Copiar texto** e **Encaminhar…** (escolha a conversa de destino).
+- **✓** quer dizer enviada; **✓✓ azul**, lida pela pessoa (só em conversas individuais).
+- Links viram um **cartão de prévia** com o nome do site, o título e a imagem.
+- **🔔/🔕** no alto da conversa silencia aquela conversa: ela para de tocar som e de avisar.
 
 ### Chamar atenção 📳
 Clique em **Chamar atenção**. Se a outra pessoa usa o Lex Messenger, a janela dela treme e toca um som. Se ela usa o

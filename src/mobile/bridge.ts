@@ -9,6 +9,8 @@ import { TelegramService } from '../core/telegram';
 import { applyDemo } from '../shared/demoData';
 import { STATUS } from '../shared/status';
 import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents, type MyStatus, type Prefs } from '../shared/types';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { LexNative } from './native';
 import { mobilePlatform, pickFiles } from './platform';
 
 declare const __APP_VERSION__: string;
@@ -23,7 +25,11 @@ const defaults: Prefs = {
   shareMusic: false,
   autoAway: false,
   notifPrimed: false,
+  background: true,
+  batteryAsked: false,
 };
+
+const CHANNEL = 'mensagens';
 
 export interface InAppToast {
   chatId: string;
@@ -57,7 +63,7 @@ export class MobileBridge {
         unreadChanged: () => {},
         ready: (me) => {
           this.presence.start(me);
-          void this.askNotifications();
+          void this.setupBackground();
         },
         onContactOnline: (c) => this.onContactOnline(c),
         onIncoming: (m, c) => this.onIncoming(m, c),
@@ -87,6 +93,11 @@ export class MobileBridge {
     await this.tg.init(this.prefs.status === 'invisible');
   }
 
+  /** Ao voltar para o app: busca o que chegou enquanto ele estava parado. */
+  resync() {
+    if (!this.demo) void this.tg.resync();
+  }
+
   // ---------- Eventos ----------
 
   on(event: string, cb: Listener) {
@@ -111,24 +122,60 @@ export class MobileBridge {
 
   // ---------- Avisos ----------
 
-  private async askNotifications() {
+  /** Permissões, canal de notificação e conexão em segundo plano (Android). */
+  private async setupBackground() {
     try {
       const p = await LocalNotifications.checkPermissions();
       if (p.display !== 'granted') await LocalNotifications.requestPermissions();
+      // Canal de alta prioridade: o aviso desce no alto da tela, com som e vibração.
+      await LocalNotifications.createChannel({
+        id: CHANNEL,
+        name: 'Mensagens',
+        description: 'Mensagens novas e chamadas de atenção',
+        importance: 5,
+        visibility: 1,
+        vibration: true,
+        lights: true,
+        lightColor: '#2b6cc4',
+      });
     } catch {
       /* navegador comum: sem notificações do sistema */
     }
+    await this.applyBackground();
+    if (this.prefs.background && !this.prefs.batteryAsked) {
+      const { unrestricted } = await LexNative.batteryStatus().catch(() => ({ unrestricted: true }));
+      await this.savePrefs({ batteryAsked: true });
+      if (!unrestricted) await LexNative.requestBatteryExemption().catch(() => {});
+    }
+  }
+
+  private async applyBackground() {
+    if (this.demo) return;
+    if (this.prefs.background) await LexNative.startKeepAlive().catch(() => {});
+    else await LexNative.stopKeepAlive().catch(() => {});
   }
 
   private notify(chatId: string, title: string, body: string) {
     if (!this.prefs.notifications) return;
     LocalNotifications.schedule({
-      notifications: [{ id: this.notifId++, title, body, extra: { chatId }, smallIcon: 'ic_stat_lex', iconColor: '#2b6cc4' }],
+      notifications: [
+        {
+          id: this.notifId++,
+          title,
+          body,
+          largeBody: body,
+          channelId: CHANNEL,
+          group: chatId,
+          extra: { chatId },
+          smallIcon: 'ic_stat_lex',
+          iconColor: '#2b6cc4',
+        },
+      ],
     }).catch(() => {});
   }
 
   private onIncoming(m: ChatMessage, c: Contact | undefined) {
-    if (c?.kind === 'channel') return;
+    if (c?.kind === 'channel' || c?.muted) return;
     const visible = document.visibilityState === 'visible';
     const inGroup = c && c.kind !== 'user' && c.kind !== 'self';
     const title = inGroup ? `${m.senderName} em ${c.name}` : m.senderName;
@@ -185,6 +232,7 @@ export class MobileBridge {
       loginCancel: () => tg.cancelLogin(),
       logout: async () => {
         this.presence.stop();
+        await LexNative.stopKeepAlive().catch(() => {});
         await tg.logout();
       },
       me: async () => tg.getMe(),
@@ -204,11 +252,40 @@ export class MobileBridge {
         this.sound('nudge');
         return true;
       },
-      sendFiles: async (id) => {
-        const files = await pickFiles();
+      sendFiles: async (id, _paths, images) => {
+        const files = await pickFiles(images ? 'image/*,video/*' : '*/*');
         if (files.length) await tg.sendFiles(id, files);
       },
       sendImageData: (id, dataUrl) => tg.sendImageData(id, dataUrl),
+      sendVoice: async (id, ogg, duration, waveform) => {
+        await tg.sendVoice(id, ogg, duration, waveform);
+        this.sound('sent');
+      },
+      mediaData: (id, msg) => tg.mediaData(id, msg),
+      // No Android, o pedido de microfone aparece sozinho ao começar a gravar.
+      askMicrophone: async () => true,
+      sendReply: async (id, text, replyTo) => {
+        await tg.sendText(id, text, replyTo);
+        this.sound('sent');
+      },
+      editMessage: (id, msg, text) => tg.editMessage(id, msg, text),
+      deleteMessages: (id, ids, all) => tg.deleteMessages(id, ids, all),
+      forwardMessages: (from, ids, to) => tg.forwardMessages(from, ids, to),
+      react: (id, msg, emoji) => tg.react(id, msg, emoji),
+      transcribe: (id, msg) => tg.transcribe(id, msg),
+      setMuted: (id, muted) => tg.setMuted(id, muted),
+      settings: () => tg.accountSettings(),
+      setPrivacy: (key, value) => tg.setPrivacy(key, value),
+      endSession: (hash) => tg.endSession(hash),
+      unblock: (id) => tg.setBlocked(id, false),
+      block: (id) => tg.setBlocked(id, true),
+      clearCache: async () => {
+        tg.clearCache();
+        await Filesystem.rmdir({ path: 'recebidos', directory: Directory.Cache, recursive: true }).catch(() => {});
+      },
+      openSettings: () => this.emit('settings:open', true),
+      openSystemNotificationSettings: () => void LexNative.openNotificationSettings().catch(() => {}),
+      copyText: (text) => void navigator.clipboard?.writeText(text).catch(() => {}),
       pathForFile: () => '',
       typing: (id) => tg.typing(id),
       markRead: (id) => tg.markRead(id),
@@ -237,6 +314,7 @@ export class MobileBridge {
       prefs: async () => this.prefs,
       setPrefs: async (p) => {
         await this.savePrefs(p);
+        if ('background' in p) await this.applyBackground();
         await this.presence.refresh();
         return this.prefs;
       },

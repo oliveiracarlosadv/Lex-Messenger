@@ -6,6 +6,7 @@ import { describe } from '../lib/presence';
 import { Avatar } from './Avatar';
 import { Buddy, KindIcon } from './Icons';
 import { ProfileDialog } from './ProfileDialog';
+import { SettingsDialog } from './SettingsDialog';
 
 type Section = 'online' | 'offline' | 'groups' | 'others';
 const TITLES: Record<Section, string> = {
@@ -40,6 +41,7 @@ export function ContactList() {
   const [editingPm, setEditingPm] = useState(false);
   const [presence, setPresence] = useState<PresenceInfo | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     void lex.me().then(setMe);
@@ -53,6 +55,7 @@ export function ContactList() {
       lex.on('me:changed', setMe),
       lex.on('presence:changed', setPresence),
       lex.on('profile:open', () => setProfileOpen(true)),
+      lex.on('settings:open', () => setSettingsOpen(true)),
       lex.on('contacts:changed', setContacts),
       lex.on('contact:patch', (p) => setContacts((list) => list.map((c) => (c.id === p.id ? { ...c, ...p } : c)))),
       lex.on('prefs:changed', (p) => {
@@ -160,6 +163,9 @@ export function ContactList() {
       </header>
 
       <div className="search">
+        <button className="gear-btn" onClick={() => setSettingsOpen(true)} title="Configurações" aria-label="Configurações">
+          ⚙️
+        </button>
         <input placeholder="🔍 Procurar um contato…" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
@@ -190,14 +196,22 @@ export function ContactList() {
                     title={[c.subtitle, c.lastMessage && `Última mensagem: ${c.lastMessage}`].filter(Boolean).join('\n')}
                   >
                     <KindIcon kind={c.kind} color={d.color} title={d.label || undefined} />
-                    <span className="contact-name">{c.name}</span>
-                    {d.label && <span className={`contact-status ${d.color}`}>({d.label})</span>}
-                    {d.personal ? (
-                      <span className={`contact-sub personal ${d.music ? 'music' : ''}`}> — {d.personal}</span>
-                    ) : (
-                      <span className="contact-sub">{c.lastMessage ? ` — ${c.lastMessage}` : ''}</span>
-                    )}
-                    {c.unread > 0 && <span className="badge">{c.unread > 99 ? '99+' : c.unread}</span>}
+                    {/* Nome em cima; status e mensagem pessoal (ou música) logo abaixo, em letra menor. */}
+                    <div className="contact-lines">
+                      <span className="contact-name">
+                        {c.name}
+                        {c.premium && <span className="premium-badge" title="Telegram Premium"> ⭐</span>}
+                        {c.muted && <span className="muted-icon" title="Conversa silenciada"> 🔕</span>}
+                      </span>
+                      {(d.label || d.personal || c.lastMessage) && (
+                        <span className={`contact-sub ${d.personal ? 'personal' : ''} ${d.music ? 'music' : ''}`}>
+                          {d.label && <span className={`contact-status ${d.color}`}>{d.label}</span>}
+                          {d.label && (d.personal || c.lastMessage) && ' · '}
+                          {d.personal || c.lastMessage}
+                        </span>
+                      )}
+                    </div>
+                    {c.unread > 0 && <span className={`badge ${c.muted ? 'muted' : ''}`}>{c.unread > 99 ? '99+' : c.unread}</span>}
                   </div>
                   );
                 })}
@@ -211,6 +225,9 @@ export function ContactList() {
         {lex.features.mobile ? 'Toque em um contato para conversar.' : 'Clique duas vezes em um contato para conversar.'}
       </footer>
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
+      {settingsOpen && me && prefs && (
+        <SettingsDialog me={me} prefs={prefs} onClose={() => setSettingsOpen(false)} onProfile={() => setProfileOpen(true)} />
+      )}
     </div>
   );
 }

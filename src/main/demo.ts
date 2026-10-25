@@ -41,6 +41,22 @@ export function snapshot(h: SnapHooks) {
     h.toast();
     await wait(2000);
     writeFileSync(join(dir, 'perfil.png'), (await list.webContents.capturePage()).toPNG());
+    await list.webContents.executeJavaScript("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))");
+    list.webContents.send('settings:open', true);
+    await wait(1200);
+    writeFileSync(join(dir, 'configuracoes.png'), (await list.webContents.capturePage()).toPNG());
+    // Menu da mensagem (botão direito) na conversa.
+    chat.show();
+    chat.focus();
+    await chat.webContents.executeJavaScript("document.getElementById('msg-8')?.scrollIntoView({ block: 'start' })");
+    await wait(500);
+    await chat.webContents.executeJavaScript(
+      "(() => { const el = document.getElementById('msg-5'); const r = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: r.left + 120, clientY: r.top + 10 })); })()",
+    );
+    await wait(800);
+    chat.webContents.invalidate();
+    await wait(300);
+    writeFileSync(join(dir, 'menu-mensagem.png'), (await chat.webContents.capturePage()).toPNG());
     const toastWin = BrowserWindow.getAllWindows().find((w) => w !== list && w !== chat);
     if (toastWin) writeFileSync(join(dir, 'aviso.png'), (await toastWin.webContents.capturePage()).toPNG());
     app.exit(0);

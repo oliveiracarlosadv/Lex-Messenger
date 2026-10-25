@@ -44,12 +44,29 @@ body.mobile {
   background: #fff;
 }
 .back-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   border: 0;
   background: none;
   color: var(--blue);
-  font-size: 16px;
-  font-weight: 600;
-  padding: 6px 8px;
+  padding: 4px 6px;
+  border-radius: 20px;
+  min-height: 40px;
+}
+.back-btn:active {
+  background: #e6f0fc;
+}
+.back-badge {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #ffad4f, var(--orange));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Lista */
@@ -129,4 +146,39 @@ body.shake .mobile-shell {
   10%, 50%, 90% { transform: translate(-8px, 2px); }
   30%, 70% { transform: translate(8px, -2px); }
   100% { transform: none; }
+}
+.mobile .seq-toggle {
+  font-size: 0;
+}
+.mobile .seq-toggle input {
+  width: 18px;
+  height: 18px;
+}
+.mobile .seq-toggle::after {
+  content: '🔁';
+  font-size: 18px;
+}
+.mobile .format-bar .mini-btn {
+  font-size: 22px;
+  padding: 4px 9px;
+}
+.mobile .btn-mic {
+  width: 64px;
+  font-size: 26px;
+}
+.mobile .rec-bar {
+  inset: 0 72px 0 0;
+}
+.mobile .contact-lines .contact-sub {
+  font-size: 12.5px;
+}
+.mobile .msg-menu > button {
+  padding: 11px 12px;
+  font-size: 15px;
+}
+.mobile .menu-reactions button {
+  font-size: 24px;
+}
+.mobile .gear-btn {
+  font-size: 22px;
 }

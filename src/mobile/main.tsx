@@ -23,6 +23,11 @@ void CapApp.addListener('backButton', () => {
   else void CapApp.minimizeApp();
 }).catch(() => {});
 
+// Voltou para o app: busca o que chegou enquanto estava em segundo plano.
+void CapApp.addListener('appStateChange', ({ isActive }) => {
+  if (isActive) bridge.resync();
+}).catch(() => {});
+
 void bridge.start();
 
 // As telas leem window.lex ao carregar, por isso entram depois da ponte.

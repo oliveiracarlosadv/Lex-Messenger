@@ -21,6 +21,12 @@ export interface Contact {
   about: string;
   /** Status do Lex lido da bio (Ocupado, Ausente…). */
   status?: MyStatus;
+  /** Conversa silenciada: sem som nem aviso. */
+  muted?: boolean;
+  /** Assinante do Telegram Premium (selo ⭐). */
+  premium?: boolean;
+  /** Até que mensagem minha a pessoa já leu (para os ✓✓). */
+  readOutboxMaxId?: number;
 }
 
 export interface Me {
@@ -35,15 +41,22 @@ export interface Me {
   hasPhoto: boolean;
   /** Muda a cada troca de foto, para as janelas recarregarem a imagem. */
   photoVersion: number;
+  premium?: boolean;
 }
 
-export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'file' | 'other';
+export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'file' | 'webpage' | 'other';
 
 export interface MediaInfo {
   kind: MediaKind;
   name?: string;
   size?: number;
   mime?: string;
+  /** Áudio e vídeo: duração em segundos. */
+  duration?: number;
+  /** Mensagem de voz: 100 valores de 0 a 31 (a "onda"). */
+  waveform?: number[];
+  /** Prévia de link. */
+  link?: { url: string; site?: string; title?: string; description?: string; hasPhoto: boolean };
 }
 
 export interface ChatMessage {
@@ -57,6 +70,37 @@ export interface ChatMessage {
   media?: MediaInfo;
   nudge?: boolean;
   service?: boolean;
+  /** Mensagem respondida. */
+  replyTo?: { id: number; senderName: string; text: string };
+  /** Encaminhada de quem. */
+  forwardedFrom?: string;
+  edited?: boolean;
+  reactions?: Reaction[];
+}
+
+export interface Reaction {
+  emoji: string;
+  count: number;
+  mine: boolean;
+}
+
+export interface Session {
+  hash: string;
+  device: string;
+  app: string;
+  place: string;
+  lastActive: number;
+  current: boolean;
+}
+
+export type PrivacyKey = 'lastSeen' | 'photo' | 'phone' | 'invites' | 'forwards' | 'calls';
+export type PrivacyValue = 'everybody' | 'contacts' | 'nobody';
+
+export interface AccountSettings {
+  privacy: Record<PrivacyKey, PrivacyValue>;
+  twoStep: boolean;
+  blocked: { id: string; name: string }[];
+  sessions: Session[];
 }
 
 export type LoginStep =
@@ -79,6 +123,10 @@ export interface Prefs {
   autoAway: boolean;
   /** Já pedimos a permissão de notificações (para o contador do Dock). */
   notifPrimed: boolean;
+  /** Android: manter conectado em segundo plano (aviso fixo "Conectado ao Telegram"). */
+  background: boolean;
+  /** Android: já pedimos para o sistema não economizar bateria no app. */
+  batteryAsked: boolean;
 }
 
 export interface PresenceInfo {
@@ -111,6 +159,13 @@ export interface LexEvents {
   'prefs:changed': Prefs;
   'presence:changed': PresenceInfo;
   'profile:open': true;
+  /** Voltou a conexão depois de um tempo parado: as conversas abertas recarregam. */
+  'chat:resync': true;
+  /** Mensagem editada ou com reações novas. */
+  'message:patch': Partial<ChatMessage> & { chatId: string; id: number };
+  /** Transcrição de áudio pronta (ou em andamento). */
+  transcription: { chatId: string; id: number; text: string; pending: boolean };
+  'settings:open': true;
 }
 
 export interface LexApi {
@@ -131,8 +186,30 @@ export interface LexApi {
   history(chatId: string, beforeId?: number): Promise<ChatMessage[]>;
   sendText(chatId: string, text: string): Promise<void>;
   sendNudge(chatId: string): Promise<boolean>;
-  sendFiles(chatId: string, paths?: string[]): Promise<void>;
+  sendFiles(chatId: string, paths?: string[], images?: boolean): Promise<void>;
   sendImageData(chatId: string, dataUrl: string): Promise<void>;
+  /** Envia uma mensagem de voz já em Ogg/Opus. */
+  sendVoice(chatId: string, ogg: Uint8Array, duration: number, waveform: number[]): Promise<void>;
+  /** Baixa um anexo (ex.: áudio) e devolve como data: URL para tocar dentro do app. */
+  mediaData(chatId: string, msgId: number): Promise<string | null>;
+  /** Pede acesso ao microfone (no Mac, o sistema pergunta na primeira vez). */
+  askMicrophone(): Promise<boolean>;
+  sendReply(chatId: string, text: string, replyTo: number): Promise<void>;
+  editMessage(chatId: string, id: number, text: string): Promise<void>;
+  deleteMessages(chatId: string, ids: number[], forEveryone: boolean): Promise<void>;
+  forwardMessages(fromChat: string, ids: number[], toChat: string): Promise<void>;
+  react(chatId: string, id: number, emoji: string | null): Promise<void>;
+  transcribe(chatId: string, id: number): Promise<{ text: string; pending: boolean }>;
+  setMuted(chatId: string, muted: boolean): Promise<void>;
+  settings(): Promise<AccountSettings>;
+  setPrivacy(key: PrivacyKey, value: PrivacyValue): Promise<void>;
+  endSession(hash: string | 'others'): Promise<void>;
+  unblock(id: string): Promise<void>;
+  block(id: string): Promise<void>;
+  clearCache(): Promise<void>;
+  openSettings(): void;
+  openSystemNotificationSettings?(): void;
+  copyText(text: string): void;
   pathForFile(file: File): string;
   typing(chatId: string): void;
   markRead(chatId: string): void;
