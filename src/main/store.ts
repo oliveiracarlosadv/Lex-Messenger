@@ -39,6 +39,7 @@ const defaults: Prefs = {
   personalMessage: '',
   shareMusic: false,
   autoAway: true,
+  notifPrimed: false,
 };
 
 export function loadPrefs(): Prefs {

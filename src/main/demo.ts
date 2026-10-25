@@ -67,6 +67,9 @@ export function snapshot(h: SnapHooks) {
     const list = h.list()!;
     list.webContents.send('presence:changed', { status: 'online', effective: 'online', autoAway: false, music: 'Garota de Ipanema — Tom Jobim' });
     list.webContents.send('prefs:changed', { sounds: true, notifications: true, onlineAlerts: true, status: 'online', personalMessage: 'Audiência às 14h ⚖️', shareMusic: true, autoAway: true });
+    // Confere se o som pode tocar sem clique (política de autoplay liberada).
+    const audio = await list.webContents.executeJavaScript('(async () => { const c = new AudioContext(); await new Promise(r => setTimeout(r, 300)); return c.state; })()');
+    console.log('som:', audio);
     const chat = h.openChat('101');
     await wait(1500);
     h.emit('typing', { chatId: '101', name: 'Ana Paula' });

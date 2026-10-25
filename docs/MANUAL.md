@@ -107,7 +107,12 @@ Arquivos recebidos têm os botões **Abrir** e **Mostrar na pasta**. Eles são s
 - **Fechar a lista de contatos não desconecta**: o Lex Messenger continua no ícone da barra de menus (Mac, perto do
   relógio) ou na bandeja (Windows, perto do relógio). Clique nele para abrir a lista, trocar o status, ligar ou
   desligar sons e notificações, ou sair.
-- No Mac, o ícone do Dock mostra quantas mensagens não lidas existem e “pula” quando chega mensagem.
+- No Mac, o ícone do Dock mostra **quantas mensagens não lidas** existem e “pula” quando chega mensagem; o número
+  também aparece ao lado do ícone da barra de menus. Na primeira vez que você entra, o macOS pergunta se o
+  Lex Messenger pode enviar notificações: clique em **Permitir**, porque sem isso o número do Dock não aparece. Se negou
+  sem querer, ligue em **Ajustes do Sistema > Notificações > Lex Messenger** (deixe “Indicadores” ativado).
+- **Sons**: “plim-plim” para mensagem nova, uma escadinha para contato entrando e um chocalho para chamar atenção.
+  Para ouvir, use **Tocar som de teste** no ícone da barra de menus.
 
 ## 6. Sair da conta
 

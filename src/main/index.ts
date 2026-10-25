@@ -1,5 +1,5 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron';
 import { join } from 'node:path';
 import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
@@ -10,6 +10,8 @@ import { TelegramService } from './telegram';
 import { showToast, type ToastData } from './toast';
 
 app.setName('Lex Messenger');
+// Os sons tocam sozinhos, sem precisar de um clique antes (o padrão do Chromium bloqueia).
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 // Modo demonstração: pasta de dados separada, para não mexer na conta real nem brigar com o app aberto.
 if (process.env.LEX_DEMO) app.setPath('userData', join(app.getPath('temp'), 'lex-messenger-demo'));
 if (process.platform === 'win32') app.setAppUserModelId('br.com.lextecnologias.messenger');
@@ -44,10 +46,16 @@ const tg = new TelegramService({
     return !!w && !w.isDestroyed() && w.isFocused() && w.isVisible();
   },
   unreadChanged: (total) => {
-    app.setBadgeCount(total);
+    // Contador no ícone do Dock (Mac) ou da barra de tarefas, e ao lado do ícone da barra de menus.
+    if (process.platform === 'darwin') app.dock?.setBadge(total ? (total > 999 ? '999+' : String(total)) : '');
+    else app.setBadgeCount(total);
+    if (process.platform === 'darwin') tray?.setTitle(total ? ` ${total}` : '');
     tray?.setToolTip(total ? `Lex Messenger — ${total} não lida(s)` : 'Lex Messenger');
   },
-  ready: (me) => presence.start(me),
+  ready: (me) => {
+    presence.start(me);
+    askNotificationPermission();
+  },
   onContactOnline: (c) => {
     if (!prefs.onlineAlerts) return;
     if (Date.now() - lastOnlineSound > 15000) {
@@ -92,6 +100,20 @@ const presence = new PresenceManager(
 );
 
 // ---------- Avisos no canto da tela (estilo MSN) ----------
+
+/**
+ * No macOS, o número no ícone do Dock só aparece se o app tiver permissão de notificações.
+ * Na primeira conexão, um aviso de boas-vindas faz o sistema pedir essa permissão.
+ */
+function askNotificationPermission() {
+  if (prefs.notifPrimed || !Notification.isSupported()) return;
+  updatePrefs({ notifPrimed: true });
+  new Notification({
+    title: 'Lex Messenger conectado',
+    body: 'Permita as notificações para ver o número de mensagens no ícone do Dock.',
+    silent: true,
+  }).show();
+}
 
 function toast(data: ToastData) {
   if (!prefs.notifications) return;
@@ -264,6 +286,7 @@ function buildMenus() {
     profileItem,
     ...toggles,
     { type: 'separator' },
+    { label: 'Tocar som de teste', click: () => playSound('message') },
     { label: 'Sair do Lex Messenger', click: () => app.quit() },
   ]);
   tray?.setContextMenu(trayMenu);

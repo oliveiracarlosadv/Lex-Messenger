@@ -7,6 +7,8 @@
 - **Música que estou ouvindo** (Apple Music e Spotify no Mac; o player em uso no Windows).
 - **Meu perfil**: trocar foto, nome e sobrenome.
 - A lista e a conversa mostram a **mensagem pessoal dos contatos**.
+- **Sons novos** com timbre de sininho, no estilo MSN, e correção: antes eles podiam não tocar até o primeiro clique.
+- **Contador de mensagens no ícone do Dock** (o app agora pede a permissão de notificações que o macOS exige) e ao lado do ícone da barra de menus.
 - Eventos técnicos do Telegram deixam de aparecer como “evento da conversa”.
 
 ## v0.1.0

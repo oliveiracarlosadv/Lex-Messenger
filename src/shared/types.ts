@@ -77,6 +77,8 @@ export interface Prefs {
   personalMessage: string;
   shareMusic: boolean;
   autoAway: boolean;
+  /** Já pedimos a permissão de notificações (para o contador do Dock). */
+  notifPrimed: boolean;
 }
 
 export interface PresenceInfo {
