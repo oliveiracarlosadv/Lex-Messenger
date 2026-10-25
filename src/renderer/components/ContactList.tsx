@@ -35,7 +35,7 @@ function loadCollapsed(): Record<string, boolean> {
   }
 }
 
-export function ContactList() {
+export function ContactList({ connecting = false }: { connecting?: boolean }) {
   const [me, setMe] = useState<Me | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -56,6 +56,13 @@ export function ContactList() {
       alert((e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
     }
   };
+
+  // Terminou de conectar: busca perfil e contatos (a tela já estava aberta).
+  useEffect(() => {
+    if (connecting) return;
+    void lex.me().then((m) => m && setMe(m));
+    void lex.contacts().then((c) => c.length && setContacts(c));
+  }, [connecting]);
 
   useEffect(() => {
     void lex.me().then(setMe);
@@ -114,6 +121,11 @@ export function ContactList() {
 
   return (
     <div className="list-window">
+      {connecting && (
+        <div className="connecting-bar" role="status">
+          <span className="mini-spinner" /> Conectando ao Telegram…
+        </div>
+      )}
       <header className="list-head">
         <button className="avatar-btn" onClick={() => setProfileOpen(true)} title="Trocar foto e nome">
           <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={48} version={me?.photoVersion} />

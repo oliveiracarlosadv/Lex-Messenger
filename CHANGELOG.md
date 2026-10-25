@@ -1,6 +1,9 @@
 # Histórico de versões
 
 ## v0.5.0
+- Lema: **Comunicação em primeiro lugar!** (tela de entrada, “Sobre”, README e manual).
+- **Manual do Lex Messenger em PDF**, com capa, sumário, fotos das telas, Termos e Privacidade.
+- Ao abrir o app de novo, vai **direto para a lista** (com “Conectando…” no topo), sem mostrar a tela inicial.
 - **iPhone sem App Store**: app pelo Safari (“Adicionar à Tela de Início”), com as mesmas telas do Android; áudios no formato de voz do Telegram também no iPhone.
 - **Mensagens que se autodestroem** (30 s a 24 h), apagadas para os dois lados; o aviso 🔥 some em 12 horas.
 - **Criar conta do Telegram** pelo Lex, para quem ainda não tem (código por SMS, nome e aceite dos Termos de Serviço do Telegram na própria tela).

@@ -29,6 +29,7 @@ O `.env` está no `.gitignore`: nunca vai para o GitHub.
 | `npm run android` | Monta e copia para o projeto Android (`android/`). Abrir no Android Studio para rodar no emulador. |
 | `npm run dev:mobile` e abrir `http://localhost:5174/?demo` | App de celular no navegador, com contatos fictícios. |
 | `npx electron scripts/snap-mobile.cjs` | Fotos das telas do celular para o manual (depois de `build:mobile`). |
+| `npm run manual` | Gera `docs/Manual-Lex-Messenger.pdf` (capa, sumário, manual, telas, termos e privacidade). |
 | `node scripts/make-android-assets.mjs` | Gera ícones e tela de abertura do Android a partir de `build/icon.svg`. |
 | `LEX_DEMO=1 npx electron .` | Abre com contatos fictícios (sem Telegram). Com `LEX_SNAPSHOT=<pasta>`, salva imagens das telas. |
 

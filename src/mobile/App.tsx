@@ -96,7 +96,8 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
   const otherUnread = Object.entries(unread).reduce((n, [id, v]) => (id === chat ? n : n + v), 0);
 
   if (!auth) return null;
-  if (auth !== 'ready')
+  // Já tem conta: vai direto para a lista enquanto reconecta (não mostra a tela inicial de novo).
+  if (auth !== 'ready' && auth !== 'connecting')
     return (
       <>
         <InstallHint />
@@ -108,7 +109,7 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
     <div className="mobile-shell">
       <InstallHint />
       <div className={`screen list-screen ${chat ? 'behind' : ''}`}>
-        <ContactList />
+        <ContactList connecting={auth === 'connecting'} />
       </div>
       {chat && (
         <div className="screen chat-screen" key={chat}>

@@ -1,5 +1,7 @@
 # Manual do Lex Messenger
 
+*Comunicação em primeiro lugar!*
+
 ## 1. Instalar
 
 ### Mac

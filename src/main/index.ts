@@ -642,6 +642,12 @@ if (!app.requestSingleInstanceLock()) {
       app.setActivationPolicy('regular');
       void app.dock?.show();
     }
+    app.setAboutPanelOptions({
+      applicationName: 'Lex Messenger',
+      applicationVersion: app.getVersion(),
+      copyright: '© 2026 Lex Tecnologias',
+      credits: 'Comunicação em primeiro lugar!',
+    });
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
     // Computador voltou da suspensão: reconecta e busca o que chegou.

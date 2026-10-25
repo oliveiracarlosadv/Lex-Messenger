@@ -2,6 +2,8 @@
 
 <h1 align="center">Lex Messenger</h1>
 
+<p align="center"><b><i>Comunicação em primeiro lugar!</i></b></p>
+
 <p align="center">O jeitinho dos mensageiros dos anos 2000, com a sua conta do Telegram.<br>
 Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e envio de arquivos.</p>
 
@@ -13,7 +15,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
   <a href="https://oliveiracarlosadv.github.io/Lex-Messenger/"><b>📱 iPhone (pelo Safari)</b></a>
 </p>
 
-<p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/MANUAL.md">Manual</a> · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
+<p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/MANUAL.md">Manual</a> (<a href="docs/Manual-Lex-Messenger.pdf">PDF</a>) · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
 
 ---
 

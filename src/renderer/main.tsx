@@ -23,7 +23,8 @@ function ListApp() {
     return () => offs.forEach((f) => f());
   }, []);
   if (!auth) return null;
-  return auth === 'ready' ? <ContactList /> : <Login auth={auth} />;
+  // Já tem conta: abre direto na lista (com "Conectando…" no topo), sem a tela inicial.
+  return auth === 'ready' || auth === 'connecting' ? <ContactList connecting={auth === 'connecting'} /> : <Login auth={auth} />;
 }
 
 function ChatApp({ chatId }: { chatId: string }) {

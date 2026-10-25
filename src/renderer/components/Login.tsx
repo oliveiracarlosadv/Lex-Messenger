@@ -238,6 +238,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <h1>
           Lex <span>Messenger</span>
         </h1>
+        <p className="motto">Comunicação em primeiro lugar!</p>
       </div>
       <div className="login-body">{children}</div>
       <p className="login-foot">Suas mensagens vão direto entre este aparelho e o Telegram. Nada passa por outros servidores.</p>
