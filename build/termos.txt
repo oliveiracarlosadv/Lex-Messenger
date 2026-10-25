@@ -1,0 +1,19 @@
+Termos de Uso do Lex Messenger
+
+Última atualização: 25/10/2026.
+
+1. O que é. O Lex Messenger é um aplicativo gratuito e independente, da Lex Tecnologias, que permite usar a sua
+   própria conta do Telegram com uma interface inspirada nos mensageiros clássicos. Não é um produto oficial do
+   Telegram nem da Microsoft, e não tem vínculo com essas empresas.
+2. Sua conta. Você continua sujeito aos Termos de Serviço do Telegram (https://telegram.org/tos). Use o app de
+   forma lícita: nada de spam, envio em massa ou conteúdo ilegal. O Telegram pode limitar contas que violem suas regras.
+3. Responsabilidade. O app é fornecido “no estado em que se encontra”, sem garantias. A Lex Tecnologias não
+   responde por perda de mensagens, indisponibilidade do Telegram ou uso indevido da conta. Para assuntos sigilosos,
+   avalie os recursos de segurança do próprio Telegram (como os Chats Secretos, que este app não abre).
+4. Marcas. “Telegram” e “MSN” pertencem a seus donos. O Lex Messenger usa desenhos, ícones e sons próprios.
+5. Código aberto. O código-fonte está disponível em https://github.com/oliveiracarlosadv/Lex-Messenger.
+6. Mudanças. Estes termos podem ser atualizados em novas versões; a data acima indica a versão vigente.
+7. Foro. Aplica-se a lei brasileira.
+
+Ao instalar ou usar o Lex Messenger, você declara que leu e concorda com estes Termos e com a
+Política de Privacidade.

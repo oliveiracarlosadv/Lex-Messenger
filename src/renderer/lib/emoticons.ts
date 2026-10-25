@@ -1,0 +1,90 @@
+// Emoticons no estilo clássico. Os "rostinhos" de texto viram emoji ao enviar.
+export const FACE_CODES: [string, string][] = [
+  [":'(", '😢'],
+  [':-)', '😊'],
+  [':)', '😊'],
+  [':-D', '😃'],
+  [':D', '😃'],
+  [';-)', '😉'],
+  [';)', '😉'],
+  [':-(', '😞'],
+  [':(', '😞'],
+  [':-P', '😛'],
+  [':P', '😛'],
+  [':p', '😛'],
+  [':-O', '😮'],
+  [':O', '😮'],
+  [':o', '😮'],
+  [':S', '😕'],
+  [':s', '😕'],
+  [':|', '😐'],
+  [':@', '😠'],
+  [':$', '😳'],
+  ['8-|', '🤓'],
+  ['|-)', '😴'],
+  ['<3', '❤️'],
+];
+
+/** Grade do seletor de emoticons. */
+export const PICKER: { emoji: string; name: string; code?: string }[] = [
+  { emoji: '😊', name: 'Sorriso', code: ':)' },
+  { emoji: '😃', name: 'Sorrisão', code: ':D' },
+  { emoji: '😉', name: 'Piscadinha', code: ';)' },
+  { emoji: '😛', name: 'Língua', code: ':P' },
+  { emoji: '😮', name: 'Surpreso', code: ':O' },
+  { emoji: '😞', name: 'Triste', code: ':(' },
+  { emoji: '😢', name: 'Chorando', code: ":'(" },
+  { emoji: '😠', name: 'Bravo', code: ':@' },
+  { emoji: '😳', name: 'Envergonhado', code: ':$' },
+  { emoji: '😕', name: 'Confuso', code: ':S' },
+  { emoji: '😐', name: 'Sem expressão', code: ':|' },
+  { emoji: '😎', name: 'Descolado' },
+  { emoji: '🤓', name: 'Nerd', code: '8-|' },
+  { emoji: '😴', name: 'Sono', code: '|-)' },
+  { emoji: '🤔', name: 'Pensando' },
+  { emoji: '😇', name: 'Anjo' },
+  { emoji: '😈', name: 'Diabinho' },
+  { emoji: '🤐', name: 'Boca fechada' },
+  { emoji: '🤢', name: 'Enjoado' },
+  { emoji: '🙄', name: 'Revirando os olhos' },
+  { emoji: '❤️', name: 'Coração', code: '<3' },
+  { emoji: '💔', name: 'Coração partido' },
+  { emoji: '👍', name: 'Joinha' },
+  { emoji: '👎', name: 'Não curti' },
+  { emoji: '👏', name: 'Palmas' },
+  { emoji: '🙏', name: 'Por favor' },
+  { emoji: '💋', name: 'Beijo' },
+  { emoji: '🌹', name: 'Rosa' },
+  { emoji: '⭐', name: 'Estrela' },
+  { emoji: '☀️', name: 'Sol' },
+  { emoji: '🌙', name: 'Lua' },
+  { emoji: '☕', name: 'Café' },
+  { emoji: '🍺', name: 'Cerveja' },
+  { emoji: '🎂', name: 'Bolo' },
+  { emoji: '🎁', name: 'Presente' },
+  { emoji: '🎉', name: 'Festa' },
+  { emoji: '✉️', name: 'E-mail' },
+  { emoji: '📞', name: 'Telefone' },
+  { emoji: '📷', name: 'Câmera' },
+  { emoji: '🎵', name: 'Música' },
+  { emoji: '💻', name: 'Computador' },
+  { emoji: '⚖️', name: 'Balança' },
+  { emoji: '📄', name: 'Documento' },
+  { emoji: '⏰', name: 'Despertador' },
+  { emoji: '💡', name: 'Ideia' },
+  { emoji: '✈️', name: 'Avião' },
+  { emoji: '🚗', name: 'Carro' },
+  { emoji: '🐶', name: 'Cachorro' },
+];
+
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const FACE_RE = new RegExp(
+  `(^|\\s)(${FACE_CODES.map(([c]) => esc(c)).join('|')})(?=$|\\s|[.,!?])`,
+  'g',
+);
+const MAP = new Map(FACE_CODES);
+
+/** Troca ":)" por 😊 etc. Só quando o código está separado por espaços, para não estragar links. */
+export function convertFaces(text: string): string {
+  return text.replace(FACE_RE, (_m, pre: string, code: string) => pre + (MAP.get(code) ?? code));
+}

@@ -1,0 +1,66 @@
+# Gera os instaladores. Com tag vX.Y.Z, publica uma Release para download.
+# Sem tag (Actions > Release > Run workflow), só gera os arquivos para teste.
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+  TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            cmd: npx electron-builder --mac
+            files: |
+              release/*.dmg
+          - os: windows-latest
+            cmd: npx electron-builder --win
+            files: |
+              release/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir chaves do Telegram
+        shell: bash
+        run: |
+          if [ -z "$TELEGRAM_API_ID" ] || [ -z "$TELEGRAM_API_HASH" ]; then
+            echo "::error::Cadastre os segredos TELEGRAM_API_ID e TELEGRAM_API_HASH em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: ${{ matrix.cmd }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publicar Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(awk "/^## ${GITHUB_REF_NAME}/{f=1;next}/^## /{f=0}f" CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" out/* --title "Lex Messenger ${GITHUB_REF_NAME}" --notes "${notes:-Nova versão.}"

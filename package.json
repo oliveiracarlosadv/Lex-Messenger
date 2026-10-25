@@ -1,0 +1,105 @@
+{
+  "name": "lex-messenger",
+  "version": "0.1.0",
+  "description": "Mensageiro no estilo classico, usando sua conta do Telegram.",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "build:main": "node scripts/build-main.mjs",
+    "build": "npm run typecheck && vite build && node scripts/build-main.mjs",
+    "start": "npm run build && electron .",
+    "dev": "concurrently -k \"vite\" \"node scripts/build-main.mjs --watch\" \"wait-on tcp:5173 dist-electron/main.js && cross-env-shell VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "icons": "node scripts/make-icons.mjs",
+    "dist": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "author": "Lex Tecnologias",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5",
+    "wait-on": "^9.5.1"
+  },
+  "productName": "Lex Messenger",
+  "private": true,
+  "build": {
+    "appId": "br.com.lextecnologias.messenger",
+    "productName": "Lex Messenger",
+    "copyright": "© 2026 Lex Tecnologias",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/tray",
+        "to": "tray"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.social-networking",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "artifactName": "LexMessenger-macOS-${arch}.${ext}",
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "Lex Messenger"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "LexMessenger-Windows-Instalador.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Lex Messenger",
+      "license": "build/termos.txt",
+      "unicode": true
+    },
+    "publish": null
+  }
+}

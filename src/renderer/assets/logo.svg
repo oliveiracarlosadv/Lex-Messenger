@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- fundo -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a63d8"/>
+      <stop offset="0.5" stop-color="#1c3a9e"/>
+      <stop offset="1" stop-color="#0c1a52"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="0.3" cy="0.15" r="0.8">
+      <stop offset="0" stop-color="#9ad0ff" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#9ad0ff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- balão azul (atrás) -->
+    <radialGradient id="blue" cx="0.35" cy="0.28" r="0.85">
+      <stop offset="0" stop-color="#e9f6ff"/>
+      <stop offset="0.28" stop-color="#7cc4ff"/>
+      <stop offset="0.7" stop-color="#2a7fe6"/>
+      <stop offset="1" stop-color="#0f4fae"/>
+    </radialGradient>
+    <!-- balão verde (frente) -->
+    <radialGradient id="green" cx="0.35" cy="0.26" r="0.85">
+      <stop offset="0" stop-color="#f6ffe8"/>
+      <stop offset="0.25" stop-color="#b8f56a"/>
+      <stop offset="0.65" stop-color="#5cc928"/>
+      <stop offset="1" stop-color="#25870f"/>
+    </radialGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+      <feOffset dy="26"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="iconShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dy="12"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+  </defs>
+
+  <!-- fundo arredondado, padrão macOS (área útil 824 px) -->
+  <g filter="url(#iconShadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+    <g clip-path="url(#squircle)">
+      <rect x="100" y="100" width="824" height="824" fill="url(#bgGlow)"/>
+    </g>
+    <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="4"/>
+  </g>
+
+  <!-- balão azul, atrás -->
+  <g filter="url(#shadow)">
+    <path d="M300 250 h300 a120 120 0 0 1 120 120 v120 a120 120 0 0 1 -120 120 h-150 l-95 80 l18 -80 h-73 a120 120 0 0 1 -120 -120 v-120 a120 120 0 0 1 120 -120z" fill="url(#blue)"/>
+    <path d="M300 250 h300 a120 120 0 0 1 120 120 v120 a120 120 0 0 1 -120 120 h-150 l-95 80 l18 -80 h-73 a120 120 0 0 1 -120 -120 v-120 a120 120 0 0 1 120 -120z" fill="none" stroke="url(#rim)" stroke-width="6"/>
+    <ellipse cx="420" cy="320" rx="190" ry="60" fill="url(#gloss)" opacity="0.8"/>
+  </g>
+
+  <!-- balão verde, na frente -->
+  <g filter="url(#shadow)">
+    <path d="M470 430 h250 a120 120 0 0 1 120 120 v110 a120 120 0 0 1 -120 120 h-20 l14 75 l-100 -75 h-144 a120 120 0 0 1 -120 -120 v-110 a120 120 0 0 1 120 -120z" fill="url(#green)"/>
+    <path d="M470 430 h250 a120 120 0 0 1 120 120 v110 a120 120 0 0 1 -120 120 h-20 l14 75 l-100 -75 h-144 a120 120 0 0 1 -120 -120 v-110 a120 120 0 0 1 120 -120z" fill="none" stroke="url(#rim)" stroke-width="6"/>
+    <ellipse cx="590" cy="495" rx="180" ry="52" fill="url(#gloss)" opacity="0.85"/>
+    <!-- três pontinhos de "digitando" -->
+    <g fill="#ffffff">
+      <circle cx="510" cy="620" r="34"/>
+      <circle cx="600" cy="620" r="34"/>
+      <circle cx="690" cy="620" r="34"/>
+    </g>
+    <g fill="#1d6e0b" opacity="0.25">
+      <circle cx="510" cy="630" r="30"/>
+      <circle cx="600" cy="630" r="30"/>
+      <circle cx="690" cy="630" r="30"/>
+    </g>
+    <g fill="#ffffff">
+      <circle cx="510" cy="618" r="30"/>
+      <circle cx="600" cy="618" r="30"/>
+      <circle cx="690" cy="618" r="30"/>
+    </g>
+  </g>
+</svg>
