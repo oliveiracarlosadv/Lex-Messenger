@@ -218,6 +218,8 @@ baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada a
 No menu **⋯** no alto da conversa (ou com o botão direito / toque longo no contato, na lista):
 - **🚫 Bloquear contato**: a pessoa não consegue mais mandar mensagens nem ligar, e não vê quando você está online.
   Para desfazer, **✅ Desbloquear** no mesmo lugar (ou em Configurações > Bloqueados).
+- **🧹 Limpar conversa**: o Lex avisa que **toda a conversa será limpa** e apaga todas as mensagens, fotos, áudios e
+  arquivos, mas a conversa **continua na lista**, vazia. Marque “Apagar também para Fulano” para limpar dos dois lados.
 - **🗑 Excluir conversa**: apaga a conversa da sua lista; marque **“Apagar também para Fulano”** para apagar dos dois
   lados. Em grupos e canais, a opção é **Sair**. Não dá para desfazer.
 

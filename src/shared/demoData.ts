@@ -75,6 +75,7 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.getSelfDestruct = () => 0;
   t.getSensitive = () => false;
   t.deleteChat = async () => {};
+  t.clearChat = async () => {};
   t.setBlockedContact = async () => {};
   t.setSensitive = () => {};
   t.setSelfDestruct = () => {};

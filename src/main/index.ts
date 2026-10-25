@@ -582,6 +582,7 @@ function registerIpc() {
     const w = chatWins.get(String(chatId));
     if (w && !w.isDestroyed()) w.close();
   });
+  ipcMain.handle('chat:clear', (_e, chatId: string, all: boolean) => tg.clearChat(String(chatId), !!all));
   ipcMain.handle('chat:block', (_e, chatId: string, b: boolean) => tg.setBlockedContact(String(chatId), !!b));
   ipcMain.on('chat:view', (_e, chatId: string, view: ChatView | null) => {
     if (view) chatViews.set(String(chatId), view);

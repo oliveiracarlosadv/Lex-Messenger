@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## v1.0.1
+- **Limpar conversa** 🧹: apaga todas as mensagens (para mim ou para os dois) e mantém a conversa na lista, com o aviso de que toda a conversa será limpa.
+
 ## v1.0.0
 **Primeira versão oficial do Lex Messenger — Comunicação em primeiro lugar!** Disponível para Mac, Windows, Android e
 iPhone (pelo Safari). Reúne tudo das versões de teste (0.1 a 0.5) e mais:

@@ -222,6 +222,8 @@ export interface LexEvents {
   'connection:changed': { connected: boolean; offlineUntil: number };
   /** Conversa excluída: as janelas dela fecham. */
   'chat:removed': { chatId: string };
+  /** Conversa limpa: as janelas dela esvaziam o histórico. */
+  'chat:cleared': { chatId: string };
 }
 
 export interface LexApi {
@@ -286,6 +288,8 @@ export interface LexApi {
   /** Exclui a conversa (para mim, ou para os dois). Em grupos e canais: sai deles. */
   deleteChat(chatId: string, forEveryone: boolean): Promise<void>;
   setBlockedContact(chatId: string, blocked: boolean): Promise<void>;
+  /** Limpa todas as mensagens, mas mantém a conversa na lista (para mim, ou para os dois). */
+  clearChat(chatId: string, forEveryone: boolean): Promise<void>;
   /** O que está na tela da conversa agora (para avisar sobre prints e gravações). */
   reportView(chatId: string, view: { lastId: number; sensitive: boolean; temporary: boolean } | null): void;
   getSensitive(chatId: string): Promise<boolean>;

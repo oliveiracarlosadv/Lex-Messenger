@@ -450,6 +450,7 @@ export class MobileBridge {
         if (this.currentChat === id) history.back();
       },
       setBlockedContact: (id, b) => tg.setBlockedContact(id, b),
+      clearChat: (id, all) => tg.clearChat(id, all),
       reportView: (id, view) => {
         if (view) this.views.set(id, view);
         else this.views.delete(id);

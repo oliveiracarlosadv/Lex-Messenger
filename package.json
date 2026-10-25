@@ -1,6 +1,6 @@
 {
   "name": "lex-messenger",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lex Messenger — Comunicação em primeiro lugar! Mensageiro no estilo clássico, usando sua conta do Telegram.",
   "main": "dist-electron/main.js",
   "scripts": {

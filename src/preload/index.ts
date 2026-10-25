@@ -56,6 +56,7 @@ const api: LexApi = {
   exportChat: (chatId) => invoke('chat:export', chatId),
   deleteChat: (chatId, all) => invoke('chat:delete', chatId, all),
   setBlockedContact: (chatId, b) => invoke('chat:block', chatId, b),
+  clearChat: (chatId, all) => invoke('chat:clear', chatId, all),
   reportView: (chatId, view) => ipcRenderer.send('chat:view', chatId, view),
   getSensitive: (chatId) => invoke('sens:get', chatId),
   stickerPanel: () => invoke('stk:panel'),

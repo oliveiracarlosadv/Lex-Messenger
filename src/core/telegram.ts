@@ -1268,6 +1268,22 @@ export class TelegramService {
     this.emitContacts();
   }
 
+  /** Limpa o histórico e mantém a conversa na lista. Em grupos grandes, limpa só para mim. */
+  async clearChat(chatId: string, forEveryone: boolean) {
+    const c = this.client!;
+    const e = this.entities.get(chatId);
+    if (e instanceof Api.Channel) {
+      await c.invoke(new Api.channels.DeleteHistory({ channel: await c.getInputEntity(e), maxId: 0, forEveryone: false }));
+    } else {
+      for (let i = 0; i < 50; i++) {
+        const r = await c.invoke(new Api.messages.DeleteHistory({ peer: this.entity(chatId), maxId: 0, justClear: !forEveryone, revoke: forEveryone }));
+        if (!r.offset) break;
+      }
+    }
+    this.patch(chatId, { lastMessage: '', unread: 0 });
+    this.hooks.emit('chat:cleared', { chatId });
+  }
+
   async setBlockedContact(chatId: string, blocked: boolean) {
     await this.setBlocked(chatId, blocked);
     this.patch(chatId, { blocked });

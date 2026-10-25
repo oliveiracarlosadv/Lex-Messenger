@@ -3,16 +3,29 @@ import type { Contact } from '../../shared/types';
 import { lex } from '../lib/api';
 
 /** Confirmação para excluir a conversa (com a opção de apagar também para a outra pessoa). */
-export function DeleteChatDialog({ contact, onClose, onDone }: { contact: Contact; onClose: () => void; onDone?: () => void }) {
+export function DeleteChatDialog({
+  contact,
+  onClose,
+  onDone,
+  mode = 'delete',
+}: {
+  contact: Contact;
+  onClose: () => void;
+  onDone?: () => void;
+  /** 'clear' = limpar as mensagens e manter a conversa na lista. */
+  mode?: 'delete' | 'clear';
+}) {
+  const clearing = mode === 'clear';
   const [both, setBoth] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const isUser = contact.kind === 'user';
-  const isGroup = contact.kind === 'group' || contact.kind === 'channel';
+  const isGroup = !clearing && (contact.kind === 'group' || contact.kind === 'channel');
   const run = async () => {
     setBusy(true);
     try {
-      await lex.deleteChat(contact.id, both);
+      if (clearing) await lex.clearChat(contact.id, both);
+      else await lex.deleteChat(contact.id, both);
       onDone?.();
       onClose();
     } catch {
@@ -23,9 +36,21 @@ export function DeleteChatDialog({ contact, onClose, onDone }: { contact: Contac
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="alertdialog" aria-label="Excluir conversa">
-        <h2>🗑 {isGroup ? `Sair de “${contact.name}”?` : `Excluir a conversa com ${contact.name}?`}</h2>
-        <p>{isGroup ? 'Você sai do grupo/canal e a conversa some da sua lista.' : 'Todas as mensagens desta conversa serão apagadas da sua lista.'}</p>
-        {isUser && (
+        <h2>
+          {clearing ? '🧹 Limpar a conversa' : '🗑 '}
+          {clearing ? ` com ${contact.name}?` : isGroup ? `Sair de “${contact.name}”?` : `Excluir a conversa com ${contact.name}?`}
+        </h2>
+        <p>
+          {clearing ? (
+            <b>Toda a conversa será limpa: todas as mensagens, fotos, áudios e arquivos desta conversa serão apagados.</b>
+          ) : isGroup ? (
+            'Você sai do grupo/canal e a conversa some da sua lista.'
+          ) : (
+            'Todas as mensagens desta conversa serão apagadas da sua lista.'
+          )}
+        </p>
+        {clearing && <p className="hint">A conversa continua na sua lista, vazia, para você seguir conversando.</p>}
+        {isUser && (contact.kind === 'user') && (
           <label className="check">
             <input type="checkbox" checked={both} onChange={(e) => setBoth(e.target.checked)} />
             Apagar também para {contact.name}
@@ -38,7 +63,7 @@ export function DeleteChatDialog({ contact, onClose, onDone }: { contact: Contac
             Cancelar
           </button>
           <button className="btn btn-primary danger-fill" onClick={() => void run()} disabled={busy}>
-            {busy ? 'Excluindo…' : isGroup ? 'Sair' : 'Excluir'}
+            {busy ? (clearing ? 'Limpando…' : 'Excluindo…') : clearing ? 'Limpar conversa' : isGroup ? 'Sair' : 'Excluir'}
           </button>
         </div>
       </div>

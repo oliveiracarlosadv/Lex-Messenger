@@ -56,6 +56,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [sms, setSms] = useState(false);
   const [headMenu, setHeadMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [stickers, setStickers] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +104,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
         typingTimer.current = window.setTimeout(() => setTyping(null), 6000);
       }),
       lex.on('send:progress', (p) => p.chatId === chatId && setProgress(p.label ? p : null)),
+      lex.on('chat:cleared', (c) => {
+        if (c.chatId !== chatId) return;
+        setMessages([]);
+        setHasMore(false);
+      }),
       lex.on('message:patch', (p) => {
         if (p.chatId !== chatId) return;
         setMessages((list) => list.map((m) => (m.id === p.id ? { ...m, ...p } : m)));
@@ -435,6 +441,9 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                       </button>
                     )}
                     <hr />
+                    <button role="menuitem" className="danger" onClick={() => (setHeadMenu(false), setClearing(true))}>
+                      🧹 Limpar conversa
+                    </button>
                     <button role="menuitem" className="danger" onClick={() => (setHeadMenu(false), setDeleting(true))}>
                       🗑 {contact.kind === 'group' || contact.kind === 'channel' ? 'Sair e excluir conversa' : 'Excluir conversa'}
                     </button>
@@ -726,6 +735,9 @@ export function ChatWindow({ chatId }: { chatId: string }) {
         />
       )}
       {deleting && contact && <DeleteChatDialog contact={contact} onClose={() => setDeleting(false)} />}
+      {clearing && contact && (
+        <DeleteChatDialog contact={contact} mode="clear" onClose={() => setClearing(false)} onDone={() => flashNotice('🧹 Conversa limpa.')} />
+      )}
       {sms && contact && <SmsDialog name={contact.name} phone={contact.phone} text={text} onClose={() => setSms(false)} />}
       {newList && (
         <NewChecklistDialog

@@ -51,6 +51,7 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
   const [groupOpen, setGroupOpen] = useState(false);
   const [rowMenu, setRowMenu] = useState<{ c: Contact; x: number; y: number } | null>(null);
   const [deleting, setDeleting] = useState<Contact | null>(null);
+  const [clearingC, setClearingC] = useState<Contact | null>(null);
   const toggleFavorite = async (c: Contact) => {
     try {
       await lex.setFavorite(c.id, !c.favorite);
@@ -264,6 +265,7 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
       {groupOpen && <NewGroupDialog onClose={() => setGroupOpen(false)} />}
       {deleting && <DeleteChatDialog contact={deleting} onClose={() => setDeleting(null)} />}
+      {clearingC && <DeleteChatDialog contact={clearingC} mode="clear" onClose={() => setClearingC(null)} />}
       {rowMenu && (
         <div className="menu-back" onMouseDown={() => setRowMenu(null)} onContextMenu={(e) => e.preventDefault()}>
           <div
@@ -301,6 +303,16 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
                 {rowMenu.c.blocked ? '✅ Desbloquear' : '🚫 Bloquear contato'}
               </button>
             )}
+            <button
+              role="menuitem"
+              className="danger"
+              onClick={() => {
+                setClearingC(rowMenu.c);
+                setRowMenu(null);
+              }}
+            >
+              🧹 Limpar conversa
+            </button>
             <button
               role="menuitem"
               className="danger"
