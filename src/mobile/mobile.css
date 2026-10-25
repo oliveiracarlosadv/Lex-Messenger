@@ -182,3 +182,128 @@ body.shake .mobile-shell {
 .mobile .gear-btn {
   font-size: 22px;
 }
+.mobile .contact {
+  min-height: 48px;
+}
+
+.mobile .contact {
+  min-height: 62px;
+  gap: 11px;
+}
+.mobile .contact .contact-photo-dot {
+  width: 13px;
+  height: 13px;
+}
+
+/* iPhone: dica de instalação */
+.install-hint {
+  position: fixed;
+  z-index: 90;
+  left: 8px;
+  right: 8px;
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #9cbde6;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(23, 74, 143, 0.3);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.install-hint button {
+  border: 0;
+  background: none;
+  font-size: 22px;
+  color: var(--muted);
+}
+.ios-share {
+  display: inline-block;
+  border: 1.5px solid var(--blue);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--blue);
+  font-size: 12px;
+}
+
+/* Celular: a tela nunca arrasta para os lados. */
+html,
+body.mobile {
+  overflow-x: hidden;
+  max-width: 100vw;
+  touch-action: pan-y;
+}
+.mobile .screen,
+.mobile .chat-window,
+.mobile .chat-main,
+.mobile .chat-left {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+.mobile .chat-to {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+.mobile .chat-to b {
+  overflow-wrap: anywhere;
+}
+.mobile .chat-pm {
+  padding-left: 12px;
+}
+.mobile .format-bar {
+  gap: 2px;
+}
+.mobile .seq-toggle {
+  margin-left: auto;
+}
+
+/* Celular: menus viram painéis que sobem de baixo, sempre dentro da tela. */
+.mobile .ttl-menu,
+.mobile .picker,
+.mobile .sticker-picker {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  top: auto;
+  width: auto;
+  min-width: 0;
+  max-height: 62vh;
+  overflow-y: auto;
+  z-index: 80;
+  border-radius: 18px;
+  animation: sheet-up 0.22s ease-out;
+}
+.mobile .picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 10px;
+}
+.mobile .sticker-grid {
+  max-height: 46vh;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0.4;
+  }
+}
+.mobile .ttl-chips button {
+  padding: 12px 4px;
+  font-size: 13px;
+}
+
+.mobile .compose,
+.mobile .format-bar,
+.mobile .picker-wrap {
+  position: static;
+}
+.mobile .off-sheet {
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+}
+.mobile .seg button {
+  font-size: 13px;
+  padding: 7px 2px;
+}

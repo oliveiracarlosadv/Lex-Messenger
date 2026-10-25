@@ -29,8 +29,28 @@ export const history: ChatMessage[] = [
   { id: 4, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 600, text: '', media: { kind: 'file', name: 'peticao-inicial.pdf', size: 248000, mime: 'application/pdf' } },
   { id: 5, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 590, text: 'Recebeu a petição? Dá uma olhada em https://www.lexml.gov.br', media: { kind: 'webpage', link: { url: 'https://www.lexml.gov.br', site: 'LexML Brasil', title: 'LexML — Rede de Informação Legislativa e Jurídica', description: 'Portal especializado em informação jurídica e legislativa.', hasPhoto: false } } },
   { id: 10, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 300, text: '', media: { kind: 'video', round: true, duration: 12, width: 384, height: 384 } },
+  { id: 11, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 250, text: '📋 Lista: Documentos para a audiência\n☐ Procuração assinada\n☐ RG e CPF\n☐ Comprovante de residência\n☐ Rol de testemunhas' },
+  { id: 12, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 200, text: '✅ Feito: Procuração assinada', replyTo: { id: 11, senderName: me.name, text: '📋 Lista: Documentos para a audiência' } },
+  { id: 13, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 190, text: '✅ Feito: RG e CPF', replyTo: { id: 11, senderName: me.name, text: '📋 Lista: Documentos para a audiência' } },
+  { id: 14, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 150, text: 'Me manda o endereço até amanhã?', selfDestruct: '1 h' },
+  { id: 15, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 140, text: '🔥 Mensagem autodestruída', destroyedNotice: true },
+  { id: 16, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 130, text: '', media: { kind: 'photo', sensitive: true } },
   { id: 6, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 120, text: NUDGE_TEXT, nudge: true },
 ];
+
+
+// Fotos fictícias (desenhos com as iniciais), para conferir as telas.
+const PHOTO_IDS = new Set(['101', '102', '106', '103', '-201']);
+const demoPhoto = (id: string) => {
+  const c = contacts.find((x) => x.id === id);
+  const name = c?.name ?? 'Carlos Oliveira';
+  const ini = name.split(/\s+/).filter((w) => /^[A-ZÀ-Ú]/.test(w)).slice(0, 2).map((w) => w[0]).join('');
+  const hue = [...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},70%,72%)"/><stop offset="1" stop-color="hsl(${(hue + 40) % 360},60%,42%)"/></linearGradient></defs><rect width="96" height="96" fill="url(#g)"/><circle cx="48" cy="38" r="17" fill="rgba(255,255,255,.85)"/><path d="M16 92c2-22 16-32 32-32s30 10 32 32z" fill="rgba(255,255,255,.85)"/><text x="48" y="44" font-family="Arial" font-size="15" font-weight="700" text-anchor="middle" fill="hsl(${hue},50%,35%)">${ini}</text></svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+for (const c of contacts) if (PHOTO_IDS.has(c.id)) c.hasPhoto = true;
+for (const c of contacts) if (c.id === '102' || c.id === '-201') c.favorite = true;
 
 
 /** Troca os métodos do motor por dados fictícios. */
@@ -42,13 +62,26 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.listContacts = () => contacts;
   t.getContact = (id: string) => contacts.find((x) => x.id === id) ?? null;
   t.history = async (id: string) => history.filter((m) => m.chatId === id).sort((a, b) => a.date - b.date);
-  t.avatar = async () => null;
+  t.avatar = async (id: string) => (PHOTO_IDS.has(id) ? demoPhoto(id) : null);
   t.markRead = () => {};
   t.typing = () => {};
   t.goOffline = async () => {};
   t.setAppearOffline = async () => {};
   t.setBio = async () => {};
   t.refreshContact = () => {};
+  t.stickerPanel = async () => ({ recent: [], packs: [{ id: '1:1', title: 'Clássicos' }], gifs: [] });
+  t.stickerPack = async () => [];
+  t.searchGifs = async () => [];
+  t.getSelfDestruct = () => 0;
+  t.getSensitive = () => false;
+  t.deleteChat = async () => {};
+  t.setBlockedContact = async () => {};
+  t.setSensitive = () => {};
+  t.setSelfDestruct = () => {};
+  t.setFavorite = async (id: string, fav: boolean) => {
+    const c = contacts.find((x) => x.id === id);
+    if (c) c.favorite = fav;
+  };
   t.accountSettings = async () => ({
     privacy: { lastSeen: 'contacts', photo: 'everybody', phone: 'nobody', invites: 'contacts', forwards: 'everybody', calls: 'contacts' },
     twoStep: true,

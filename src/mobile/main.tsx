@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { MobileBridge } from './bridge';
 import '../renderer/styles.css';
 import './mobile.css';
@@ -29,6 +30,11 @@ void CapApp.addListener('appStateChange', ({ isActive }) => {
 }).catch(() => {});
 
 void bridge.start();
+
+// Versão pelo navegador (iPhone): registra o serviço que permite abrir sem internet.
+if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator && location.protocol === 'https:') {
+  void navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 
 // As telas leem window.lex ao carregar, por isso entram depois da ponte.
 void import('./App').then(({ MobileApp }) => createRoot(document.getElementById('root')!).render(<MobileApp bridge={bridge} />));

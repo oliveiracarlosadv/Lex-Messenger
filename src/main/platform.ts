@@ -1,6 +1,6 @@
 // O que o motor do Telegram precisa do computador (Mac/Windows): sessão, arquivos e foto.
 import { app, BrowserWindow, dialog, nativeImage, powerMonitor, shell } from 'electron';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { release } from 'node:os';
 import { join } from 'node:path';
@@ -37,6 +37,15 @@ export const desktopPlatform: Platform = {
     return true;
   },
   clearTemp: async () => rmSync(tempDir(), { recursive: true, force: true }),
+  readFile: async (path) => new Uint8Array(readFileSync(path)),
+  loadData: async (key) => {
+    try {
+      return readFileSync(join(app.getPath('userData'), `${key}.json`), 'utf8');
+    } catch {
+      return null;
+    }
+  },
+  saveData: async (key, value) => writeFileSync(join(app.getPath('userData'), `${key}.json`), value, { mode: 0o600 }),
   async squareJpeg(input: FileInput) {
     const img = typeof input === 'string' ? nativeImage.createFromPath(input) : nativeImage.createFromBuffer(Buffer.from(input.data));
     if (img.isEmpty()) throw new Error('Não consegui abrir essa imagem. Use JPG ou PNG.');

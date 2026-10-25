@@ -21,7 +21,18 @@ interface Result {
 }
 
 /** Câmera dentro da conversa: foto, vídeo ou recado (vídeo redondo do Telegram). */
-export function CameraDialog({ chatId, onClose, onError }: { chatId: string; onClose: () => void; onError: (t: string) => void }) {
+export function CameraDialog({
+  chatId,
+  onClose,
+  onError,
+  sensitiveDefault = false,
+}: {
+  chatId: string;
+  onClose: () => void;
+  onError: (t: string) => void;
+  sensitiveDefault?: boolean;
+}) {
+  const [sensitive, setSensitive] = useState(sensitiveDefault);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -168,7 +179,7 @@ export function CameraDialog({ chatId, onClose, onError }: { chatId: string; onC
     if (!result) return;
     setSending(true);
     try {
-      await lex.sendCaptured(chatId, result.data, result.opts);
+      await lex.sendCaptured(chatId, result.data, { ...result.opts, sensitive });
       onClose();
     } catch {
       onError('Não foi possível enviar.');
@@ -201,6 +212,12 @@ export function CameraDialog({ chatId, onClose, onError }: { chatId: string; onC
           )}
         </div>
 
+        {result && (
+          <label className="camera-sensitive">
+            <input type="checkbox" checked={sensitive} onChange={(e) => setSensitive(e.target.checked)} />
+            🔞 Marcar como sensível <span>(fica coberto até a pessoa tocar)</span>
+          </label>
+        )}
         {result ? (
           <div className="camera-actions">
             <button className="btn" onClick={() => setResult(null)} disabled={sending}>

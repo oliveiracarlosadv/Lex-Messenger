@@ -1,7 +1,7 @@
 {
   "name": "lex-messenger",
-  "version": "0.4.0",
-  "description": "Mensageiro no estilo classico, usando sua conta do Telegram.",
+  "version": "1.0.0",
+  "description": "Lex Messenger — Comunicação em primeiro lugar! Mensageiro no estilo clássico, usando sua conta do Telegram.",
   "main": "dist-electron/main.js",
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
@@ -14,7 +14,8 @@
     "dist:win": "npm run typecheck && vite build && cross-env LEX_REQUIRE_KEYS=1 node scripts/build-main.mjs && electron-builder --win",
     "build:mobile": "tsc --noEmit -p . && vite build -c vite.mobile.config.ts",
     "dev:mobile": "vite -c vite.mobile.config.ts",
-    "android": "npm run build:mobile && npx cap sync android"
+    "android": "npm run build:mobile && npx cap sync android",
+    "manual": "npx electron scripts/make-manual-pdf.cjs"
   },
   "author": "Lex Tecnologias",
   "license": "UNLICENSED",
@@ -30,6 +31,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
     "big-integer": "^1.6.52",
+    "opus-recorder": "^8.0.5",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -49,6 +51,7 @@
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
     "esbuild": "^0.28.2",
+    "marked": "^18.1.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^6.4.5",

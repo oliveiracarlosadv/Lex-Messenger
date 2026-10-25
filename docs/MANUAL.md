@@ -1,5 +1,7 @@
 # Manual do Lex Messenger
 
+*Comunicação em primeiro lugar!*
+
 ## 1. Instalar
 
 ### Mac
@@ -35,14 +37,33 @@
 - **Chamar atenção** faz o celular **vibrar** e a tela tremer.
 - **Abrir** mostra o arquivo pelo menu **“Abrir com…”** sem guardar nada; **Salvar…** abre o menu do Android para você
   escolher onde guardar (Arquivos, Drive, galeria etc.).
-- **Em segundo plano**: o Lex continua conectado e avisando com o app fora da tela. Fica um aviso fixo e discreto
+- **Notificações na hora (push)**: quando o Lex é gerado com o Firebase configurado (veja
+  [Desenvolvimento](DESENVOLVIMENTO.md#notificações-push-no-android)), as notificações chegam como no Telegram oficial,
+  na hora, **mesmo com o app fechado**, com a **foto** de quem mandou, e sem o aviso fixo “Conectado ao Telegram”.
+- **Sem push** (modo “Manter conectado em segundo plano”, em Configurações > Avisos): o Lex continua conectado e
+  avisando com o app fora da tela. Fica um aviso fixo e discreto
   **“Conectado ao Telegram”** na barra de notificações: é ele que impede o Android de desligar o app. Na primeira vez,
   o Android pergunta se o Lex pode **rodar em segundo plano sem economia de bateria**: toque em **Permitir**.
 - Se você **fechar o app arrastando-o para fora** da lista de apps recentes, alguns celulares desligam tudo; aí os
   avisos voltam quando você abrir o Lex de novo. Em celulares Xiaomi, Samsung e Motorola, vale também liberar o
   “início automático”/“sem restrições de bateria” para o Lex nos ajustes do aparelho.
 - Na conversa, a **seta ‹** volta para a lista e mostra quantas mensagens não lidas há nas outras conversas.
-- Ainda não tem: “música que estou ouvindo”.
+- **Música que estou ouvindo**: ao ligar o 🎵, o Android pede para liberar o **“Acesso a notificações”** para o Lex
+  (Ajustes > Notificações > Acesso a notificações). É só o jeito que o Android dá para saber qual música está tocando;
+  o Lex não lê suas notificações.
+- **Chamar atenção** chega na barra de notificações como “Fulano chamou a sua atenção! Deseja abrir a conversa?”, com
+  os botões **Abrir conversa** e **Agora não**.
+- Notificações de uma conversa **somem da barra** quando ela é lida (aqui ou em outro aparelho).
+
+### iPhone (sem App Store)
+1. No iPhone, abra o **Safari** (precisa ser o Safari) e entre em **https://oliveiracarlosadv.github.io/Lex-Messenger/**.
+2. Toque em **Compartilhar** (o quadrado com a seta para cima) e depois em **“Adicionar à Tela de Início”** > **Adicionar**.
+3. Abra o **Lex Messenger** pelo ícone novo na tela de início e entre com o número de telefone.
+
+**Diferenças no iPhone:** a Apple não deixa apps instalados fora da App Store funcionarem em segundo plano, então
+os avisos de mensagem só aparecem com o Lex aberto na tela; ao abrir, ele busca tudo o que chegou. Também não há
+“música que estou ouvindo”. Conversas, áudios, câmera, recados, figurinhas, listas, autodestruição e configurações
+funcionam como no Android.
 
 ## 2. Entrar com a sua conta do Telegram
 
@@ -59,11 +80,23 @@ Você precisa ter uma conta no Telegram (no celular). Há dois jeitos de entrar:
 
 Se você ativou a **verificação em duas etapas** no Telegram, o app também pede essa senha.
 
+**Não tem Telegram? Crie a conta pelo Lex**
+1. Na tela de entrada, toque em **Não tenho Telegram — criar conta** e digite o seu celular com DDD.
+2. O código chega **por SMS** (você ainda não tem o app do Telegram). Digite o código.
+3. Informe **nome** e, se quiser, **sobrenome**. Leia os **Termos de Serviço** e a **Política de Privacidade** do
+   Telegram (os links abrem no navegador), marque **“Li e aceito”** e toque em **Criar conta**.
+
+A conta é do Telegram, gratuita: depois dá para usar o mesmo número no app oficial também. Se o Telegram não permitir
+criar a conta por aqui (ele às vezes restringe por país ou por número), o Lex avisa: nesse caso, crie pelo app oficial
+e depois entre no Lex normalmente.
+
 Você só faz isso uma vez: nas próximas aberturas, o Lex Messenger entra sozinho.
 
 ## 3. Lista de contatos
 
 - **Online** (bonequinho verde), **Ausente** (laranja, com reloginho: saiu há menos de 10 minutos) e **Offline** (cinza).
+- Quem tem **foto** aparece com ela, redonda, e a **borda** mostra o status com as mesmas cores (verde, laranja,
+  vermelho para ocupado, cinza). Quem não tem foto aparece com o bonequinho.
 - **Grupos** e **Canais, robôs e anotações** ficam em seções próprias. Clique no título para recolher ou abrir.
 - O número laranja mostra mensagens não lidas.
 - **Clique duas vezes** num contato para abrir a conversa (ou selecione e aperte Enter).
@@ -78,11 +111,29 @@ Você só faz isso uma vez: nas próximas aberturas, o Lex Messenger entra sozin
 
 Pessoas que escondem o “visto por último” no Telegram aparecem como Offline.
 
+### Online, Invisível, Desligado e Silencioso
+Logo abaixo do seu nome há uma barra rápida:
+- **🟢 Online**: conectado e aparecendo online.
+- **👻 Invisível**: você **aparece offline**, mas continua **recebendo** mensagens normalmente.
+- **⏻ Desligado**: desliga o Lex por um tempo — **30 min, 1 hora, 2 horas, 8 horas, 1 dia, 3 dias**, um prazo seu
+  (em minutos, horas ou dias) ou **até você ligar de novo**. Desligado, você aparece offline e não recebe nada; no fim
+  do prazo o Lex liga sozinho e busca tudo o que chegou. Para voltar antes, toque em **Ligar agora**.
+- **🔔/🔕 Silencioso**: as mensagens continuam chegando e contando, mas **sem som, sem vibração e sem avisos** na
+  tela. No celular, elas ficam quietinhas na barra de notificações.
+
 ### Como os status chegam aos outros
 O Telegram só conhece “online” e “offline”. Por isso o Lex Messenger coloca o status no começo da sua bio, por exemplo
 **“⛔ Ocupado · Audiência às 14h”**. Quem usa o Lex Messenger vê o bonequinho vermelho; quem usa o Telegram comum vê
 esse texto no seu perfil. **Aparecer offline** deixa você offline no Telegram e não mostra status nem música. Ao sair
 do Lex Messenger, a bio volta a ser só a sua mensagem pessoal.
+
+### Favoritos ⭐ e grupos 👥
+- **Favoritar**: clique com o botão direito num contato (no celular, toque e segure) e escolha **Adicionar aos
+  favoritos**, ou toque na **☆** no alto da conversa. Os favoritos ficam na seção **⭐ Favoritos**, no topo da lista.
+  Eles ficam numa pasta “Favoritos” da sua conta do Telegram, então aparecem iguais no Mac, no Android, no iPhone e
+  no app oficial.
+- **Criar grupo**: toque em **👥** ao lado da engrenagem, dê um nome, escolha os participantes e toque em **Criar
+  grupo**. Se alguém não puder ser adicionado (por privacidade), o Lex avisa.
 
 ## 3.1 Configurações ⚙️
 
@@ -131,8 +182,63 @@ Com a caixa de texto vazia, o botão **Enviar** vira um **🎤**.
 - Na primeira vez, o sistema pede permissão para usar o **microfone**: permita.
 - Para ouvir, toque no **▶**. Toque na onda para pular para um trecho, e no **1x** para ouvir em 1,5x ou 2x.
 - **🔁 Ouvir áudios em sequência** (na barra de baixo): ao terminar um áudio, o próximo toca sozinho.
-- **Aa** transforma o áudio em texto. É um recurso do **Telegram Premium**: sem a assinatura, o Telegram às vezes
-  libera algumas transcrições de cortesia.
+- Contas **Telegram Premium** também veem o botão **Aa**, que transforma o áudio em texto. Nas demais contas, ele não
+  aparece.
+
+### Mensagens que se autodestroem ⏱
+Toque no **⏱** da barra de baixo e escolha **30 segundos, 1 minuto, 5 minutos, 1 hora ou 24 horas**. A partir daí,
+tudo o que você mandar nessa conversa (texto, foto, áudio, vídeo) leva a marca **“⏱ some em…”** e é **apagado para
+os dois lados** quando o tempo acaba. No lugar, fica o aviso **“🔥 Mensagem autodestruída”**, que **também some
+12 horas depois**. Para parar, toque em ⏱ e escolha **Desligado**.
+
+- Quem apaga é o Lex de quem enviou: se o seu aparelho estiver sem internet na hora marcada, a mensagem some assim
+  que ele voltar a se conectar.
+- Quem usa o Telegram comum também vê a marca “⏱ Some em…” e vê a mensagem sumir.
+- O Lex guarda só o **número** da mensagem e a hora de apagar — nunca o conteúdo.
+
+### Mídia sensível 🔞
+Ao enviar fotos ou vídeos (📎, 🖼️ ou arrastando para a janela), aparece a confirmação **“Enviar … para Fulano?”**
+com a opção **🔞 Sensível**; na câmera, a opção fica na prévia, antes de **Enviar**. Quem recebe vê só um quadro
+escuro **“🔞 Mídia sensível — Toque para ver”**: a mídia aparece ao tocar e **volta a ficar coberta** ao tocar em
+**🙈 Ocultar de novo**, quando o vídeo termina ou ao sair da conversa. Antes de a pessoa tocar, nem a miniatura é
+baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada até tocar).
+
+### Exportar a conversa 📤 e avisos de print
+- **📤 Exportar**, no alto da conversa, salva toda a conversa num arquivo (abre no navegador e pode ser impresso ou
+  salvo em PDF), com datas, horários, respostas e marcas de mensagem temporária. Fotos e arquivos aparecem como
+  [anexo]. **A outra pessoa é avisada**: “📤 Exportou esta conversa”.
+- **Print da tela** com uma conversa aberta: a outra pessoa recebe o aviso **oficial do Telegram** (“Fulano tirou uma
+  captura de tela”, visto até no app oficial). Se havia **mensagem temporária** ou **mídia sensível** na tela, o aviso
+  diz isso (“⚠️ O print incluiu mídia sensível”).
+- **Gravação da tela**: “🎥 Começou a gravar a tela nesta conversa”.
+- Onde funciona: **Android 14 ou mais novo** (gravação: Android 15+), **Mac** e **Windows** (prints e gravações
+  feitos pelo próprio sistema, salvos na pasta padrão). No **iPhone pelo Safari** não é possível saber de prints.
+
+### Excluir conversa e bloquear 🗑 🚫
+No menu **⋯** no alto da conversa (ou com o botão direito / toque longo no contato, na lista):
+- **🚫 Bloquear contato**: a pessoa não consegue mais mandar mensagens nem ligar, e não vê quando você está online.
+  Para desfazer, **✅ Desbloquear** no mesmo lugar (ou em Configurações > Bloqueados).
+- **🗑 Excluir conversa**: apaga a conversa da sua lista; marque **“Apagar também para Fulano”** para apagar dos dois
+  lados. Em grupos e canais, a opção é **Sair**. Não dá para desfazer.
+
+### SMS / RCS 💬
+O botão **💬** no alto da conversa abre o **app de mensagens do aparelho** (no Android, o Mensagens do Google; no
+iPhone e no Mac, o Mensagens) com o número da pessoa e o texto que você estava escrevendo. Se os dois aparelhos
+tiverem **RCS**, ele envia por RCS; senão, vai como **SMS** (pode ter custo da operadora). O Lex não envia SMS/RCS
+sozinho — isso é feito pelo app de mensagens. O número vem do Telegram quando a pessoa o compartilha; senão, digite.
+
+### Lista de tarefas 📋
+Toque no **📋**, dê um título e escreva os itens (um por linha). A outra pessoa **toca nos quadradinhos** para marcar
+como feito (ou desmarcar), e a lista mostra **“2 de 5 feitos”** para os dois. Quem criou a lista também pode marcar.
+Cada marcação aparece na conversa como “✅ Ana marcou “Procuração””.
+
+### Figurinhas e GIFs 🎞️
+Toque no **🎞️**: **🕘** são as figurinhas recentes, **GIF** traz os GIFs salvos e uma busca (ex.: “obrigado”), e os
+outros botões são os seus pacotes de figurinhas. Toque numa para enviar. GIFs e figurinhas animadas tocam sozinhos na
+conversa.
+
+### Vídeos 🎬
+Toque no vídeo para assistir **dentro da conversa**, com pausa, barra de tempo e tela cheia (vídeos de até 150 MB).
 
 ### Câmera: foto, vídeo e recado 📷
 Toque no **📷** da barra de baixo da conversa e escolha:

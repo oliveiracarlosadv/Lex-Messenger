@@ -3,10 +3,11 @@ import { lex } from '../lib/api';
 
 const cache = new Map<string, Promise<string | null>>();
 
+/** Foto do contato: undefined enquanto carrega, null se não houver. */
 export function useAvatar(id: string | undefined, hasPhoto: boolean | undefined, version = 0) {
-  const [url, setUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
   useEffect(() => {
-    setUrl(null);
+    setUrl(hasPhoto ? undefined : null);
     if (!id || !hasPhoto) return;
     let alive = true;
     const key = `${id}:${version}`;

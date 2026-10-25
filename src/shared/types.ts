@@ -25,6 +25,12 @@ export interface Contact {
   muted?: boolean;
   /** Assinante do Telegram Premium (selo ⭐). */
   premium?: boolean;
+  /** Está na pasta "⭐ Favoritos" do Telegram. */
+  favorite?: boolean;
+  /** Telefone, quando a pessoa compartilha com você no Telegram (para SMS/RCS). */
+  phone?: string;
+  /** Você bloqueou esta pessoa. */
+  blocked?: boolean;
   /** Até que mensagem minha a pessoa já leu (para os ✓✓). */
   readOutboxMaxId?: number;
 }
@@ -44,7 +50,7 @@ export interface Me {
   premium?: boolean;
 }
 
-export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'file' | 'webpage' | 'other';
+export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'gif' | 'file' | 'webpage' | 'other';
 
 export interface MediaInfo {
   kind: MediaKind;
@@ -55,6 +61,10 @@ export interface MediaInfo {
   duration?: number;
   /** Mensagem de voz: 100 valores de 0 a 31 (a "onda"). */
   waveform?: number[];
+  /** Figurinha: imagem parada, vídeo (webm) ou animação do Telegram (tgs). */
+  anim?: 'static' | 'video' | 'lottie';
+  /** Mídia sensível (spoiler do Telegram): fica coberta até a pessoa tocar. */
+  sensitive?: boolean;
   /** Vídeo redondo ("recado") do Telegram. */
   round?: boolean;
   width?: number;
@@ -80,11 +90,29 @@ export interface ChatMessage {
   forwardedFrom?: string;
   edited?: boolean;
   reactions?: Reaction[];
+  /** Mensagem temporária: "1 min", "1 h"… (some sozinha). */
+  selfDestruct?: string;
+  /** Aviso "🔥 Mensagem autodestruída" (também some em 12 h). */
+  destroyedNotice?: boolean;
+  /** Aviso do Lex: exportou a conversa, gravou a tela… */
+  systemNotice?: boolean;
+}
+
+/** Figurinha ou GIF no seletor. */
+export interface PickItem {
+  key: string;
+  kind: 'sticker' | 'gif';
+}
+export interface StickerPack {
+  id: string;
+  title: string;
 }
 
 export interface CaptureOpts {
   kind: 'photo' | 'video' | 'round';
   name: string;
+  /** Mandar coberta, como "🔞 mídia sensível". */
+  sensitive?: boolean;
   duration?: number;
   width?: number;
   height?: number;
@@ -119,6 +147,8 @@ export type LoginStep =
   | { step: 'phone'; error?: string }
   | { step: 'code'; viaApp: boolean; error?: string }
   | { step: 'password'; hint?: string; error?: string }
+  /** Número sem conta no Telegram: nome, sobrenome e aceite dos Termos. Resposta: JSON {first, last}. */
+  | { step: 'signup'; error?: string }
   | { step: 'qr'; url: string; expires: number; error?: string }
   | { step: 'done' }
   | { step: 'failed'; error: string };
@@ -139,6 +169,10 @@ export interface Prefs {
   background: boolean;
   /** Android: já pedimos para o sistema não economizar bateria no app. */
   batteryAsked: boolean;
+  /** Silencioso: sem som, sem vibração e sem avisos na tela (as mensagens continuam chegando). */
+  silent: boolean;
+  /** Desligado até esta hora (ms). 0 = ligado; -1 = desligado até a pessoa ligar de novo. */
+  offlineUntil: number;
 }
 
 export interface PresenceInfo {
@@ -152,6 +186,12 @@ export interface PresenceInfo {
 }
 
 export type SoundName = 'message' | 'online' | 'nudge' | 'sent';
+
+/** Avisos que o Lex manda para a outra pessoa (aparecem como aviso no meio da conversa). */
+export const EXPORT_NOTICE = '📤 Exportou esta conversa';
+export const RECORDING_NOTICE = '🎥 Começou a gravar a tela nesta conversa';
+export const PRINT_CONTEXT_NOTICE = '⚠️ O print incluiu';
+export const isSystemNotice = (t: string) => t === EXPORT_NOTICE || t === RECORDING_NOTICE || t.startsWith(PRINT_CONTEXT_NOTICE);
 
 /** Texto enviado para "chamar a atenção". Outro Lex Messenger reconhece e faz a janela tremer. */
 export const NUDGE_TEXT = '📳 Chamou sua atenção!';
@@ -178,6 +218,10 @@ export interface LexEvents {
   /** Transcrição de áudio pronta (ou em andamento). */
   transcription: { chatId: string; id: number; text: string; pending: boolean };
   'settings:open': true;
+  /** Ligou/desligou a conexão (botão Desligado). */
+  'connection:changed': { connected: boolean; offlineUntil: number };
+  /** Conversa excluída: as janelas dela fecham. */
+  'chat:removed': { chatId: string };
 }
 
 export interface LexApi {
@@ -198,7 +242,10 @@ export interface LexApi {
   history(chatId: string, beforeId?: number): Promise<ChatMessage[]>;
   sendText(chatId: string, text: string): Promise<void>;
   sendNudge(chatId: string): Promise<boolean>;
-  sendFiles(chatId: string, paths?: string[], images?: boolean): Promise<void>;
+  /** Escolhe arquivos (sem enviar ainda): devolve referências e nomes para a confirmação. */
+  pickFiles(images?: boolean): Promise<{ id: string; name: string }[]>;
+  /** Envia os arquivos escolhidos; sensitive = fotos e vídeos vão cobertos (🔞). */
+  sendFiles(chatId: string, ids?: string[], images?: boolean, sensitive?: boolean): Promise<void>;
   sendImageData(chatId: string, dataUrl: string): Promise<void>;
   /** Envia uma mensagem de voz já em Ogg/Opus. */
   sendVoice(chatId: string, ogg: Uint8Array, duration: number, waveform: number[]): Promise<void>;
@@ -223,7 +270,35 @@ export interface LexApi {
   block(id: string): Promise<void>;
   clearCache(): Promise<void>;
   openSettings(): void;
+  /** Cria um grupo com os contatos escolhidos. Devolve o id da conversa e quem não pôde ser adicionado. */
+  createGroup(title: string, memberIds: string[]): Promise<{ chatId: string; notAdded: string[] }>;
+  /** Liga (segundos) ou desliga (0) a autodestruição das próximas mensagens da conversa. */
+  setSelfDestruct(chatId: string, seconds: number): Promise<void>;
+  getSelfDestruct(chatId: string): Promise<number>;
+  /** Põe ou tira da pasta "⭐ Favoritos" (sincronizada com todos os aparelhos e com o Telegram oficial). */
+  setFavorite(chatId: string, favorite: boolean): Promise<void>;
+  /** Liga/desliga "próximas fotos e vídeos como sensíveis" nesta conversa. */
+  setSensitive(chatId: string, on: boolean): Promise<void>;
+  /** Desliga o app por um tempo (minutos; 0 = até ligar de novo) ou liga de novo (null). */
+  setOffline(minutes: number | null): Promise<void>;
+  /** Exporta a conversa para um arquivo (a outra pessoa é avisada). Devolve false se desistir. */
+  exportChat(chatId: string): Promise<boolean>;
+  /** Exclui a conversa (para mim, ou para os dois). Em grupos e canais: sai deles. */
+  deleteChat(chatId: string, forEveryone: boolean): Promise<void>;
+  setBlockedContact(chatId: string, blocked: boolean): Promise<void>;
+  /** O que está na tela da conversa agora (para avisar sobre prints e gravações). */
+  reportView(chatId: string, view: { lastId: number; sensitive: boolean; temporary: boolean } | null): void;
+  getSensitive(chatId: string): Promise<boolean>;
+  /** Figurinhas recentes, pacotes instalados e GIFs salvos. */
+  stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }>;
+  stickerPack(id: string): Promise<PickItem[]>;
+  searchGifs(chatId: string, query: string): Promise<PickItem[]>;
+  /** Miniatura de uma figurinha/GIF do seletor. */
+  pickThumb(key: string): Promise<{ url: string; video: boolean } | null>;
+  sendPick(chatId: string, key: string): Promise<void>;
   openSystemNotificationSettings?(): void;
+  /** Celular: as notificações push (Firebase) estão funcionando? */
+  pushActive?(): Promise<boolean>;
   copyText(text: string): void;
   pathForFile(file: File): string;
   typing(chatId: string): void;
@@ -243,4 +318,6 @@ export interface LexApi {
   setPrefs(p: Partial<Prefs>): Promise<Prefs>;
   shakeMe(): void;
   openExternal(url: string): void;
+  /** Abre o app de mensagens do aparelho (SMS/RCS) com o número e o texto prontos. */
+  openSms(phone: string, text: string): void;
 }

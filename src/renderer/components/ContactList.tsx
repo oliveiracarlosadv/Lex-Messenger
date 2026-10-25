@@ -4,12 +4,17 @@ import type { Contact, Me, MyStatus, PresenceInfo, Prefs } from '../../shared/ty
 import { lex } from '../lib/api';
 import { describe } from '../lib/presence';
 import { Avatar } from './Avatar';
-import { Buddy, KindIcon } from './Icons';
+import { Buddy } from './Icons';
+import { ContactIcon } from './ContactIcon';
 import { ProfileDialog } from './ProfileDialog';
 import { SettingsDialog } from './SettingsDialog';
+import { NewGroupDialog } from './NewGroupDialog';
+import { QuickBar } from './QuickBar';
+import { DeleteChatDialog, toggleBlock } from './ChatActions';
 
-type Section = 'online' | 'offline' | 'groups' | 'others';
+type Section = 'favorites' | 'online' | 'offline' | 'groups' | 'others';
 const TITLES: Record<Section, string> = {
+  favorites: '⭐ Favoritos',
   online: 'Online',
   offline: 'Offline',
   groups: 'Grupos',
@@ -17,6 +22,7 @@ const TITLES: Record<Section, string> = {
 };
 
 function sectionOf(c: Contact): Section {
+  if (c.favorite) return 'favorites';
   if (c.kind === 'user') return c.presence === 'offline' ? 'offline' : 'online';
   if (c.kind === 'group') return 'groups';
   return 'others';
@@ -30,7 +36,7 @@ function loadCollapsed(): Record<string, boolean> {
   }
 }
 
-export function ContactList() {
+export function ContactList({ connecting = false }: { connecting?: boolean }) {
   const [me, setMe] = useState<Me | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -42,6 +48,23 @@ export function ContactList() {
   const [presence, setPresence] = useState<PresenceInfo | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [rowMenu, setRowMenu] = useState<{ c: Contact; x: number; y: number } | null>(null);
+  const [deleting, setDeleting] = useState<Contact | null>(null);
+  const toggleFavorite = async (c: Contact) => {
+    try {
+      await lex.setFavorite(c.id, !c.favorite);
+    } catch (e) {
+      alert((e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+    }
+  };
+
+  // Terminou de conectar: busca perfil e contatos (a tela já estava aberta).
+  useEffect(() => {
+    if (connecting) return;
+    void lex.me().then((m) => m && setMe(m));
+    void lex.contacts().then((c) => c.length && setContacts(c));
+  }, [connecting]);
 
   useEffect(() => {
     void lex.me().then(setMe);
@@ -78,7 +101,7 @@ export function ContactList() {
 
   const sections = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('pt-BR');
-    const groups: Record<Section, Contact[]> = { online: [], offline: [], groups: [], others: [] };
+    const groups: Record<Section, Contact[]> = { favorites: [], online: [], offline: [], groups: [], others: [] };
     for (const c of contacts) {
       if (q && !c.name.toLocaleLowerCase('pt-BR').includes(q)) continue;
       groups[sectionOf(c)].push(c);
@@ -100,6 +123,11 @@ export function ContactList() {
 
   return (
     <div className="list-window">
+      {connecting && (
+        <div className="connecting-bar" role="status">
+          <span className="mini-spinner" /> Conectando ao Telegram…
+        </div>
+      )}
       <header className="list-head">
         <button className="avatar-btn" onClick={() => setProfileOpen(true)} title="Trocar foto e nome">
           <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={48} version={me?.photoVersion} />
@@ -162,9 +190,14 @@ export function ContactList() {
         </div>
       </header>
 
+      {prefs && <QuickBar prefs={prefs} />}
+
       <div className="search">
         <button className="gear-btn" onClick={() => setSettingsOpen(true)} title="Configurações" aria-label="Configurações">
           ⚙️
+        </button>
+        <button className="gear-btn" onClick={() => setGroupOpen(true)} title="Criar um grupo" aria-label="Criar um grupo">
+          👥
         </button>
         <input placeholder="🔍 Procurar um contato…" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
@@ -192,10 +225,14 @@ export function ContactList() {
                     className={`contact ${selected === c.id ? 'selected' : ''} ${c.unread ? 'has-unread' : ''}`}
                     onClick={() => (lex.features.mobile ? lex.openChat(c.id) : setSelected(c.id))}
                     onDoubleClick={() => lex.openChat(c.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setRowMenu({ c, x: e.clientX, y: e.clientY });
+                    }}
                     onKeyDown={(e) => e.key === 'Enter' && lex.openChat(c.id)}
                     title={[c.subtitle, c.lastMessage && `Última mensagem: ${c.lastMessage}`].filter(Boolean).join('\n')}
                   >
-                    <KindIcon kind={c.kind} color={d.color} title={d.label || undefined} />
+                    <ContactIcon id={c.id} kind={c.kind} color={d.color} hasPhoto={c.hasPhoto} size={lex.features.mobile ? 50 : 42} title={d.label || undefined} />
                     {/* Nome em cima; status e mensagem pessoal (ou música) logo abaixo, em letra menor. */}
                     <div className="contact-lines">
                       <span className="contact-name">
@@ -225,6 +262,58 @@ export function ContactList() {
         {lex.features.mobile ? 'Toque em um contato para conversar.' : 'Clique duas vezes em um contato para conversar.'}
       </footer>
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
+      {groupOpen && <NewGroupDialog onClose={() => setGroupOpen(false)} />}
+      {deleting && <DeleteChatDialog contact={deleting} onClose={() => setDeleting(null)} />}
+      {rowMenu && (
+        <div className="menu-back" onMouseDown={() => setRowMenu(null)} onContextMenu={(e) => e.preventDefault()}>
+          <div
+            className="msg-menu"
+            style={{ left: Math.min(rowMenu.x, window.innerWidth - 230), top: Math.min(rowMenu.y, window.innerHeight - 210) }}
+            onMouseDown={(e) => e.stopPropagation()}
+            role="menu"
+          >
+            <button
+              role="menuitem"
+              onClick={() => {
+                lex.openChat(rowMenu.c.id);
+                setRowMenu(null);
+              }}
+            >
+              💬 Abrir conversa
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => {
+                void toggleFavorite(rowMenu.c);
+                setRowMenu(null);
+              }}
+            >
+              {rowMenu.c.favorite ? '☆ Tirar dos favoritos' : '⭐ Adicionar aos favoritos'}
+            </button>
+            {rowMenu.c.kind === 'user' && (
+              <button
+                role="menuitem"
+                onClick={() => {
+                  void toggleBlock(rowMenu.c, (t) => alert(t));
+                  setRowMenu(null);
+                }}
+              >
+                {rowMenu.c.blocked ? '✅ Desbloquear' : '🚫 Bloquear contato'}
+              </button>
+            )}
+            <button
+              role="menuitem"
+              className="danger"
+              onClick={() => {
+                setDeleting(rowMenu.c);
+                setRowMenu(null);
+              }}
+            >
+              🗑 Excluir conversa
+            </button>
+          </div>
+        </div>
+      )}
       {settingsOpen && me && prefs && (
         <SettingsDialog me={me} prefs={prefs} onClose={() => setSettingsOpen(false)} onProfile={() => setProfileOpen(true)} />
       )}

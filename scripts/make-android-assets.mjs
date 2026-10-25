@@ -59,3 +59,14 @@ for (const dir of readdirSync(RES).filter((d) => d.startsWith('drawable'))) {
   writeFileSync(file, new Resvg(splash).render().asPng());
 }
 console.log('ícones do Android gerados');
+
+// Ícones do app pelo Safari (iPhone) e da versão web.
+const WEB = 'src/mobile/public/icones';
+mkdirSync(WEB, { recursive: true });
+png(legacy, 192, `${WEB}/icon-192.png`);
+png(legacy, 512, `${WEB}/icon-512.png`);
+// iPhone: ícone quadrado e cheio (o próprio iOS arredonda os cantos).
+const full = svg(1024, 1024, `<rect width="1024" height="1024" fill="url(#abg)"/><g transform="translate(512 512) scale(0.95) translate(-512 -555)">${bubbles}</g>`, bg);
+png(full, 180, `${WEB}/apple-touch-icon.png`);
+png(full, 512, `${WEB}/maskable-512.png`);
+console.log('ícones do iPhone/web gerados');

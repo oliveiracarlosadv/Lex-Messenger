@@ -5,3 +5,4 @@ release/
 .env
 .DS_Store
 dist-mobile/
+android/app/google-services.json

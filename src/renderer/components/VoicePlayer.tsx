@@ -5,6 +5,9 @@ import { lex } from '../lib/api';
 // Tocador de mensagens de voz. "Ouvir em sequência" (mãos livres) toca o próximo áudio sozinho.
 
 const players = new Map<string, { id: number; play: () => void }>();
+// A transcrição só existe para contas Telegram Premium; para as demais, o botão nem aparece.
+let premiumAccount: Promise<boolean> | null = null;
+const isPremium = () => (premiumAccount ??= lex.me().then((m) => !!m?.premium).catch(() => false));
 let current: HTMLAudioElement | null = null;
 
 export function getSequential() {
@@ -32,7 +35,11 @@ export function VoicePlayer({ m, chatId }: { m: ChatMessage; chatId: string }) {
   const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'paused' | 'error'>('idle');
   const [pos, setPos] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [transcript, setTranscript] = useState<{ text: string; pending: boolean; error?: boolean } | null>(null);
+  const [transcript, setTranscript] = useState<{ text: string; pending: boolean } | null>(null);
+  const [canTranscribe, setCanTranscribe] = useState(false);
+  useEffect(() => {
+    void isPremium().then(setCanTranscribe);
+  }, []);
 
   useEffect(
     () =>
@@ -46,9 +53,8 @@ export function VoicePlayer({ m, chatId }: { m: ChatMessage; chatId: string }) {
     setTranscript({ text: '', pending: true });
     try {
       setTranscript(await lex.transcribe(chatId, m.id));
-    } catch (e) {
-      const msg = (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
-      setTranscript({ text: msg || 'Não foi possível transcrever.', pending: false, error: true });
+    } catch {
+      setTranscript(null); // sem aviso: se não der, o botão simplesmente volta
     }
   };
   const duration = media.duration || audio.current?.duration || 0;
@@ -121,14 +127,14 @@ export function VoicePlayer({ m, chatId }: { m: ChatMessage; chatId: string }) {
         {String(speed).replace('.', ',')}x
       </button>
       {state === 'error' && <span className="voice-error">não foi possível tocar</span>}
-      {media.kind === 'voice' && !transcript && (
-        <button className="voice-speed" onClick={() => void transcribe()} title="Transcrever o áudio em texto (Telegram Premium)">
+      {media.kind === 'voice' && canTranscribe && !transcript && (
+        <button className="voice-speed" onClick={() => void transcribe()} title="Transcrever o áudio em texto">
           Aa
         </button>
       )}
     </div>
     {transcript && (
-      <div className={`transcript ${transcript.error ? 'error' : ''}`}>
+      <div className="transcript">
         {transcript.pending && !transcript.text ? 'Transcrevendo…' : transcript.text}
         {transcript.pending && transcript.text && ' …'}
       </div>

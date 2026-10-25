@@ -1,5 +1,5 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, shell, systemPreferences, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, screen, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, shell, systemPreferences, Tray } from 'electron';
 import { join } from 'node:path';
 import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
@@ -8,7 +8,8 @@ import { enableDemo, loginSnapshot, snapshot } from './demo';
 import { PresenceManager } from '../core/presence';
 import { TelegramService } from '../core/telegram';
 import { desktopPlatform, desktopPresence } from './platform';
-import { showToast, type ToastData } from './toast';
+import { closeToasts, showToast, type ToastData } from './toast';
+import { watchCaptures } from './screenshots';
 
 app.setName('Lex Messenger');
 // Os sons tocam sozinhos, sem precisar de um clique antes (o padrão do Chromium bloqueia).
@@ -24,6 +25,12 @@ let tray: Tray | null = null;
 let quitting = false;
 let prefs: Prefs = loadPrefs();
 let lastOnlineSound = 0;
+let lastResync = Date.now();
+type ChatView = { lastId: number; sensitive: boolean; temporary: boolean };
+/** O que cada janela de conversa está mostrando (para o aviso de print). */
+const chatViews = new Map<string, ChatView>();
+/** Quando cada janela de conversa esteve na frente pela última vez (o print do Mac tira o foco por um instante). */
+const lastChatFocus = new WeakMap<BrowserWindow, number>();
 const lastNudgeSent = new Map<string, number>();
 
 function allWindows() {
@@ -33,10 +40,16 @@ function allWindows() {
 function emit<K extends keyof LexEvents>(event: K, data: LexEvents[K]) {
   for (const w of allWindows()) w.webContents.send(event, data);
   if (event === 'auth:state') buildMenus();
+  if (event === 'connection:changed' && (data as LexEvents['connection:changed']).connected && prefs.offlineUntil) {
+    prefs = { ...prefs, offlineUntil: 0 };
+    savePrefs(prefs);
+  }
+  // Conversa lida (aqui ou em outro aparelho): somem os avisos dela.
+  if (event === 'contact:patch' && (data as LexEvents['contact:patch']).unread === 0) closeToasts((data as LexEvents['contact:patch']).id);
 }
 
 function playSound(name: SoundName) {
-  if (!prefs.sounds) return;
+  if (!prefs.sounds || prefs.silent) return;
   listWin?.webContents.send('sound', name);
 }
 
@@ -57,6 +70,10 @@ const tg = new TelegramService(
   ready: (me) => {
     presence.start(me);
     askNotificationPermission();
+    // Estava "Desligado" com prazo ainda valendo: continua desligado até a hora marcada.
+    const until = prefs.offlineUntil;
+    if (until === -1 || until > Date.now()) void tg.pause(until);
+    else if (until) updatePrefs({ offlineUntil: 0 });
   },
   onContactOnline: (c) => {
     if (!prefs.onlineAlerts) return;
@@ -77,14 +94,14 @@ const tg = new TelegramService(
       if (win && !win.isDestroyed()) shake(win);
       if (!focused) {
         nudgePopup(msg.chatId, contact?.name ?? msg.senderName, !!contact?.hasPhoto);
-        if (process.platform === 'darwin') app.dock?.bounce('critical');
+        if (process.platform === 'darwin' && !prefs.silent) app.dock?.bounce('critical');
       }
       return;
     }
     if (focused) return;
     playSound('message');
     if (win && !win.isDestroyed()) win.flashFrame(true);
-    if (process.platform === 'darwin') app.dock?.bounce('informational');
+    if (process.platform === 'darwin' && !prefs.silent) app.dock?.bounce('informational');
     const body = msg.text || (msg.media ? 'enviou um anexo 📎' : '');
     toastFor(msg.chatId, contact, msg.senderName, body, 'message');
   },
@@ -131,7 +148,8 @@ function nudgePopup(chatId: string, name: string, hasPhoto: boolean) {
     webPreferences: webPreferences(),
   });
   w.setAlwaysOnTop(true, 'pop-up-menu');
-  w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // skipTransformProcessType: sem isso, o macOS tira o Lex do Dock e do Cmd+Tab.
+  w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   secure(w);
   w.once('ready-to-show', () => {
     w.show();
@@ -162,7 +180,7 @@ function askNotificationPermission() {
 }
 
 function toast(data: ToastData) {
-  if (!prefs.notifications) return;
+  if (!prefs.notifications || prefs.silent) return;
   showToast(
     data,
     (w, hash) => {
@@ -235,6 +253,13 @@ function createListWindow() {
     }
   });
   listWin.on('closed', () => (listWin = null));
+  // Ao voltar para o Lex: confere o que mudou (mensagens, foto trocada em outro aparelho…), no máximo 1x por minuto.
+  listWin.on('focus', () => {
+    if (Date.now() - lastResync > 60_000) {
+      lastResync = Date.now();
+      void tg.resync();
+    }
+  });
   load(listWin, '/');
 }
 
@@ -257,9 +282,12 @@ function openChat(chatId: string, focus = true): BrowserWindow {
   }
   const c = tg.getContact(chatId);
   const offset = (chatWins.size % 6) * 24;
+  // Tamanho: o último que você deixou (ou 640 × 900), cabendo na tela.
+  const wa = screen.getPrimaryDisplay().workAreaSize;
+  const saved = (prefs as Prefs & { chatSize?: [number, number] }).chatSize ?? [640, 900];
   win = new BrowserWindow({
-    width: 620,
-    height: 520,
+    width: Math.min(saved[0], wa.width),
+    height: Math.min(saved[1], wa.height),
     minWidth: 440,
     minHeight: 360,
     title: c ? `${c.name} — Conversa` : 'Conversa',
@@ -273,9 +301,14 @@ function openChat(chatId: string, focus = true): BrowserWindow {
   secure(win);
   const w = win;
   w.once('ready-to-show', () => (focus ? w.show() : w.showInactive()));
+  w.on('blur', () => lastChatFocus.set(w, Date.now()));
   w.on('focus', () => {
     w.flashFrame(false);
     tg.markRead(chatId);
+  });
+  w.on('resized', () => {
+    const [cw, ch] = w.getSize();
+    updatePrefs({ chatSize: [cw, ch] } as Partial<Prefs>);
   });
   w.on('closed', () => chatWins.delete(chatId));
   chatWins.set(chatId, w);
@@ -318,6 +351,7 @@ function buildMenus() {
     click: () => void setStatus(s),
   }));
   const toggles: Electron.MenuItemConstructorOptions[] = [
+    { label: '🔕 Silencioso (sem sons nem avisos)', type: 'checkbox', checked: prefs.silent, click: (i) => updatePrefs({ silent: i.checked }) },
     { label: 'Sons', type: 'checkbox', checked: prefs.sounds, click: (i) => updatePrefs({ sounds: i.checked }) },
     { label: 'Notificações', type: 'checkbox', checked: prefs.notifications, click: (i) => updatePrefs({ notifications: i.checked }) },
     { label: 'Avisar quando contatos entrarem', type: 'checkbox', checked: prefs.onlineAlerts, click: (i) => updatePrefs({ onlineAlerts: i.checked }) },
@@ -330,6 +364,21 @@ function buildMenus() {
     { label: 'Abrir Lex Messenger', click: showList },
     { type: 'separator' },
     { label: 'Meu status', submenu: statusItems },
+    {
+      label: 'Desligar',
+      enabled: ready,
+      submenu: [
+        ...([
+          [30, 'Por 30 minutos'],
+          [60, 'Por 1 hora'],
+          [480, 'Por 8 horas'],
+          [1440, 'Por 1 dia'],
+          [0, 'Até eu ligar de novo'],
+        ] as [number, string][]).map(([m, label]) => ({ label, click: () => void setOffline(m) })),
+        { type: 'separator' as const },
+        { label: 'Ligar agora', enabled: tg.isPaused, click: () => void setOffline(null) },
+      ],
+    },
     profileItem,
     settingsItem,
     ...toggles,
@@ -419,6 +468,18 @@ async function setStatus(status: MyStatus) {
   updatePrefs({ status });
 }
 
+/** Botão Desligado: minutos (0 = até ligar de novo) ou null para ligar. */
+async function setOffline(minutes: number | null) {
+  if (minutes == null) {
+    updatePrefs({ offlineUntil: 0 });
+    await tg.unpause();
+    return;
+  }
+  const until = minutes > 0 ? Date.now() + minutes * 60_000 : -1;
+  updatePrefs({ offlineUntil: until });
+  await tg.pause(until);
+}
+
 function openSettings() {
   showList();
   listWin?.webContents.send('settings:open', true);
@@ -460,7 +521,17 @@ function registerIpc() {
     playSound('nudge');
     return true;
   });
-  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[], images?: boolean) => {
+  ipcMain.handle('files:pick', async (e, images?: boolean) => {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(w!, {
+      title: images ? 'Escolher fotos e vídeos' : 'Escolher arquivos',
+      buttonLabel: 'Escolher',
+      properties: ['openFile', 'multiSelections'],
+      filters: images ? [{ name: 'Fotos e vídeos', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'm4v'] }] : undefined,
+    });
+    return r.canceled ? [] : r.filePaths.map((p) => ({ id: p, name: p.split(/[\\/]/).pop() ?? p }));
+  });
+  ipcMain.handle('send:files', async (e, chatId: string, paths?: string[], images?: boolean, sensitive?: boolean) => {
     let files = paths?.filter(Boolean) ?? [];
     if (!files.length) {
       const w = BrowserWindow.fromWebContents(e.sender);
@@ -473,7 +544,7 @@ function registerIpc() {
       if (r.canceled) return;
       files = r.filePaths;
     }
-    await tg.sendFiles(chatId, files);
+    await tg.sendFiles(chatId, files, !!sensitive);
   });
   ipcMain.handle('send:image', (_e, chatId: string, dataUrl: string) => tg.sendImageData(chatId, dataUrl));
   ipcMain.handle('send:voice', async (_e, chatId: string, ogg: Uint8Array, duration: number, waveform: number[]) => {
@@ -497,6 +568,32 @@ function registerIpc() {
   ipcMain.handle('settings:block', (_e, id: string, blocked: boolean) => tg.setBlocked(String(id), !!blocked));
   ipcMain.handle('settings:clear-cache', () => tg.clearCache());
   ipcMain.on('settings:open', () => openSettings());
+  ipcMain.handle('stk:panel', () => tg.stickerPanel());
+  ipcMain.handle('stk:pack', (_e, id: string) => tg.stickerPack(String(id)));
+  ipcMain.handle('stk:gifs', (_e, chatId: string, q: string) => tg.searchGifs(String(chatId), String(q)));
+  ipcMain.handle('stk:thumb', (_e, key: string) => tg.pickThumb(String(key)));
+  ipcMain.handle('stk:send', async (_e, chatId: string, key: string) => {
+    await tg.sendPick(String(chatId), String(key));
+    playSound('sent');
+  });
+  ipcMain.handle('chat:export', (_e, chatId: string) => tg.exportChat(String(chatId)));
+  ipcMain.handle('chat:delete', async (_e, chatId: string, all: boolean) => {
+    await tg.deleteChat(String(chatId), !!all);
+    const w = chatWins.get(String(chatId));
+    if (w && !w.isDestroyed()) w.close();
+  });
+  ipcMain.handle('chat:block', (_e, chatId: string, b: boolean) => tg.setBlockedContact(String(chatId), !!b));
+  ipcMain.on('chat:view', (_e, chatId: string, view: ChatView | null) => {
+    if (view) chatViews.set(String(chatId), view);
+    else chatViews.delete(String(chatId));
+  });
+  ipcMain.handle('offline:set', (_e, minutes: number | null) => setOffline(minutes));
+  ipcMain.handle('sens:set', (_e, chatId: string, on: boolean) => tg.setSensitive(String(chatId), !!on));
+  ipcMain.handle('sens:get', (_e, chatId: string) => tg.getSensitive(String(chatId)));
+  ipcMain.handle('fav:set', (_e, chatId: string, fav: boolean) => tg.setFavorite(String(chatId), !!fav));
+  ipcMain.handle('ttl:set', (_e, chatId: string, s: number) => tg.setSelfDestruct(String(chatId), Number(s) || 0));
+  ipcMain.handle('ttl:get', (_e, chatId: string) => tg.getSelfDestruct(String(chatId)));
+  ipcMain.handle('group:create', (_e, title: string, members: string[]) => tg.createGroup(String(title), members.map(String)));
   ipcMain.on('copy', (_e, text: string) => clipboard.writeText(String(text)));
   ipcMain.handle('camera:ask', async () => {
     if (process.platform !== 'darwin') return true;
@@ -541,6 +638,11 @@ function registerIpc() {
     const w = BrowserWindow.fromWebContents(e.sender);
     if (w) shake(w);
   });
+  // SMS/RCS: o Mac abre o app Mensagens; o Windows, o app de mensagens/Vincular ao Celular.
+  ipcMain.on('open-sms', (_e, phone: string, text: string) => {
+    const num = String(phone).replace(/[^\d+]/g, '');
+    if (num) void shell.openExternal(`sms:${num}${text ? `${process.platform === 'darwin' ? '&' : '?'}body=${encodeURIComponent(String(text))}` : ''}`);
+  });
   ipcMain.on('open-external', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
   });
@@ -553,8 +655,35 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', showList);
   app.whenReady().then(async () => {
+    // Mac: o Lex é um app "normal": fica no Dock e aparece no Cmd+Tab.
+    if (process.platform === 'darwin') {
+      app.setActivationPolicy('regular');
+      void app.dock?.show();
+    }
+    app.setAboutPanelOptions({
+      applicationName: 'Lex Messenger',
+      applicationVersion: app.getVersion(),
+      copyright: '© 2026 Lex Tecnologias',
+      credits: 'Comunicação em primeiro lugar!',
+    });
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
+    // Print ou gravação feitos com uma conversa na frente: avisa a outra pessoa.
+    watchCaptures((kind) => {
+      const now = Date.now();
+      const entry = [...chatWins.entries()].find(([, w]) => !w.isDestroyed() && (w.isFocused() || now - (lastChatFocus.get(w) ?? 0) < 15_000));
+      if (!entry) return;
+      const [chatId] = entry;
+      const view = chatViews.get(chatId);
+      if (!view) return;
+      if (kind === 'recording') void tg.notifyRecording(chatId);
+      else {
+        const ctx = [view.temporary && 'mensagens temporárias', view.sensitive && 'mídia sensível'].filter(Boolean) as string[];
+        void tg.notifyScreenshot(chatId, view.lastId, ctx);
+      }
+    });
+    // Computador voltou da suspensão: reconecta e busca o que chegou.
+    powerMonitor.on('resume', () => setTimeout(() => void tg.resync(), 3000));
     tray = new Tray(trayIcon());
     tray.setToolTip('Lex Messenger');
     tray.on('click', () => (process.platform === 'darwin' ? tray?.popUpContextMenu() : showList()));

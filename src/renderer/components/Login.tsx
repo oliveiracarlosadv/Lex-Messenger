@@ -10,6 +10,10 @@ export function Login({ auth }: { auth: AuthState }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [qrImg, setQrImg] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [first, setFirst] = useState('');
+  const [last, setLast] = useState('');
+  const [accepted, setAccepted] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(
@@ -26,7 +30,8 @@ export function Login({ auth }: { auth: AuthState }) {
 
   useEffect(() => input.current?.focus(), [step]);
 
-  const start = (m: 'phone' | 'qr') => {
+  const start = (m: 'phone' | 'qr', create = false) => {
+    setCreating(create);
     setMethod(m);
     setStep(null);
     setBusy(true);
@@ -42,6 +47,12 @@ export function Login({ auth }: { auth: AuthState }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (step?.step === 'signup') {
+      if (!first.trim() || !accepted) return;
+      setBusy(true);
+      void lex.loginAnswer(JSON.stringify({ first, last, accepted }));
+      return;
+    }
     if (!value.trim()) return;
     let v = value.trim();
     if (step?.step === 'phone') {
@@ -101,6 +112,9 @@ export function Login({ auth }: { auth: AuthState }) {
               </button>
             </>
           )}
+          <button className="link-btn create-account" onClick={() => start('phone', true)}>
+            Não tenho Telegram — criar conta
+          </button>
         </>
       )}
 
@@ -133,13 +147,16 @@ export function Login({ auth }: { auth: AuthState }) {
         </div>
       )}
 
-      {step && (step.step === 'phone' || step.step === 'code' || step.step === 'password') && (
+      {step && (step.step === 'phone' || step.step === 'code' || step.step === 'password' || step.step === 'signup') && (
         <form onSubmit={submit} className="login-form">
           {step.step === 'phone' && (
             <>
               <label htmlFor="v">Seu número de celular</label>
               <input ref={input} id="v" type="tel" placeholder="(91) 98888-7777" value={value} onChange={(e) => setValue(e.target.value)} />
-              <p className="hint">Com DDD. De outro país? Comece com + e o código do país.</p>
+              <p className="hint">
+                Com DDD. De outro país? Comece com + e o código do país.
+                {creating && ' Como você ainda não tem Telegram, o código chega por SMS.'}
+              </p>
             </>
           )}
           {step.step === 'code' && (
@@ -164,9 +181,38 @@ export function Login({ auth }: { auth: AuthState }) {
               {step.hint && <p className="hint">Dica: {step.hint}</p>}
             </>
           )}
+          {step.step === 'signup' && (
+            <>
+              <p className="intro">
+                <b>Vamos criar a sua conta do Telegram.</b> É grátis. Depois você também pode usar o app oficial do Telegram
+                com este número.
+              </p>
+              <label htmlFor="first">Nome</label>
+              <input ref={input} id="first" maxLength={64} value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" />
+              <label htmlFor="last" className="spaced">
+                Sobrenome (opcional)
+              </label>
+              <input id="last" maxLength={64} value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" />
+              <label className="check terms">
+                <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+                Li e aceito os{' '}
+                <a href="https://telegram.org/tos/br" target="_blank" rel="noreferrer">
+                  Termos de Serviço
+                </a>{' '}
+                e a{' '}
+                <a href="https://telegram.org/privacy" target="_blank" rel="noreferrer">
+                  Política de Privacidade
+                </a>{' '}
+                do Telegram.
+              </label>
+            </>
+          )}
           {error && <p className="error">{error}</p>}
-          <button className="btn btn-primary wide" disabled={busy || !value.trim()}>
-            {busy ? 'Aguarde…' : 'Continuar'}
+          <button
+            className="btn btn-primary wide"
+            disabled={busy || (step.step === 'signup' ? !first.trim() || !accepted : !value.trim())}
+          >
+            {busy ? 'Aguarde…' : step.step === 'signup' ? 'Criar conta' : 'Continuar'}
           </button>
           <button type="button" className="btn wide" onClick={cancel}>
             Cancelar
@@ -192,6 +238,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <h1>
           Lex <span>Messenger</span>
         </h1>
+        <p className="motto">Comunicação em primeiro lugar!</p>
       </div>
       <div className="login-body">{children}</div>
       <p className="login-foot">Suas mensagens vão direto entre este aparelho e o Telegram. Nada passa por outros servidores.</p>

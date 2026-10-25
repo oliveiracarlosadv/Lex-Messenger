@@ -3,7 +3,26 @@ import { Buffer } from 'buffer';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import type { FileInput, Platform } from '../core/telegram';
+
+/** App instalado (Android) ou página aberta no navegador (iPhone pelo Safari). */
+export const isNative = Capacitor.isNativePlatform();
+export const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/** No navegador: entrega o arquivo ao sistema (no iPhone, abre a tela de Compartilhar/visualizar). */
+function webHandOff(name: string, data: Buffer, download: boolean) {
+  const url = URL.createObjectURL(new Blob([new Uint8Array(data)]));
+  const a = document.createElement('a');
+  a.href = url;
+  if (download) a.download = name;
+  else a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
 const SESSION_KEY = 'lex-session';
 const TEMP = 'temporarios';
@@ -23,8 +42,10 @@ async function shareFile(uri: string, title: string) {
 }
 
 export const mobilePlatform: Platform = {
-  deviceModel: 'Lex Messenger (Android)',
-  systemVersion: navigator.userAgent.match(/Android [\d.]+/)?.[0] ?? 'Android',
+  deviceModel: isNative ? 'Lex Messenger (Android)' : isIOS ? 'Lex Messenger (iPhone)' : 'Lex Messenger (Web)',
+  systemVersion:
+    navigator.userAgent.match(/Android [\d.]+/)?.[0] ??
+    (navigator.userAgent.match(/OS (\d+)_(\d+)/) ? `iOS ${RegExp.$1}.${RegExp.$2}` : 'Navegador'),
   useWSS: true,
   // A sessão fica na área privada do app (outros apps não leem).
   loadSession: async () => (await Preferences.get({ key: SESSION_KEY })).value ?? '',
@@ -32,14 +53,22 @@ export const mobilePlatform: Platform = {
   clearSession: async () => Preferences.remove({ key: SESSION_KEY }),
   // Abrir: cópia temporária no cache do app, entregue ao app que o usuário escolher; apagada ao reabrir o Lex.
   async openTemp(name, data) {
+    if (!isNative) return webHandOff(name, data, false);
     await shareFile(await writeTemp(name, data), 'Abrir com…');
   },
   // Salvar…: o menu do Android deixa o usuário escolher (Arquivos, Drive, galeria…).
   async saveAs(name, data) {
+    if (!isNative) {
+      webHandOff(name, data, true);
+      return true;
+    }
     await shareFile(await writeTemp(name, data), 'Salvar ou compartilhar');
     return true;
   },
+  loadData: async (key) => (await Preferences.get({ key: `lex-${key}` })).value,
+  saveData: async (key, value) => Preferences.set({ key: `lex-${key}`, value }),
   clearTemp: async () => {
+    if (!isNative) return;
     await Filesystem.rmdir({ path: TEMP, directory: Directory.Cache, recursive: true }).catch(() => {});
   },
   async squareJpeg(input: FileInput) {

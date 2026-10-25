@@ -26,6 +26,10 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
   const [acc, setAcc] = useState<AccountSettings | null>(null);
   const [loadErr, setLoadErr] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [push, setPush] = useState<boolean | null>(null);
+  useEffect(() => {
+    void lex.pushActive?.().then(setPush);
+  }, []);
 
   const reload = () =>
     lex
@@ -86,13 +90,20 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
               {toggle('notifications', 'Mostrar aviso de mensagem nova')}
               {toggle('sounds', 'Tocar sons')}
               {toggle('onlineAlerts', 'Avisar quando um contato entrar')}
-              {lex.features.mobile && (
+              {toggle('silent', '🔕 Silencioso (sem sons, vibração nem avisos na tela)')}
+              {lex.features.mobile && lex.platform === 'android' && (
                 <>
-                  {toggle(
-                    'background',
-                    'Continuar recebendo com o app em segundo plano',
-                    'Deixa um aviso fixo "Conectado ao Telegram". Sem isso, o Android pode parar o app e você não recebe avisos.',
-                  )}
+                  <p className={push ? 'ok' : 'hint'}>
+                    {push
+                      ? '✅ Notificações instantâneas (push) ligadas: chegam na hora, mesmo com o Lex fechado.'
+                      : 'Notificações push ainda não configuradas neste aplicativo. Enquanto isso, use a opção abaixo.'}
+                  </p>
+                  {!push &&
+                    toggle(
+                      'background',
+                      'Manter conectado em segundo plano',
+                      'Deixa o aviso fixo "Conectado ao Telegram" (o Android exige). Sem ele, o Android pode atrasar ou parar os avisos.',
+                    )}
                   <button className="btn" onClick={() => lex.openSystemNotificationSettings?.()}>
                     Abrir ajustes de notificação do Android
                   </button>
@@ -214,7 +225,7 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
                 <b>Telegram Premium:</b>{' '}
                 {me.premium
                   ? 'ativo. O Lex usa a transcrição de áudios e envia arquivos de até 4 GB.'
-                  : 'não assinado. A assinatura é feita no app oficial do Telegram; depois disso, o Lex passa a usar os recursos Premium.'}
+                  : 'não assinado.'}
               </p>
               <button className="btn" onClick={() => void run(() => lex.clearCache(), 'Arquivos temporários apagados.')}>
                 Limpar arquivos temporários

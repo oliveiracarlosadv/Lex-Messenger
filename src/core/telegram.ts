@@ -9,7 +9,11 @@ import { CustomFile } from 'telegram/client/uploads';
 import type { Entity } from 'telegram/define';
 import bigInt from 'big-integer';
 import {
+  EXPORT_NOTICE,
   NUDGE_TEXT,
+  PRINT_CONTEXT_NOTICE,
+  RECORDING_NOTICE,
+  isSystemNotice,
   type AuthState,
   type ChatMessage,
   type Contact,
@@ -19,12 +23,15 @@ import {
   type CaptureOpts,
   type MediaInfo,
   type Me,
+  type PickItem,
   type PrivacyKey,
+  type StickerPack,
   type PrivacyValue,
   type Reaction,
   type Presence,
 } from '../shared/types';
 import { parseBio } from '../shared/status';
+import { applyToggle, formatChecklist, parseChecklist, parseToggle } from '../shared/checklist';
 
 declare const __API_ID__: string;
 declare const __API_HASH__: string;
@@ -54,8 +61,33 @@ export interface Platform {
   saveAs(name: string, data: Buffer): Promise<boolean>;
   /** Apaga as cópias temporárias. */
   clearTemp(): Promise<void>;
+  /** Computador: lê um arquivo escolhido (para enviar como mídia sensível). */
+  readFile?(path: string): Promise<Uint8Array>;
+  /** Pequenos dados do app (ex.: a lista de mensagens a autodestruir — só números, nunca o conteúdo). */
+  loadData(key: string): Promise<string | null>;
+  saveData(key: string, value: string): Promise<void>;
   /** Foto de perfil: corta em quadrado, reduz e devolve JPEG. */
   squareJpeg(input: FileInput): Promise<Buffer>;
+}
+
+// ---------- Mensagens que se autodestroem ----------
+export const SELF_DESTRUCT_OPTIONS: [number, string][] = [
+  [30, '30 s'],
+  [60, '1 min'],
+  [300, '5 min'],
+  [3600, '1 h'],
+  [86400, '24 h'],
+];
+export const DESTROYED_NOTICE = '🔥 Mensagem autodestruída';
+const NOTICE_LIFETIME = 12 * 3600; // o aviso também some depois de 12 horas
+const ttlLabel = (s: number) => SELF_DESTRUCT_OPTIONS.find(([v]) => v === s)?.[1] ?? `${s} s`;
+const ttlTag = (s: number) => `⏱ Some em ${ttlLabel(s)}`;
+interface Doom {
+  chatId: string;
+  id: number;
+  at: number;
+  /** Depois de apagar, deixa o aviso "🔥 Mensagem autodestruída" (que também some em 12 h). */
+  notice: boolean;
 }
 
 const fileName = (f: FileInput) => (typeof f === 'string' ? f.split(/[\\/]/).pop() || 'arquivo' : f.name);
@@ -81,7 +113,11 @@ const ERRORS: Record<string, string> = {
   PHONE_CODE_EMPTY: 'Digite o código recebido.',
   PASSWORD_HASH_INVALID: 'Senha de verificação em duas etapas incorreta.',
   PHONE_NUMBER_BANNED: 'Este número está bloqueado pelo Telegram.',
-  PHONE_NUMBER_UNOCCUPIED: 'Este número ainda não tem conta no Telegram. Crie a conta no app oficial primeiro.',
+  PHONE_NUMBER_UNOCCUPIED: 'Este número ainda não tem conta no Telegram.',
+  FIRSTNAME_INVALID: 'Nome inválido. Use letras e no máximo 64 caracteres.',
+  LASTNAME_INVALID: 'Sobrenome inválido.',
+  PHONE_NUMBER_FLOOD: 'Muitas tentativas com este número. Tente mais tarde.',
+  PHONE_NUMBER_OCCUPIED: 'Este número já tem conta no Telegram: use “Entrar com número de telefone”.',
   API_ID_INVALID: 'As chaves do aplicativo (API ID/HASH) são inválidas.',
 };
 
@@ -96,6 +132,8 @@ function friendlyError(err: unknown): string {
 }
 
 const RETRYABLE = new Set([
+  'FIRSTNAME_INVALID',
+  'LASTNAME_INVALID',
   'PHONE_NUMBER_INVALID',
   'PHONE_CODE_INVALID',
   'PHONE_CODE_EMPTY',
@@ -139,21 +177,29 @@ function presenceOf(status: Api.TypeUserStatus | undefined): { presence: Presenc
 function mediaOf(msg: Api.Message): MediaInfo | undefined {
   const m = msg.media;
   if (!m) return undefined;
-  if (m instanceof Api.MessageMediaPhoto) return { kind: 'photo', name: `foto-${msg.id}.jpg`, mime: 'image/jpeg' };
+  if (m instanceof Api.MessageMediaPhoto) return { kind: 'photo', name: `foto-${msg.id}.jpg`, mime: 'image/jpeg', sensitive: !!m.spoiler };
   if (m instanceof Api.MessageMediaDocument && m.document instanceof Api.Document) {
     const doc = m.document;
-    const info: MediaInfo = { kind: 'file', mime: doc.mimeType, size: Number(doc.size) };
-    for (const a of doc.attributes) {
+    const info: MediaInfo = { kind: 'file', mime: doc.mimeType, size: Number(doc.size), sensitive: !!m.spoiler };
+    // Vídeo primeiro: recados antigos traziam também a marca de voz, e a ordem das marcas varia.
+    const attrs = [...doc.attributes].sort((x, y) => Number(y instanceof Api.DocumentAttributeVideo) - Number(x instanceof Api.DocumentAttributeVideo));
+    for (const a of attrs) {
       if (a instanceof Api.DocumentAttributeFilename) info.name = a.fileName;
-      if (a instanceof Api.DocumentAttributeSticker) info.kind = 'sticker';
-      if (a instanceof Api.DocumentAttributeVideo && info.kind === 'file') {
-        info.kind = 'video';
+      if (a instanceof Api.DocumentAttributeSticker) {
+        info.kind = 'sticker';
+        info.anim = doc.mimeType === 'video/webm' ? 'video' : doc.mimeType === 'application/x-tgsticker' ? 'lottie' : 'static';
+      }
+      if (a instanceof Api.DocumentAttributeAnimated && info.kind !== 'sticker') info.kind = 'gif';
+      if (a instanceof Api.DocumentAttributeVideo && (info.kind === 'file' || info.kind === 'gif')) {
+        const gif = info.kind === 'gif';
+        info.kind = gif ? 'gif' : 'video';
         info.duration = a.duration;
         info.round = !!a.roundMessage;
         info.width = a.w;
         info.height = a.h;
       }
-      if (a instanceof Api.DocumentAttributeAudio) {
+      // Recados enviados por versões antigas tinham também a marca de voz: o vídeo redondo vale mais.
+      if (a instanceof Api.DocumentAttributeAudio && !info.round) {
         info.kind = a.voice ? 'voice' : 'audio';
         info.duration = a.duration;
         if (a.waveform?.length) info.waveform = unpackWaveform(a.waveform);
@@ -229,7 +275,7 @@ function mediaLabel(media: MediaInfo | undefined): string {
   if (!media) return '';
   if (media.kind === 'webpage') return media.link?.url ?? '🔗 Link';
   return (
-    { photo: '📷 Foto', video: '🎬 Vídeo', audio: '🎵 Áudio', voice: '🎤 Mensagem de voz', sticker: '🙂 Figurinha', file: '📎 ' + (media.name ?? 'Arquivo'), other: '📎 Anexo' }[media.kind] ?? ''
+    { photo: '📷 Foto', video: '🎬 Vídeo', audio: '🎵 Áudio', voice: '🎤 Mensagem de voz', sticker: '🙂 Figurinha', gif: '🎞️ GIF', file: '📎 ' + (media.name ?? 'Arquivo'), other: '📎 Anexo' }[media.kind] ?? ''
   );
 }
 
@@ -267,6 +313,18 @@ export class TelegramService {
   private previews = new Map<string, string | null>();
   private me: Me | null = null;
   private appearOffline = false;
+  /** Botão "Desligado": sem conexão até a hora marcada. */
+  private paused = false;
+  private wakeTimer: ReturnType<typeof setTimeout> | null = null;
+  private pickDocs = new Map<string, Api.Document>();
+  private inlinePicks = new Map<string, { queryId: bigInt.BigInteger; id: string }>();
+  private favorites = new Set<string>();
+  private favFolderId: number | null = null;
+  private selfDestruct = new Map<string, number>();
+  private sensitiveChats = new Set<string>();
+  private doomed: Doom[] = [];
+  private doomBusy = false;
+  private myPhotoId = '';
   private abouts = new Map<string, string>();
   private aboutQueue: string[] = [];
   private aboutTimer: NodeJS.Timeout | null = null;
@@ -368,6 +426,8 @@ export class TelegramService {
       if (code === 'SESSION_PASSWORD_NEEDED') return false;
       if (RETRYABLE.has(code) || code.startsWith('FLOOD_WAIT')) return false;
       if (method === 'qr' && (code === 'AUTH_TOKEN_EXPIRED' || !code)) return false;
+      if (/SIGN_?UP|REGISTRATION/i.test(code))
+        this.loginError = 'O Telegram não permitiu criar a conta por aqui. Crie pelo app oficial do Telegram e depois entre no Lex com o seu número.';
       this.hooks.emit('login:step', { step: 'failed', error: this.loginError });
       return true;
     };
@@ -395,8 +455,12 @@ export class TelegramService {
           phoneNumber: () => this.ask({ step: 'phone' }),
           phoneCode: (viaApp) => this.ask({ step: 'code', viaApp: !!viaApp }),
           password: (hint) => this.ask({ step: 'password', hint }),
+          // Número sem conta: a pessoa informa o nome e aceita os Termos do Telegram na tela do Lex
+          // (o aceite que a biblioteca envia depois só acontece porque ela marcou "Li e aceito").
           firstAndLastNames: async () => {
-            throw new Error('Este número ainda não tem conta no Telegram. Crie a conta no app oficial primeiro.');
+            const v = JSON.parse(await this.ask({ step: 'signup' })) as { first: string; last: string; accepted: boolean };
+            if (!v.accepted) throw new Cancelled();
+            return [v.first.trim(), v.last.trim() || undefined];
           },
           onError,
         });
@@ -443,6 +507,7 @@ export class TelegramService {
     client.addEventHandler((ev: NewMessageEvent) => void this.onNewMessage(ev), new NewMessage({}));
     client.addEventHandler((u: Api.TypeUpdate) => this.onRaw(u), new Raw({}));
     await this.loadMe();
+    await this.loadFavorites();
     await this.loadDialogs();
     this.setState('ready');
     await this.applyStatus();
@@ -450,6 +515,14 @@ export class TelegramService {
     // Mantém o "online" ativo e recalcula quem está ausente.
     this.timers.push(setInterval(() => void this.applyStatus(), 4 * 60 * 1000));
     this.timers.push(setInterval(() => this.refreshAway(), 60 * 1000));
+    // Autodestruição: carrega o que ficou pendente (app fechado na hora marcada) e confere a cada 2 s.
+    try {
+      this.doomed = JSON.parse((await this.platform.loadData('autodestruir')) ?? '[]');
+    } catch {
+      this.doomed = [];
+    }
+    this.timers.push(setInterval(() => void this.runDoom(), 2000));
+    void this.runDoom();
     // Mensagens pessoais mudam sem aviso: relê as de quem está online a cada 15 minutos.
     this.timers.push(
       setInterval(() => this.queueAbouts([...this.contacts.values()].filter((c) => c.kind === 'user' && c.presence !== 'offline').map((c) => c.id)), 15 * 60 * 1000),
@@ -484,6 +557,8 @@ export class TelegramService {
       premium: !!u.premium,
     };
     this.entities.set('me', u);
+    this.entities.set(u.id.toString(), u);
+    this.myPhotoId = u.photo instanceof Api.UserProfilePhoto ? u.photo.photoId.toString() : '';
     this.hooks.emit('me:changed', this.me);
   }
 
@@ -503,7 +578,7 @@ export class TelegramService {
       subtitle = kind === 'bot' ? 'robô' : kind === 'self' ? 'suas anotações' : p.subtitle;
       if (p.wasOnline) this.wasOnline.set(id, p.wasOnline);
       hasPhoto = e.photo instanceof Api.UserProfilePhoto;
-      base = { premium: !!e.premium, ...base };
+      base = { premium: !!e.premium, phone: e.phone ? `+${e.phone}` : undefined, ...base };
     } else if (e instanceof Api.Channel) {
       kind = e.megagroup || e.gigagroup ? 'group' : 'channel';
       subtitle = e.participantsCount ? `${e.participantsCount} membros` : kind === 'channel' ? 'canal' : 'grupo';
@@ -547,6 +622,7 @@ export class TelegramService {
           unread: d.unreadCount,
           pinned: d.pinned,
           muted: (d.dialog.notifySettings?.muteUntil ?? 0) > Date.now() / 1000,
+          favorite: this.favorites.has(id),
           readOutboxMaxId: d.dialog.readOutboxMaxId,
         }),
       );
@@ -588,6 +664,7 @@ export class TelegramService {
         this.abouts.set(id, about);
         const c = this.contacts.get(id);
         if (c && c.about !== about) this.patch(id, { about, status: parseBio(about).status });
+        if (c && !!c.blocked !== !!full.fullUser.blocked) this.patch(id, { blocked: !!full.fullUser.blocked });
       } catch (e) {
         const secs = (e as { seconds?: number }).seconds;
         if (secs) {
@@ -604,11 +681,12 @@ export class TelegramService {
    * recarrega a lista e avisa as conversas abertas para buscarem o que chegou.
    */
   async resync() {
-    if (!this.client || this.state !== 'ready') return;
+    if (!this.client || this.state !== 'ready' || this.paused) return;
     try {
       if (!this.client.connected) await this.client.connect();
       await this.client.invoke(new Api.updates.GetState());
       await this.loadDialogs();
+      await this.refreshMyPhoto();
       this.hooks.emit('chat:resync', true);
       await this.applyStatus();
     } catch (e) {
@@ -704,6 +782,14 @@ export class TelegramService {
         chatId: utils.getPeerId(new Api.PeerChannel({ channelId: u.channelId })),
         ids: u.messages,
       });
+    } else if (u instanceof Api.UpdateDialogFilter || u instanceof Api.UpdateDialogFilters) {
+      // Pastas mudaram (aqui ou em outro aparelho): relê os favoritos.
+      void this.loadFavorites().then(() => {
+        for (const c of this.contacts.values()) {
+          const fav = this.favorites.has(c.id);
+          if (!!c.favorite !== fav) this.patch(c.id, { favorite: fav });
+        }
+      });
     } else if (u instanceof Api.UpdateReadHistoryOutbox) {
       // A pessoa leu minhas mensagens: ✓✓.
       this.patch(utils.getPeerId(u.peer), { readOutboxMaxId: u.maxId });
@@ -738,6 +824,7 @@ export class TelegramService {
     }
     const cm = await this.toChatMessage(msg, chatId);
     if (cm.service && !cm.text) return;
+    void this.syncChecklist(msg, chatId);
     this.hooks.emit('message:new', cm);
     const c = this.contacts.get(chatId);
     if (!c) {
@@ -773,6 +860,9 @@ export class TelegramService {
     if (msg.action) {
       return { id: msg.id, chatId, out: !!msg.out, senderId, senderName, date: msg.date, text: serviceText(msg.action), service: true };
     }
+    let text = msg.message ?? '';
+    const ttlMatch = text.match(/^⏱ Some em ([^·\n]+?)(?: · |$)/);
+    if (ttlMatch) text = text.slice(ttlMatch[0].length);
     const cm: ChatMessage = {
       id: msg.id,
       chatId,
@@ -780,7 +870,10 @@ export class TelegramService {
       senderId,
       senderName,
       date: msg.date,
-      text: msg.message ?? '',
+      text,
+      selfDestruct: ttlMatch?.[1].trim(),
+      destroyedNotice: text === DESTROYED_NOTICE,
+      systemNotice: isSystemNotice(text),
       media: mediaOf(msg),
       nudge: msg.message === NUDGE_TEXT,
       edited: !!msg.editDate && !msg.editHide,
@@ -847,17 +940,148 @@ export class TelegramService {
     return out.reverse();
   }
 
-  private async emitSent(chatId: string, sent: Api.Message | undefined) {
+  private async emitSent(chatId: string, sent: Api.Message | undefined, applyTimer = true, replyToId?: number) {
     if (!sent) return;
-    this.hooks.emit('message:new', await this.toChatMessage(sent, chatId));
+    const ttl = applyTimer ? this.selfDestruct.get(chatId) : undefined;
+    if (ttl) await this.doom({ chatId, id: sent.id, at: Math.floor(Date.now() / 1000) + ttl, notice: true });
+    const cm = await this.toChatMessage(sent, chatId);
+    // O Telegram devolve a mensagem enviada "resumida", sem dizer a que ela respondia: completa aqui.
+    if (replyToId && !cm.replyTo?.text) {
+      try {
+        const [r] = await this.client!.getMessages(this.entity(chatId), { ids: [replyToId] });
+        if (r) {
+          const who = r.out ? this.me?.name ?? 'Você' : fullName((r.sender as Entity | undefined) ?? this.entities.get(r.senderId?.toString() ?? ''));
+          cm.replyTo = { id: replyToId, senderName: who === 'Desconhecido' ? 'Mensagem' : who, text: this.preview(r) };
+        }
+      } catch {
+        cm.replyTo = { id: replyToId, senderName: 'Mensagem', text: '' };
+      }
+    }
+    this.hooks.emit('message:new', cm);
     this.patch(chatId, { lastMessage: this.preview(sent), lastDate: sent.date, unread: 0 });
+  }
+
+  // ---------- Autodestruição ----------
+
+  // ---------- Mídia sensível (spoiler do Telegram) ----------
+
+  setSensitive(chatId: string, on: boolean) {
+    if (on) this.sensitiveChats.add(chatId);
+    else this.sensitiveChats.delete(chatId);
+  }
+
+  getSensitive(chatId: string) {
+    return this.sensitiveChats.has(chatId);
+  }
+
+  /** Envia foto ou vídeo coberto: quem recebe só vê depois de tocar (no Lex e no Telegram oficial). */
+  private async sendSpoiler(chatId: string, name: string, data: Uint8Array, kind: 'photo' | 'video' | 'round', meta: { duration?: number; width?: number; height?: number } = {}) {
+    const c = this.client!;
+    const label = `Enviando ${name} (sensível)`;
+    this.hooks.emit('send:progress', { chatId, label, progress: 0 });
+    try {
+      const file = await c.uploadFile({
+        file: new CustomFile(name, data.length, '', Buffer.from(data)),
+        workers: 4,
+        onProgress: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
+      });
+      const tag = this.tag(chatId);
+      const media =
+        kind === 'photo'
+          ? new Api.InputMediaUploadedPhoto({ file, spoiler: true })
+          : new Api.InputMediaUploadedDocument({
+              file,
+              spoiler: true,
+              mimeType: name.toLowerCase().endsWith('.webm') ? 'video/webm' : name.toLowerCase().endsWith('.mov') ? 'video/quicktime' : 'video/mp4',
+              attributes: [
+                new Api.DocumentAttributeVideo({
+                  duration: Math.max(1, Math.round(meta.duration ?? 1)),
+                  w: meta.width ?? 0,
+                  h: meta.height ?? 0,
+                  supportsStreaming: true,
+                  roundMessage: kind === 'round',
+                }),
+                new Api.DocumentAttributeFilename({ fileName: name }),
+              ],
+            });
+      const updates = await c.invoke(
+        new Api.messages.SendMedia({
+          peer: this.entity(chatId),
+          media,
+          message: kind === 'round' ? '' : tag,
+          randomId: bigInt(Math.floor(Math.random() * 1e15)),
+        }),
+      );
+      const sent = this.messageFromUpdates(updates);
+      if (sent) await this.emitSent(chatId, sent);
+    } finally {
+      this.hooks.emit('send:progress', { chatId, label: '', progress: null });
+    }
+  }
+
+  /** Liga (segundos) ou desliga (0) a autodestruição das próximas mensagens nesta conversa. */
+  setSelfDestruct(chatId: string, seconds: number) {
+    if (seconds > 0) this.selfDestruct.set(chatId, seconds);
+    else this.selfDestruct.delete(chatId);
+  }
+
+  getSelfDestruct(chatId: string) {
+    return this.selfDestruct.get(chatId) ?? 0;
+  }
+
+  /** Texto que marca a mensagem para quem a recebe (inclusive no Telegram comum). */
+  private tag(chatId: string): string {
+    const ttl = this.selfDestruct.get(chatId);
+    return ttl ? ttlTag(ttl) : '';
+  }
+
+  private async doom(d: Doom) {
+    this.doomed.push(d);
+    await this.saveDoom();
+  }
+
+  private saveDoom() {
+    return this.platform.saveData('autodestruir', JSON.stringify(this.doomed)).catch(() => {});
+  }
+
+  private async runDoom() {
+    if (this.doomBusy || !this.client || this.state !== 'ready') return;
+    const now = Math.floor(Date.now() / 1000);
+    const due = this.doomed.filter((d) => d.at <= now);
+    if (!due.length) return;
+    this.doomBusy = true;
+    try {
+      for (const d of due) {
+        try {
+          await this.client.deleteMessages(this.entity(d.chatId), [d.id], { revoke: true });
+        } catch {
+          /* já tinha sido apagada */
+        }
+        this.hooks.emit('message:deleted', { chatId: d.chatId, ids: [d.id] });
+        this.doomed = this.doomed.filter((x) => x !== d);
+        if (d.notice) {
+          try {
+            const n = await this.client.sendMessage(this.entity(d.chatId), { message: DESTROYED_NOTICE, silent: true });
+            this.doomed.push({ chatId: d.chatId, id: n.id, at: Math.floor(Date.now() / 1000) + NOTICE_LIFETIME, notice: false });
+            await this.emitSent(d.chatId, n, false);
+          } catch {
+            /* sem conexão: tenta na próxima */
+          }
+        }
+        await this.saveDoom();
+      }
+    } finally {
+      this.doomBusy = false;
+    }
   }
 
   async sendText(chatId: string, text: string, replyTo?: number) {
     if (!this.client || !text.trim()) return;
     // linkPreview: o Telegram monta a prévia (título, imagem) dos links da mensagem.
-    const sent = await this.client.sendMessage(this.entity(chatId), { message: text, parseMode: undefined, linkPreview: true, replyTo });
-    await this.emitSent(chatId, sent);
+    const tag = this.tag(chatId);
+    const message = tag ? `${tag} · ${text}` : text;
+    const sent = await this.client.sendMessage(this.entity(chatId), { message, parseMode: undefined, linkPreview: true, replyTo });
+    await this.emitSent(chatId, sent, true, replyTo);
   }
 
   // ---------- Ações em mensagens ----------
@@ -914,6 +1138,333 @@ export class TelegramService {
       }),
     );
     this.patch(chatId, { muted });
+  }
+
+  // ---------- Figurinhas e GIFs ----------
+
+  private remember(docs: Api.TypeDocument[], kind: PickItem['kind']): PickItem[] {
+    const out: PickItem[] = [];
+    for (const d of docs) {
+      if (!(d instanceof Api.Document)) continue;
+      const key = `doc:${d.id.toString()}`;
+      this.pickDocs.set(key, d);
+      out.push({ key, kind });
+    }
+    return out;
+  }
+
+  async stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }> {
+    const c = this.client!;
+    const [recent, all, gifs] = await Promise.all([
+      c.invoke(new Api.messages.GetRecentStickers({ hash: bigInt(0) })).catch(() => null),
+      c.invoke(new Api.messages.GetAllStickers({ hash: bigInt(0) })).catch(() => null),
+      c.invoke(new Api.messages.GetSavedGifs({ hash: bigInt(0) })).catch(() => null),
+    ]);
+    const packs = all instanceof Api.messages.AllStickers ? all.sets.map((s) => ({ id: `${s.id}:${s.accessHash}`, title: s.title })) : [];
+    return {
+      recent: recent instanceof Api.messages.RecentStickers ? this.remember(recent.stickers, 'sticker').slice(0, 40) : [],
+      packs,
+      gifs: gifs instanceof Api.messages.SavedGifs ? this.remember(gifs.gifs, 'gif') : [],
+    };
+  }
+
+  async stickerPack(packId: string): Promise<PickItem[]> {
+    const [id, accessHash] = packId.split(':');
+    const r = await this.client!.invoke(
+      new Api.messages.GetStickerSet({ stickerset: new Api.InputStickerSetID({ id: bigInt(id), accessHash: bigInt(accessHash) }), hash: 0 }),
+    );
+    return r instanceof Api.messages.StickerSet ? this.remember(r.documents, 'sticker') : [];
+  }
+
+  /** Busca de GIFs pelo robô oficial @gif do Telegram. */
+  async searchGifs(chatId: string, query: string): Promise<PickItem[]> {
+    const c = this.client!;
+    const r = await c.invoke(new Api.messages.GetInlineBotResults({ bot: 'gif', peer: this.entity(chatId), query: query.trim(), offset: '' }));
+    const out: PickItem[] = [];
+    for (const res of r.results.slice(0, 40)) {
+      if (!(res instanceof Api.BotInlineMediaResult) || !(res.document instanceof Api.Document)) continue;
+      const key = `inline:${res.id}`;
+      this.pickDocs.set(key, res.document);
+      this.inlinePicks.set(key, { queryId: r.queryId, id: res.id });
+      out.push({ key, kind: 'gif' });
+    }
+    return out;
+  }
+
+  async pickThumb(key: string): Promise<{ url: string; video: boolean } | null> {
+    const cacheKey = `pick:${key}`;
+    if (this.previews.has(cacheKey)) return JSON.parse(this.previews.get(cacheKey)!);
+    const doc = this.pickDocs.get(key);
+    if (!doc || !this.client) return null;
+    const media = new Api.MessageMediaDocument({ document: doc });
+    let buf: string | Buffer | undefined;
+    let mime = 'image/webp';
+    let video = false;
+    try {
+      if (doc.mimeType === 'image/webp' || (doc.mimeType === 'video/webm' && Number(doc.size) < 512 * 1024)) {
+        buf = await this.client.downloadMedia(media, {});
+        mime = doc.mimeType;
+        video = doc.mimeType === 'video/webm';
+      } else {
+        const thumbs = doc.thumbs?.filter((t) => t instanceof Api.PhotoSize || t instanceof Api.PhotoSizeProgressive) ?? [];
+        if (thumbs.length) buf = await this.client.downloadMedia(media, { thumb: thumbs[thumbs.length - 1] });
+        mime = 'image/jpeg';
+        if (buf && Buffer.isBuffer(buf) && buf[0] === 0x52) mime = 'image/webp'; // "RIFF"
+      }
+    } catch {
+      /* sem miniatura */
+    }
+    if (!buf || !Buffer.isBuffer(buf)) return null;
+    const res = { url: `data:${mime};base64,${buf.toString('base64')}`, video };
+    this.previews.set(cacheKey, JSON.stringify(res));
+    return res;
+  }
+
+  async sendPick(chatId: string, key: string) {
+    const c = this.client!;
+    const inline = this.inlinePicks.get(key);
+    if (inline) {
+      const updates = await c.invoke(
+        new Api.messages.SendInlineBotResult({ peer: this.entity(chatId), queryId: inline.queryId, id: inline.id, randomId: bigInt(Math.floor(Math.random() * 1e15)), hideVia: true }),
+      );
+      const sent = this.messageFromUpdates(updates);
+      if (sent) await this.emitSent(chatId, sent);
+      return;
+    }
+    const doc = this.pickDocs.get(key);
+    if (!doc) return;
+    const sent = await c.sendFile(this.entity(chatId), { file: doc });
+    await this.emitSent(chatId, sent);
+  }
+
+  private messageFromUpdates(u: Api.TypeUpdates): Api.Message | undefined {
+    const list = u instanceof Api.Updates || u instanceof Api.UpdatesCombined ? u.updates : [];
+    for (const x of list) {
+      if ((x instanceof Api.UpdateNewMessage || x instanceof Api.UpdateNewChannelMessage) && x.message instanceof Api.Message) return x.message;
+    }
+    return undefined;
+  }
+
+  // ---------- Excluir conversa e bloquear ----------
+
+  async deleteChat(chatId: string, forEveryone: boolean) {
+    const c = this.client!;
+    const e = this.entities.get(chatId);
+    if (e instanceof Api.Channel) {
+      // Grupo grande ou canal: sair dele.
+      await c.invoke(new Api.channels.LeaveChannel({ channel: await c.getInputEntity(e) }));
+    } else if (e instanceof Api.Chat) {
+      await c.invoke(new Api.messages.DeleteChatUser({ chatId: e.id, userId: new Api.InputUserSelf(), revokeHistory: forEveryone }));
+      await c.invoke(new Api.messages.DeleteHistory({ peer: this.entity(chatId), maxId: 0, revoke: false })).catch(() => {});
+    } else {
+      // Conversa individual: apaga o histórico (de mim, ou dos dois), em partes até acabar.
+      for (let i = 0; i < 50; i++) {
+        const r = await c.invoke(new Api.messages.DeleteHistory({ peer: this.entity(chatId), maxId: 0, revoke: forEveryone, justClear: false }));
+        if (!r.offset) break;
+      }
+    }
+    this.contacts.delete(chatId);
+    this.hooks.emit('chat:removed', { chatId });
+    this.emitContacts();
+  }
+
+  async setBlockedContact(chatId: string, blocked: boolean) {
+    await this.setBlocked(chatId, blocked);
+    this.patch(chatId, { blocked });
+  }
+
+  // ---------- Exportar e avisos de print/gravação ----------
+
+  private lastShot = new Map<string, number>();
+
+  /** Avisa a outra pessoa que alguém tirou print (aviso oficial do Telegram, aparece em qualquer app). */
+  async notifyScreenshot(chatId: string, lastId: number, context: string[] = []) {
+    if (!this.client || this.paused) return;
+    if (Date.now() - (this.lastShot.get(chatId) ?? 0) < 4000) return;
+    this.lastShot.set(chatId, Date.now());
+    try {
+      const u = await this.client.invoke(
+        new Api.messages.SendScreenshotNotification({
+          peer: this.entity(chatId),
+          replyTo: new Api.InputReplyToMessage({ replyToMsgId: lastId }),
+          randomId: bigInt(Math.floor(Math.random() * 1e15)),
+        }),
+      );
+      const m = this.messageFromUpdates(u);
+      if (m) await this.emitSent(chatId, m, false);
+    } catch {
+      /* alguns tipos de conversa não aceitam */
+    }
+    if (context.length) await this.sendNotice(chatId, `${PRINT_CONTEXT_NOTICE} ${context.join(' e ')}`);
+  }
+
+  async notifyRecording(chatId: string) {
+    await this.sendNotice(chatId, RECORDING_NOTICE);
+  }
+
+  private async sendNotice(chatId: string, text: string) {
+    if (!this.client || this.paused) return;
+    try {
+      const n = await this.client.sendMessage(this.entity(chatId), { message: text, silent: true });
+      await this.emitSent(chatId, n, false);
+    } catch {
+      /* sem conexão */
+    }
+  }
+
+  /** Exporta a conversa (texto, em ordem) para um arquivo HTML e avisa a outra pessoa. */
+  async exportChat(chatId: string): Promise<boolean> {
+    const c = this.client!;
+    const contact = this.contacts.get(chatId);
+    const name = contact?.name ?? 'Conversa';
+    const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
+    const rows: string[] = [];
+    let day = '';
+    for await (const m of c.iterMessages(this.entity(chatId), { reverse: true, limit: 20000 })) {
+      const cm = await this.toChatMessage(m as Api.Message, chatId);
+      const d = new Date(cm.date * 1000);
+      const dd = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+      if (dd !== day) {
+        day = dd;
+        rows.push(`<h2>${esc(dd)}</h2>`);
+      }
+      const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (cm.service || cm.systemNotice || cm.destroyedNotice) {
+        rows.push(`<p class="sys">${esc(`${cm.senderName} ${cm.text}`)} · ${hora}</p>`);
+        continue;
+      }
+      const media = cm.media ? `<span class="midia">[${esc(cm.media.sensitive ? '🔞 mídia sensível' : mediaLabel(cm.media))}]</span> ` : '';
+      const reply = cm.replyTo?.text ? `<blockquote>${esc(cm.replyTo.senderName)}: ${esc(cm.replyTo.text)}</blockquote>` : '';
+      const flags = [cm.selfDestruct && `⏱ temporária (${cm.selfDestruct})`, cm.edited && 'editada', cm.forwardedFrom && `encaminhada de ${cm.forwardedFrom}`]
+        .filter(Boolean)
+        .join(' · ');
+      rows.push(
+        `<div class="m ${cm.out ? 'eu' : ''}"><div class="h"><b>${esc(cm.senderName)}</b> <span>${hora}${flags ? ' · ' + esc(flags) : ''}</span></div>${reply}<div class="t">${media}${esc(cm.nudge ? '📳 chamou a atenção' : cm.text).replace(/\n/g, '<br>')}</div></div>`,
+      );
+    }
+    const now = new Date().toLocaleString('pt-BR');
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Conversa com ${esc(name)}</title><style>
+body{font-family:Arial,Helvetica,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#1d2733;line-height:1.5}
+header{border-bottom:2px solid #2b6cc4;margin-bottom:12px}h1{color:#174a8f;margin:0}header p{color:#6b7a8c;margin:4px 0 10px}
+h2{font-size:13px;color:#6b7a8c;text-transform:capitalize;text-align:center;margin:18px 0 6px}
+.m{padding:6px 0;border-bottom:1px solid #eef2f8}.h b{color:#174a8f}.eu .h b{color:#2f7d1f}.h span{color:#9aa7b8;font-size:12px}
+.t{padding-left:12px;white-space:pre-wrap;word-break:break-word}.midia{color:#5a6fb0}.sys{text-align:center;color:#b35a00;font-style:italic;font-size:13px}
+blockquote{margin:2px 0 2px 12px;padding:2px 8px;border-left:3px solid #2b6cc4;color:#6b7a8c;font-size:13px}
+footer{margin-top:20px;color:#9aa7b8;font-size:12px;text-align:center}</style></head><body>
+<header><h1>Conversa com ${esc(name)}</h1><p>Exportada por ${esc(this.me?.name ?? '')} em ${esc(now)} · Lex Messenger — Comunicação em primeiro lugar!</p></header>
+${rows.join('\n')}
+<footer>Arquivos, fotos e vídeos não são incluídos; aparecem como [anexo].</footer></body></html>`;
+    const fileName = `Conversa com ${name.replace(/[\\/:*?"<>|]/g, '_')} - ${new Date().toISOString().slice(0, 10)}.html`;
+    const saved = await this.platform.saveAs(fileName, Buffer.from(html, 'utf8'));
+    if (saved) await this.sendNotice(chatId, EXPORT_NOTICE);
+    return saved;
+  }
+
+  // ---------- Lista de tarefas ----------
+
+  /**
+   * Alguém marcou um item de uma lista que EU criei: atualizo ☐/☑ editando a minha mensagem,
+   * para todos (inclusive no Telegram comum) verem o progresso.
+   */
+  private async syncChecklist(msg: Api.Message, chatId: string) {
+    const t = parseToggle(msg.message ?? '');
+    const replyId = msg.replyTo instanceof Api.MessageReplyHeader ? msg.replyTo.replyToMsgId : undefined;
+    if (!t || !replyId || !this.client) return;
+    try {
+      const [orig] = await this.client.getMessages(this.entity(chatId), { ids: [replyId] });
+      if (!orig?.out) return;
+      const list = parseChecklist(orig.message ?? '');
+      if (!list) return;
+      const next = formatChecklist(applyToggle(list, t.item, t.done));
+      if (next !== orig.message) await this.editMessage(chatId, replyId, next);
+    } catch {
+      /* sem permissão para editar ou mensagem apagada */
+    }
+  }
+
+  // ---------- Favoritos (pasta "⭐ Favoritos" do Telegram) ----------
+
+  private async loadFavorites() {
+    try {
+      const r = await this.client!.invoke(new Api.messages.GetDialogFilters());
+      const filters = (r as unknown as { filters: Api.TypeDialogFilter[] }).filters ?? (r as unknown as Api.TypeDialogFilter[]);
+      const fav = filters.find((f): f is Api.DialogFilter => f instanceof Api.DialogFilter && f.title?.text === 'Favoritos');
+      this.favFolderId = fav?.id ?? null;
+      this.favorites = new Set((fav?.includePeers ?? []).map((p) => utils.getPeerId(p)));
+      return filters;
+    } catch {
+      return [];
+    }
+  }
+
+  async setFavorite(chatId: string, favorite: boolean) {
+    const c = this.client!;
+    const filters = await this.loadFavorites();
+    if (favorite) this.favorites.add(chatId);
+    else this.favorites.delete(chatId);
+    if (!this.favorites.size) {
+      if (this.favFolderId != null) await c.invoke(new Api.messages.UpdateDialogFilter({ id: this.favFolderId }));
+      this.favFolderId = null;
+    } else {
+      const id =
+        this.favFolderId ??
+        Math.max(1, ...filters.map((f) => (f instanceof Api.DialogFilter || f instanceof Api.DialogFilterChatlist ? f.id : 0))) + 1;
+      const includePeers = await Promise.all([...this.favorites].map((pid) => c.getInputEntity(this.entity(pid))));
+      try {
+        await c.invoke(
+          new Api.messages.UpdateDialogFilter({
+            id,
+            filter: new Api.DialogFilter({
+              id,
+              title: new Api.TextWithEntities({ text: 'Favoritos', entities: [] }),
+              emoticon: '⭐',
+              pinnedPeers: [],
+              includePeers,
+              excludePeers: [],
+            }),
+          }),
+        );
+      } catch (e) {
+        const code = (e as { errorMessage?: string }).errorMessage ?? '';
+        if (favorite) this.favorites.delete(chatId);
+        if (code.includes('TOO_MUCH') || code.includes('LIMIT')) throw new Error('Limite de pastas ou de favoritos do Telegram atingido.');
+        throw new Error('Não foi possível atualizar os favoritos.');
+      }
+      this.favFolderId = id;
+    }
+    this.patch(chatId, { favorite });
+  }
+
+  // ---------- Push (Android, via Firebase) ----------
+
+  /** Registra este aparelho para receber as notificações push do Telegram, criptografadas com a chave dele. */
+  async registerPush(token: string, secretB64: string) {
+    await this.client!.invoke(
+      new Api.account.RegisterDevice({ tokenType: 2, token, appSandbox: false, secret: Buffer.from(secretB64, 'base64'), otherUids: [] }),
+    );
+  }
+
+  async unregisterPush(token: string) {
+    await this.client?.invoke(new Api.account.UnregisterDevice({ tokenType: 2, token, otherUids: [] })).catch(() => {});
+  }
+
+  // ---------- Grupos ----------
+
+  async createGroup(title: string, memberIds: string[]): Promise<{ chatId: string; notAdded: string[] }> {
+    const c = this.client!;
+    const name = title.trim().slice(0, 128);
+    if (!name) throw new Error('Dê um nome ao grupo.');
+    if (!memberIds.length) throw new Error('Escolha pelo menos uma pessoa.');
+    const users = await Promise.all(memberIds.map((id) => c.getInputEntity(this.entity(id))));
+    const r = await c.invoke(new Api.messages.CreateChat({ users, title: name }));
+    const updates = r.updates as Api.Updates;
+    const chat = updates.chats?.find((x) => x instanceof Api.Chat || x instanceof Api.Channel);
+    if (!chat) throw new Error('O Telegram não confirmou a criação do grupo.');
+    const chatId = utils.getPeerId(chat);
+    this.entities.set(chatId, chat);
+    const notAdded = r.missingInvitees.map((m) => this.contacts.get(m.userId.toString())?.name ?? 'Um contato');
+    await this.loadDialogs();
+    return { chatId, notAdded };
   }
 
   // ---------- Configurações da conta ----------
@@ -985,16 +1536,26 @@ export class TelegramService {
     void this.platform.clearTemp();
   }
 
-  async sendFiles(chatId: string, files: FileInput[]) {
+  async sendFiles(chatId: string, files: FileInput[], sensitive = false) {
     if (!this.client) return;
     for (const [i, f] of files.entries()) {
       const name = fileName(f);
+      const ext = name.toLowerCase().split('.').pop() ?? '';
+      const visual = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'photo' : ['mp4', 'mov', 'm4v', 'webm'].includes(ext) ? 'video' : null;
+      if ((sensitive || this.sensitiveChats.has(chatId)) && visual) {
+        const data = typeof f === 'string' ? await this.platform.readFile?.(f) : f.data;
+        if (data) {
+          await this.sendSpoiler(chatId, name, data, visual);
+          continue;
+        }
+      }
       const label = files.length > 1 ? `Enviando ${name} (${i + 1} de ${files.length})` : `Enviando ${name}`;
       this.hooks.emit('send:progress', { chatId, label, progress: 0 });
       try {
         const file = typeof f === 'string' ? f : new CustomFile(f.name, f.data.length, '', Buffer.from(f.data));
         const sent = await this.client.sendFile(this.entity(chatId), {
           file,
+          caption: this.tag(chatId) || undefined,
           workers: 4,
           progressCallback: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
         });
@@ -1020,6 +1581,7 @@ export class TelegramService {
       const sent = await this.client.sendFile(this.entity(chatId), {
         file: new CustomFile(`audio-${Date.now()}.ogg`, ogg.length, '', Buffer.from(ogg)),
         voiceNote: true,
+        caption: this.tag(chatId) || undefined,
         attributes: [new Api.DocumentAttributeAudio({ voice: true, duration: Math.round(duration), waveform: packWaveform(waveform) })],
         progressCallback: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
       });
@@ -1032,6 +1594,7 @@ export class TelegramService {
   /** Foto, vídeo ou recado redondo feitos com a câmera da conversa. */
   async sendCaptured(chatId: string, data: Uint8Array, o: CaptureOpts) {
     if (!this.client || !data.length) return;
+    if (o.sensitive || this.sensitiveChats.has(chatId)) return this.sendSpoiler(chatId, o.name, data, o.kind, o);
     const label = { photo: 'Enviando foto', video: 'Enviando vídeo', round: 'Enviando recado' }[o.kind];
     this.hooks.emit('send:progress', { chatId, label, progress: 0 });
     try {
@@ -1039,7 +1602,10 @@ export class TelegramService {
       const isVideo = o.kind !== 'photo';
       const sent = await this.client.sendFile(this.entity(chatId), {
         file,
-        videoNote: o.kind === 'round',
+        // Recado (vídeo redondo) não aceita legenda; a marca vai nos outros.
+        caption: o.kind === 'round' ? undefined : this.tag(chatId) || undefined,
+        // Atenção: não usar "videoNote: true" do GramJS — ele também marca o arquivo como mensagem de VOZ,
+        // e o Telegram passa a mostrar o recado como áudio. O recado é só o atributo de vídeo com roundMessage.
         supportsStreaming: isVideo,
         attributes: isVideo
           ? [
@@ -1060,17 +1626,25 @@ export class TelegramService {
     }
   }
 
-  /** Baixa o anexo inteiro para tocar dentro do app (áudios, até 25 MB). */
+  /** Baixa o anexo para tocar dentro do app (áudios, GIFs e vídeos até 150 MB), só na memória. */
   async mediaData(chatId: string, msgId: number): Promise<string | null> {
     const key = `data:${chatId}:${msgId}`;
     if (this.previews.has(key)) return this.previews.get(key)!;
     if (!this.client) return null;
     const msg = await this.getMessage(chatId, msgId);
     const info = msg && mediaOf(msg);
-    if (!msg || !info || (info.size ?? 0) > 25 * 1024 * 1024) return null;
-    const buf = await this.client.downloadMedia(msg, {});
+    if (!msg || !info || (info.size ?? 0) > 150 * 1024 * 1024) return null;
+    const big = (info.size ?? 0) > 2 * 1024 * 1024;
+    const label = info.kind === 'video' ? 'Carregando vídeo' : info.kind === 'gif' ? 'Carregando GIF' : 'Carregando áudio';
+    const buf = await this.client
+      .downloadMedia(msg, {
+        progressCallback: big
+          ? (got, total) => this.hooks.emit('send:progress', { chatId, label, progress: Number(total) ? Number(got) / Number(total) : null })
+          : undefined,
+      })
+      .finally(() => big && this.hooks.emit('send:progress', { chatId, label: '', progress: null }));
     if (!buf || !Buffer.isBuffer(buf)) return null;
-    const mime = info.kind === 'voice' ? 'audio/ogg' : info.mime || (info.kind === 'video' ? 'video/mp4' : 'application/octet-stream');
+    const mime = info.kind === 'voice' ? 'audio/ogg' : info.mime || (info.kind === 'video' || info.kind === 'gif' ? 'video/mp4' : 'application/octet-stream');
     const url = `data:${mime};base64,${buf.toString('base64')}`;
     this.previews.set(key, url);
     return url;
@@ -1130,7 +1704,7 @@ export class TelegramService {
         else if (info.kind === 'sticker' && info.mime === 'image/webp') {
           buf = await this.client.downloadMedia(msg, {});
           mime = 'image/webp';
-        } else if (info.kind === 'video' || info.kind === 'sticker') {
+        } else if (info.kind === 'video' || info.kind === 'sticker' || info.kind === 'gif') {
           const doc = (msg.media as Api.MessageMediaDocument).document as Api.Document;
           const thumbs = doc.thumbs?.filter((t) => t instanceof Api.PhotoSize || t instanceof Api.PhotoSizeProgressive) ?? [];
           if (thumbs.length) buf = await this.client.downloadMedia(msg, { thumb: thumbs[thumbs.length - 1] });
@@ -1183,8 +1757,38 @@ export class TelegramService {
   }
 
   private async applyStatus() {
-    if (!this.client || this.state !== 'ready') return;
+    if (!this.client || this.state !== 'ready' || this.paused) return;
     await this.client.invoke(new Api.account.UpdateStatus({ offline: this.appearOffline })).catch(() => {});
+  }
+
+  /** Desliga a conexão (aparece offline e não recebe nada). until: hora em ms, ou -1 = até ligar de novo. */
+  async pause(until: number) {
+    if (!this.client) return;
+    this.paused = true;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    await this.client.invoke(new Api.account.UpdateStatus({ offline: true })).catch(() => {});
+    await this.client.disconnect().catch(() => {});
+    this.hooks.emit('connection:changed', { connected: false, offlineUntil: until });
+    if (until > 0) this.wakeTimer = setTimeout(() => void this.unpause(), Math.max(0, until - Date.now()));
+  }
+
+  /** Liga de novo e busca tudo o que chegou enquanto estava desligado. */
+  async unpause() {
+    if (!this.paused || !this.client) return;
+    this.paused = false;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = null;
+    try {
+      await this.client.connect();
+    } catch {
+      /* tenta de novo no resync */
+    }
+    this.hooks.emit('connection:changed', { connected: true, offlineUntil: 0 });
+    await this.resync();
+  }
+
+  get isPaused() {
+    return this.paused;
   }
 
   async goOffline() {
@@ -1215,9 +1819,20 @@ export class TelegramService {
     const jpeg = await this.platform.squareJpeg(input);
     const file = await this.client.uploadFile({ file: new CustomFile('foto.jpg', jpeg.length, '', jpeg), workers: 1 });
     await this.client.invoke(new Api.photos.UploadProfilePhoto({ file }));
+    // Busca o perfil de novo: sem isso, o Lex baixaria a foto antiga (a referência guardada era a anterior).
+    await this.refreshMyPhoto(true);
+  }
+
+  /** Relê o meu perfil e, se a foto mudou (aqui ou em outro aparelho), faz as janelas recarregarem a imagem. */
+  private async refreshMyPhoto(force = false) {
+    if (!this.client || !this.me) return;
+    const before = this.myPhotoId;
+    const version = this.me.photoVersion;
+    await this.loadMe();
+    if (!force && before === this.myPhotoId) return;
     this.avatars.delete('me');
-    this.avatars.delete(this.me.id);
-    this.me = { ...this.me, hasPhoto: true, photoVersion: this.me.photoVersion + 1 };
+    this.avatars.delete(this.me!.id);
+    this.me = { ...this.me!, photoVersion: version + 1 };
     this.hooks.emit('me:changed', this.me);
   }
 }

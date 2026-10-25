@@ -1,5 +1,41 @@
 # Histórico de versões
 
+## v1.0.0
+**Primeira versão oficial do Lex Messenger — Comunicação em primeiro lugar!** Disponível para Mac, Windows, Android e
+iPhone (pelo Safari). Reúne tudo das versões de teste (0.1 a 0.5) e mais:
+- **Excluir conversa** (para mim ou para os dois; em grupos, sair) e **bloquear/desbloquear contato**, no novo menu ⋯ da conversa e no menu do contato.
+- **Exportar conversa** 📤 para um arquivo; a outra pessoa é avisada.
+- **Avisos de print e gravação de tela** (aviso oficial do Telegram para prints; diz se havia mensagem temporária ou mídia sensível na tela) no Android 14+, Mac e Windows.
+- Lema: **Comunicação em primeiro lugar!** (tela de entrada, “Sobre”, README e manual).
+- **Manual do Lex Messenger em PDF**, com capa, sumário, fotos das telas, Termos e Privacidade.
+- Ao abrir o app de novo, vai **direto para a lista** (com “Conectando…” no topo), sem mostrar a tela inicial.
+- **iPhone sem App Store**: app pelo Safari (“Adicionar à Tela de Início”), com as mesmas telas do Android; áudios no formato de voz do Telegram também no iPhone.
+- **Mensagens que se autodestroem** (30 s a 24 h), apagadas para os dois lados; o aviso 🔥 some em 12 horas.
+- **Criar conta do Telegram** pelo Lex, para quem ainda não tem (código por SMS, nome e aceite dos Termos de Serviço do Telegram na própria tela).
+- **Online / Invisível / Desligado** numa barra rápida; **Desligado por um tempo** (30 min a 3 dias, prazo livre ou até ligar), voltando sozinho no fim.
+- **Silencioso** 🔕: mensagens chegam, mas sem som, vibração nem avisos.
+- **SMS / RCS** 💬: abre o app de mensagens do aparelho com o número e o texto prontos (usa RCS quando disponível).
+- **Android**: notificações com a **foto** de quem mandou; **push do Telegram via Firebase** pronto para ligar (notificações na hora com o app fechado e sem o aviso fixo).
+- **Celular**: a tela não arrasta mais para os lados; “chamou a sua atenção” e nomes longos quebram linha; menus (emojis, figurinhas, autodestruição) viram painéis que sobem de baixo, sempre dentro da tela.
+- Autodestruição com escolha em botões grandes, mais moderna (em todas as versões).
+- 🔞 agora aparece só na confirmação de envio (e na prévia da câmera).
+- **Mídia sensível** 🔞: foto, vídeo ou recado vai coberto (spoiler do Telegram) e só aparece quando a pessoa toca; ao fechar, cobre de novo.
+- **Lista de tarefas** na conversa: um cria, o outro marca como feito, com progresso para os dois.
+- **Figurinhas e GIFs**: recentes, pacotes, GIFs salvos e busca; GIFs e figurinhas animadas tocam na conversa.
+- **Vídeos tocam dentro da conversa**.
+- **Favoritos** (pasta “⭐ Favoritos” do Telegram, sincronizada) e **criar grupos**.
+- **Android**: “música que estou ouvindo”; chamar atenção na barra de notificações com **Abrir conversa / Agora não**; notificações somem quando a conversa é lida.
+- Computador: avisos no canto somem quando a conversa é lida.
+- Fotos maiores na lista de contatos.
+- **Correção**: a sua resposta agora mostra na hora a mensagem que está sendo respondida.
+
+## v0.4.1
+- **Mac**: o Lex volta a aparecer sempre no **Cmd + Tab** e no Dock (os avisos no canto o tiravam de lá).
+- **Correção**: a foto nova não aparecia depois de trocada. Agora aparece na hora, e fotos trocadas em outro aparelho são atualizadas quando você volta ao Lex (ou quando o computador sai da suspensão).
+- O botão **Aa** (transcrever áudio) só aparece para contas Telegram Premium; nas demais, some o botão e o aviso de “recurso Premium”.
+- **Correção**: o recado (vídeo redondo) chegava como áudio. A biblioteca do Telegram marcava o arquivo também como mensagem de voz; agora vai só como vídeo redondo. Recados antigos passam a aparecer como vídeo no Lex.
+- Quem tem foto aparece com a **foto** no lugar do bonequinho (na lista, na conversa e ao encaminhar), com uma **borda da cor do status**: verde disponível, laranja ausente, vermelha ocupado, cinza offline. Sem foto, continua o bonequinho.
+
 ## v0.4.0
 - **Mensagens de áudio** em todas as versões: segurar para gravar, ou **mãos livres** (um toque grava sem segurar). Tocador com onda sonora, velocidade e “ouvir em sequência”. Áudios no formato de voz do Telegram.
 - **Ações nas mensagens**: responder citando, editar, apagar para mim/para todos, encaminhar, reações, copiar; ✓/✓✓ de lido; “(editada)”; mensagens encaminhadas identificadas.
