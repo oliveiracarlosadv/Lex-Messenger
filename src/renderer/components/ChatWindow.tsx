@@ -4,7 +4,7 @@ import { lex } from '../lib/api';
 import { convertFaces, PICKER } from '../lib/emoticons';
 import { formatDay, formatSize, formatTime, splitLinks } from '../lib/format';
 import { Avatar } from './Avatar';
-import { KindIcon } from './Icons';
+import { ContactIcon } from './ContactIcon';
 import { VoicePlayer, getSequential, setSequential } from './VoicePlayer';
 import { VoiceRecord } from './VoiceRecord';
 import { describe } from '../lib/presence';
@@ -309,7 +309,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     >
       <header className="chat-head">
         <div className="chat-to">
-          Para: {contact && d && <KindIcon kind={contact.kind} color={d.color} size={16} />} <b>{name}</b>
+          Para: {contact && d && <ContactIcon id={contact.id} kind={contact.kind} color={d.color} hasPhoto={contact.hasPhoto} size={22} />} <b>{name}</b>
           {contact?.premium && (
             <span className="premium-badge" title="Assinante do Telegram Premium">
               ⭐

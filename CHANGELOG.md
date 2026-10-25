@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## v0.4.1
+- Quem tem foto aparece com a **foto** no lugar do bonequinho (na lista, na conversa e ao encaminhar), com uma **borda da cor do status**: verde disponível, laranja ausente, vermelha ocupado, cinza offline. Sem foto, continua o bonequinho.
+
 ## v0.4.0
 - **Mensagens de áudio** em todas as versões: segurar para gravar, ou **mãos livres** (um toque grava sem segurar). Tocador com onda sonora, velocidade e “ouvir em sequência”. Áudios no formato de voz do Telegram.
 - **Ações nas mensagens**: responder citando, editar, apagar para mim/para todos, encaminhar, reações, copiar; ✓/✓✓ de lido; “(editada)”; mensagens encaminhadas identificadas.

@@ -33,6 +33,18 @@ export const history: ChatMessage[] = [
 ];
 
 
+// Fotos fictícias (desenhos com as iniciais), para conferir as telas.
+const PHOTO_IDS = new Set(['101', '102', '106', '103', '-201']);
+const demoPhoto = (id: string) => {
+  const c = contacts.find((x) => x.id === id);
+  const name = c?.name ?? 'Carlos Oliveira';
+  const ini = name.split(/\s+/).filter((w) => /^[A-ZÀ-Ú]/.test(w)).slice(0, 2).map((w) => w[0]).join('');
+  const hue = [...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},70%,72%)"/><stop offset="1" stop-color="hsl(${(hue + 40) % 360},60%,42%)"/></linearGradient></defs><rect width="96" height="96" fill="url(#g)"/><circle cx="48" cy="38" r="17" fill="rgba(255,255,255,.85)"/><path d="M16 92c2-22 16-32 32-32s30 10 32 32z" fill="rgba(255,255,255,.85)"/><text x="48" y="44" font-family="Arial" font-size="15" font-weight="700" text-anchor="middle" fill="hsl(${hue},50%,35%)">${ini}</text></svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+for (const c of contacts) if (PHOTO_IDS.has(c.id)) c.hasPhoto = true;
+
 /** Troca os métodos do motor por dados fictícios. */
 export function applyDemo(tg: object, loggedOut = false) {
   const t = tg as Record<string, unknown>;
@@ -42,7 +54,7 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.listContacts = () => contacts;
   t.getContact = (id: string) => contacts.find((x) => x.id === id) ?? null;
   t.history = async (id: string) => history.filter((m) => m.chatId === id).sort((a, b) => a.date - b.date);
-  t.avatar = async () => null;
+  t.avatar = async (id: string) => (PHOTO_IDS.has(id) ? demoPhoto(id) : null);
   t.markRead = () => {};
   t.typing = () => {};
   t.goOffline = async () => {};

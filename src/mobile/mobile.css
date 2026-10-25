@@ -182,3 +182,6 @@ body.shake .mobile-shell {
 .mobile .gear-btn {
   font-size: 22px;
 }
+.mobile .contact {
+  min-height: 48px;
+}

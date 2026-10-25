@@ -64,6 +64,8 @@ Você só faz isso uma vez: nas próximas aberturas, o Lex Messenger entra sozin
 ## 3. Lista de contatos
 
 - **Online** (bonequinho verde), **Ausente** (laranja, com reloginho: saiu há menos de 10 minutos) e **Offline** (cinza).
+- Quem tem **foto** aparece com ela, redonda, e a **borda** mostra o status com as mesmas cores (verde, laranja,
+  vermelho para ocupado, cinza). Quem não tem foto aparece com o bonequinho.
 - **Grupos** e **Canais, robôs e anotações** ficam em seções próprias. Clique no título para recolher ou abrir.
 - O número laranja mostra mensagens não lidas.
 - **Clique duas vezes** num contato para abrir a conversa (ou selecione e aperte Enter).

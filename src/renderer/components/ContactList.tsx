@@ -4,7 +4,8 @@ import type { Contact, Me, MyStatus, PresenceInfo, Prefs } from '../../shared/ty
 import { lex } from '../lib/api';
 import { describe } from '../lib/presence';
 import { Avatar } from './Avatar';
-import { Buddy, KindIcon } from './Icons';
+import { Buddy } from './Icons';
+import { ContactIcon } from './ContactIcon';
 import { ProfileDialog } from './ProfileDialog';
 import { SettingsDialog } from './SettingsDialog';
 
@@ -195,7 +196,7 @@ export function ContactList() {
                     onKeyDown={(e) => e.key === 'Enter' && lex.openChat(c.id)}
                     title={[c.subtitle, c.lastMessage && `Última mensagem: ${c.lastMessage}`].filter(Boolean).join('\n')}
                   >
-                    <KindIcon kind={c.kind} color={d.color} title={d.label || undefined} />
+                    <ContactIcon id={c.id} kind={c.kind} color={d.color} hasPhoto={c.hasPhoto} size={lex.features.mobile ? 36 : 28} title={d.label || undefined} />
                     {/* Nome em cima; status e mensagem pessoal (ou música) logo abaixo, em letra menor. */}
                     <div className="contact-lines">
                       <span className="contact-name">

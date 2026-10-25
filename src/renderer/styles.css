@@ -1731,3 +1731,83 @@ body.toast-body {
   gap: 8px;
   padding: 0 14px 12px;
 }
+
+/* ---------- Foto do contato com borda de status ---------- */
+.contact-photo {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-block;
+  border-radius: 50%;
+  padding: 2px;
+  background: var(--st, #c9d3df);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.contact-photo img,
+.contact-photo-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(160deg, #fff, #c9dcf3);
+  border: 1.5px solid #fff;
+}
+.contact-photo-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--st);
+  border: 1.5px solid #fff;
+}
+.st-online {
+  --st: linear-gradient(160deg, #8fe866, #2f9a1c);
+}
+.st-online .contact-photo-dot {
+  background: #3aa52a;
+}
+.st-away {
+  --st: linear-gradient(160deg, #ffd25a, #e08a00);
+}
+.st-away .contact-photo-dot {
+  background: #e98f00;
+}
+.st-busy {
+  --st: linear-gradient(160deg, #ff8f80, #c4271a);
+}
+.st-busy .contact-photo-dot {
+  background: #d1352a;
+}
+.st-offline {
+  --st: linear-gradient(160deg, #e2e2e2, #9a9a9a);
+}
+.st-offline .contact-photo-dot {
+  background: #9a9a9a;
+}
+.st-offline img {
+  filter: grayscale(0.6);
+  opacity: 0.85;
+}
+.st-none {
+  --st: #b9cce6;
+  border-radius: 8px;
+}
+.st-none img,
+.st-none .contact-photo-empty {
+  border-radius: 6px;
+}
+.chat-to .contact-photo {
+  margin: 0 2px;
+}
+.contact {
+  min-height: 34px;
+}
+
+.contact-icon-box {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

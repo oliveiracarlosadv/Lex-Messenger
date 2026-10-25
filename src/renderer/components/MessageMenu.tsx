@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChatMessage, Contact } from '../../shared/types';
 import { lex } from '../lib/api';
-import { KindIcon } from './Icons';
+import { ContactIcon } from './ContactIcon';
 import { describe } from '../lib/presence';
 
 export interface MenuState {
@@ -106,7 +106,7 @@ export function ForwardDialog({ onClose, onPick }: { onClose: () => void; onPick
         <div className="pick-list">
           {shown.map((c) => (
             <button key={c.id} className="pick-item" onClick={() => onPick(c.id, c.name)}>
-              <KindIcon kind={c.kind} color={describe(c).color} />
+              <ContactIcon id={c.id} kind={c.kind} color={describe(c).color} hasPhoto={c.hasPhoto} />
               <span>{c.name}</span>
             </button>
           ))}
