@@ -5,6 +5,7 @@ import { convertFaces, PICKER } from '../lib/emoticons';
 import { formatDay, formatSize, formatTime, splitLinks } from '../lib/format';
 import { Avatar } from './Avatar';
 import { KindIcon } from './Icons';
+import { describe } from '../lib/presence';
 
 export function ChatWindow({ chatId }: { chatId: string }) {
   const [contact, setContact] = useState<Contact | null>(null);
@@ -33,10 +34,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     void lex.me().then(setMe);
     void lex.history(chatId).then((h) => {
       setMessages(h);
-      setHasMore(h.length >= 40);
+      setHasMore(h.length >= 30);
       setLoading(false);
     });
     lex.markRead(chatId);
+    lex.refreshContact(chatId);
     const offs = [
       lex.on('message:new', (m) => {
         if (m.chatId !== chatId) return;
@@ -89,7 +91,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     const el = historyRef.current!;
     const prevHeight = el.scrollHeight;
     const older = await lex.history(chatId, first.id);
-    setHasMore(older.length >= 40);
+    setHasMore(older.length >= 30);
     stickBottom.current = false;
     setMessages((list) => [...older.filter((o) => !list.some((m) => m.id === o.id)), ...list]);
     requestAnimationFrame(() => (el.scrollTop = el.scrollHeight - prevHeight));
@@ -167,6 +169,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   };
 
   const name = contact?.name ?? '…';
+  const d = contact ? describe(contact) : null;
   const canWrite = contact?.kind !== 'channel';
 
   return (
@@ -181,9 +184,12 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     >
       <header className="chat-head">
         <div className="chat-to">
-          Para: {contact && <KindIcon kind={contact.kind} presence={contact.presence} size={16} />} <b>{name}</b>
-          <span className="chat-sub">{contact?.presence === 'away' ? ' (Ausente)' : ''} {contact?.subtitle && `— ${contact.subtitle}`}</span>
+          Para: {contact && d && <KindIcon kind={contact.kind} color={d.color} size={16} />} <b>{name}</b>
+          <span className="chat-sub">
+            {d?.label ? ` (${d.label})` : ''} {contact?.subtitle && `— ${contact.subtitle}`}
+          </span>
         </div>
+        {d?.personal && <div className={`chat-pm ${d.music ? 'music' : ''}`}>{d.personal}</div>}
         <nav className="chat-toolbar">
           <ToolButton icon="📎" label="Enviar arquivos" onClick={() => void sendFiles()} disabled={!canWrite} />
           <ToolButton icon="🖼️" label="Enviar fotos" onClick={() => void sendFiles()} disabled={!canWrite} />
@@ -216,6 +222,10 @@ export function ChatWindow({ chatId }: { chatId: string }) {
               <b>{notice}</b>
             ) : typing ? (
               <span>✏️ {typing} está digitando uma mensagem…</span>
+            ) : contact?.kind === 'user' && d?.label && d.color === 'busy' ? (
+              <span>
+                {name} está {d.label.toLowerCase()} e pode demorar a responder.
+              </span>
             ) : contact?.kind === 'user' && contact.presence === 'offline' ? (
               <span>{name} parece estar offline. A mensagem será entregue quando entrar.</span>
             ) : (
@@ -289,7 +299,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
 
         <aside className="chat-right">
           <Avatar id={chatId} name={name} hasPhoto={contact?.hasPhoto} size={96} />
-          <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={96} />
+          <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={96} version={me?.photoVersion} />
         </aside>
       </div>
       {dragOver && <div className="drop-hint">Solte aqui para enviar a {name}</div>}
@@ -310,9 +320,6 @@ const sameDay = (a: number, b: number) => new Date(a * 1000).toDateString() === 
 
 function MessageItem({ m, prev, chatId }: { m: ChatMessage; prev?: ChatMessage; chatId: string }) {
   const newDay = !prev || !sameDay(prev.date, m.date);
-  const showHeader =
-    newDay || !prev || prev.senderId !== m.senderId || prev.service || prev.nudge || m.date - prev.date > 300;
-
   const day = newDay && <div className="day-sep">{formatDay(m.date)}</div>;
 
   if (m.service) {
@@ -320,7 +327,7 @@ function MessageItem({ m, prev, chatId }: { m: ChatMessage; prev?: ChatMessage; 
       <>
         {day}
         <div className="service-msg">
-          {m.senderName} {m.text}
+          {m.senderName} {m.text} <span className="time">{formatTime(m.date)}</span>
         </div>
       </>
     );
@@ -337,29 +344,30 @@ function MessageItem({ m, prev, chatId }: { m: ChatMessage; prev?: ChatMessage; 
       </>
     );
   }
+  // Uma mensagem por bloco: quem enviou e a hora em cima, o texto embaixo.
   return (
     <>
       {day}
-      {showHeader && (
-        <div className={`says ${m.out ? 'me' : ''}`}>
-          {m.senderName} diz: <span className="time">({formatTime(m.date)})</span>
+      <div className={`msg-block ${m.out ? 'me' : 'them'}`}>
+        <div className="says">
+          <b className="sender">{m.senderName}</b> diz: <span className="time">({formatTime(m.date)})</span>
         </div>
-      )}
-      <div className="msg" title={formatTime(m.date)}>
-        {m.media && <Media m={m} chatId={chatId} />}
-        {m.text && (
-          <div className="msg-text">
-            {splitLinks(m.text).map((p, i) =>
-              p.url ? (
-                <a key={i} href={p.url} target="_blank" rel="noreferrer">
-                  {p.text}
-                </a>
-              ) : (
-                <span key={i}>{p.text}</span>
-              ),
-            )}
-          </div>
-        )}
+        <div className="msg">
+          {m.media && <Media m={m} chatId={chatId} />}
+          {m.text && (
+            <div className="msg-text">
+              {splitLinks(m.text).map((p, i) =>
+                p.url ? (
+                  <a key={i} href={p.url} target="_blank" rel="noreferrer">
+                    {p.text}
+                  </a>
+                ) : (
+                  <span key={i}>{p.text}</span>
+                ),
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

@@ -31,7 +31,15 @@ export function clearSession() {
   rmSync(sessionFile(), { force: true });
 }
 
-const defaults: Prefs = { sounds: true, notifications: true, onlineAlerts: true, status: 'online' };
+const defaults: Prefs = {
+  sounds: true,
+  notifications: true,
+  onlineAlerts: true,
+  status: 'online',
+  personalMessage: '',
+  shareMusic: false,
+  autoAway: true,
+};
 
 export function loadPrefs(): Prefs {
   try {

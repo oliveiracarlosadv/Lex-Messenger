@@ -20,6 +20,10 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
   <img src="docs/imagens/contatos.png" width="230" alt="Lista de contatos">
 </p>
 <p align="center"><img src="docs/imagens/conversa.png" width="560" alt="Janela de conversa"></p>
+<p align="center">
+  <img src="docs/imagens/perfil.png" width="230" alt="Meu perfil">
+  <img src="docs/imagens/aviso.png" width="300" alt="Aviso de nova mensagem no canto da tela">
+</p>
 
 <sub>As imagens usam contatos fictícios.</sub>
 
@@ -27,13 +31,17 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 
 - **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone.
 - **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
-- **Uma janela para cada conversa**, com “Fulano diz:”, fotos de perfil e o aviso “está digitando…”.
+- **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
+- **Aviso no canto da tela**, como no MSN: sobe uma janelinha com a foto, “Fulano diz:” e o começo da mensagem; clique para abrir a conversa. Também avisa quando um contato entra.
+- **Status do MSN**: Disponível, Ocupado, Ausente, Volto já, Em horário de almoço, Ao telefone e Aparecer offline, e “Ausente” automático com o computador parado.
+- **Música que estou ouvindo** 🎵: mostra a música do Apple Music ou do Spotify (no Windows, do player que estiver tocando) na sua mensagem pessoal.
+- **Meu perfil**: troque nome, sobrenome e foto direto pelo Lex Messenger.
 - **Chamar atenção**: faz a janela do outro tremer (quando ele também usa o Lex Messenger; no Telegram comum, chega como mensagem 📳).
 - **Sons** de mensagem, de contato entrando e de chamar atenção.
 - **Arquivos e fotos**: botão, arrastar e soltar, ou colar uma imagem. Com confirmação antes de enviar.
 - **Emoticons**: `:)` vira 😊, `:D` vira 😃 e há um seletor com dezenas de opções.
 - **Fica na barra de menus** (Mac) ou na bandeja (Windows), com o número de mensagens não lidas no ícone do Dock.
-- **Status** Disponível ou Aparecer offline, e **mensagem pessoal** (é a sua bio do Telegram).
+- **Mensagem pessoal** (é a sua bio do Telegram), que também aparece ao lado do nome dos seus contatos.
 
 ## Como instalar
 

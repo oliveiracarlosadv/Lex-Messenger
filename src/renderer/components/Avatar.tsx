@@ -3,18 +3,19 @@ import { lex } from '../lib/api';
 
 const cache = new Map<string, Promise<string | null>>();
 
-export function useAvatar(id: string | undefined, hasPhoto: boolean | undefined) {
+export function useAvatar(id: string | undefined, hasPhoto: boolean | undefined, version = 0) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     setUrl(null);
     if (!id || !hasPhoto) return;
     let alive = true;
-    if (!cache.has(id)) cache.set(id, lex.avatar(id));
-    void cache.get(id)!.then((u) => alive && setUrl(u));
+    const key = `${id}:${version}`;
+    if (!cache.has(key)) cache.set(key, lex.avatar(id));
+    void cache.get(key)!.then((u) => alive && setUrl(u));
     return () => {
       alive = false;
     };
-  }, [id, hasPhoto]);
+  }, [id, hasPhoto, version]);
   return url;
 }
 
@@ -27,8 +28,8 @@ function hue(name: string) {
 }
 
 /** Foto em moldura, como nos mensageiros antigos. Sem foto: iniciais sobre degradê. */
-export function Avatar({ id, name, hasPhoto, size = 96 }: { id?: string; name: string; hasPhoto?: boolean; size?: number }) {
-  const url = useAvatar(id, hasPhoto);
+export function Avatar({ id, name, hasPhoto, size = 96, version }: { id?: string; name: string; hasPhoto?: boolean; size?: number; version?: number }) {
+  const url = useAvatar(id, hasPhoto, version);
   const initials = name
     .split(/\s+/)
     .filter(Boolean)

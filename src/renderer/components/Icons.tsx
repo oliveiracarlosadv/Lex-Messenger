@@ -1,14 +1,16 @@
 import logoUrl from '../assets/logo.svg';
-import type { ContactKind, Presence } from '../../shared/types';
+import type { StatusColor } from '../../shared/status';
+import type { ContactKind } from '../../shared/types';
 
-const COLORS: Record<Presence, [string, string]> = {
+const COLORS: Record<StatusColor, [string, string]> = {
   online: ['#7ee05a', '#2f9a1c'],
+  busy: ['#ff8f80', '#c4271a'],
   away: ['#ffd25a', '#e08a00'],
   offline: ['#d9d9d9', '#8c8c8c'],
 };
 
 /** Bonequinho de status (desenho próprio, no espírito dos mensageiros clássicos). */
-export function Buddy({ presence = 'online', size = 18, title }: { presence?: Presence; size?: number; title?: string }) {
+export function Buddy({ presence = 'online', size = 18, title }: { presence?: StatusColor; size?: number; title?: string }) {
   const [light, dark] = COLORS[presence];
   const id = `b-${presence}`;
   return (
@@ -23,6 +25,12 @@ export function Buddy({ presence = 'online', size = 18, title }: { presence?: Pr
       </defs>
       <circle cx="10" cy="6" r="4.2" fill={`url(#${id})`} stroke={dark} strokeWidth="0.6" />
       <path d="M2.6 18.6c0-4.6 3.3-7.4 7.4-7.4s7.4 2.8 7.4 7.4z" fill={`url(#${id})`} stroke={dark} strokeWidth="0.6" />
+      {presence === 'busy' && (
+        <g>
+          <circle cx="15.5" cy="15.5" r="4" fill="#fff" stroke="#b3261e" strokeWidth="0.8" />
+          <rect x="13.2" y="14.8" width="4.6" height="1.5" rx="0.5" fill="#d1352a" />
+        </g>
+      )}
       {presence === 'away' && (
         <g>
           <circle cx="15.5" cy="15.5" r="4" fill="#fff" stroke="#c77700" strokeWidth="0.8" />
@@ -33,10 +41,10 @@ export function Buddy({ presence = 'online', size = 18, title }: { presence?: Pr
   );
 }
 
-export function KindIcon({ kind, presence, size = 18 }: { kind: ContactKind; presence: Presence; size?: number }) {
+export function KindIcon({ kind, color, size = 18, title }: { kind: ContactKind; color: StatusColor; size?: number; title?: string }) {
   if (kind === 'user') {
-    const t = { online: 'Online', away: 'Ausente', offline: 'Offline' }[presence];
-    return <Buddy presence={presence} size={size} title={t} />;
+    const t = title ?? { online: 'Online', away: 'Ausente', busy: 'Ocupado', offline: 'Offline' }[color];
+    return <Buddy presence={color} size={size} title={t} />;
   }
   const emoji = { group: '👥', channel: '📢', bot: '🤖', self: '⭐' }[kind];
   return (

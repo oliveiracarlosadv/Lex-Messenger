@@ -1,12 +1,17 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { join } from 'node:path';
-import { NUDGE_TEXT, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
+import { STATUS, STATUS_ORDER } from '../shared/status';
+import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
 import { loadPrefs, savePrefs } from './store';
 import { enableDemo, loginSnapshot, snapshot } from './demo';
+import { PresenceManager } from './presence';
 import { TelegramService } from './telegram';
+import { showToast, type ToastData } from './toast';
 
 app.setName('Lex Messenger');
+// Modo demonstração: pasta de dados separada, para não mexer na conta real nem brigar com o app aberto.
+if (process.env.LEX_DEMO) app.setPath('userData', join(app.getPath('temp'), 'lex-messenger-demo'));
 if (process.platform === 'win32') app.setAppUserModelId('br.com.lextecnologias.messenger');
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
@@ -42,11 +47,13 @@ const tg = new TelegramService({
     app.setBadgeCount(total);
     tray?.setToolTip(total ? `Lex Messenger — ${total} não lida(s)` : 'Lex Messenger');
   },
-  onContactOnline: () => {
+  ready: (me) => presence.start(me),
+  onContactOnline: (c) => {
     if (!prefs.onlineAlerts) return;
     if (Date.now() - lastOnlineSound > 15000) {
       lastOnlineSound = Date.now();
       playSound('online');
+      toast({ kind: 'online', chatId: c.id, title: c.name, body: 'acabou de entrar.', avatarId: c.id, hasPhoto: c.hasPhoto, name: c.name });
     }
   },
   onIncoming: (msg, contact) => {
@@ -58,24 +65,60 @@ const tg = new TelegramService({
       const w = openChat(msg.chatId, false);
       shake(w);
       playSound('nudge');
+      if (!focused) toastFor(msg.chatId, contact, msg.senderName, 'chamou a sua atenção!', 'nudge');
       return;
     }
     if (focused) return;
     playSound('message');
     if (win && !win.isDestroyed()) win.flashFrame(true);
     if (process.platform === 'darwin') app.dock?.bounce('informational');
-    if (prefs.notifications && Notification.isSupported()) {
-      const where = contact && contact.kind === 'group' ? ` em ${contact.name}` : '';
-      const n = new Notification({
-        title: `${msg.senderName}${where} diz:`,
-        body: msg.text || (msg.media ? 'enviou um anexo' : ''),
-        silent: true,
-      });
-      n.on('click', () => openChat(msg.chatId));
-      n.show();
-    }
+    const body = msg.text || (msg.media ? 'enviou um anexo 📎' : '');
+    toastFor(msg.chatId, contact, msg.senderName, body, 'message');
   },
 });
+
+const presence = new PresenceManager(
+  tg,
+  () => prefs,
+  (p) => {
+    prefs = { ...prefs, ...p };
+    savePrefs(prefs);
+    emit('prefs:changed', prefs);
+  },
+  (info) => {
+    emit('presence:changed', info);
+    buildMenus();
+  },
+);
+
+// ---------- Avisos no canto da tela (estilo MSN) ----------
+
+function toast(data: ToastData) {
+  if (!prefs.notifications) return;
+  showToast(
+    data,
+    (w, hash) => {
+      secure(w);
+      load(w, hash);
+    },
+    join(__dirname, 'preload.js'),
+  );
+}
+
+function toastFor(chatId: string, contact: Contact | undefined, sender: string, body: string, kind: ToastData['kind']) {
+  const inGroup = contact && contact.kind !== 'user' && contact.kind !== 'self';
+  toast({
+    kind,
+    chatId,
+    title: inGroup ? `${sender} em ${contact.name}` : sender,
+    body,
+    avatarId: chatId,
+    hasPhoto: !!contact?.hasPhoto,
+    name: contact?.name ?? sender,
+  });
+}
+
+
 
 // ---------- Janelas ----------
 
@@ -199,19 +242,26 @@ function trayIcon() {
 
 function buildMenus() {
   const ready = tg.authState() === 'ready';
-  const statusItems: Electron.MenuItemConstructorOptions[] = [
-    { label: 'Disponível', type: 'radio', checked: prefs.status === 'online', enabled: ready, click: () => void setStatus('online') },
-    { label: 'Aparecer offline', type: 'radio', checked: prefs.status === 'invisible', enabled: ready, click: () => void setStatus('invisible') },
-  ];
+  const statusItems: Electron.MenuItemConstructorOptions[] = STATUS_ORDER.map((s) => ({
+    label: `${STATUS[s].emoji ? STATUS[s].emoji + '  ' : ''}${STATUS[s].label}`,
+    type: 'radio' as const,
+    checked: prefs.status === s,
+    enabled: ready,
+    click: () => void setStatus(s),
+  }));
   const toggles: Electron.MenuItemConstructorOptions[] = [
     { label: 'Sons', type: 'checkbox', checked: prefs.sounds, click: (i) => updatePrefs({ sounds: i.checked }) },
     { label: 'Notificações', type: 'checkbox', checked: prefs.notifications, click: (i) => updatePrefs({ notifications: i.checked }) },
     { label: 'Avisar quando contatos entrarem', type: 'checkbox', checked: prefs.onlineAlerts, click: (i) => updatePrefs({ onlineAlerts: i.checked }) },
+    { label: 'Mostrar a música que estou ouvindo', type: 'checkbox', checked: prefs.shareMusic, enabled: ready, click: (i) => updatePrefs({ shareMusic: i.checked }) },
+    { label: 'Ficar Ausente quando o computador estiver parado', type: 'checkbox', checked: prefs.autoAway, click: (i) => updatePrefs({ autoAway: i.checked }) },
   ];
+  const profileItem: Electron.MenuItemConstructorOptions = { label: 'Editar meu perfil…', enabled: ready, click: openProfile };
   const trayMenu = Menu.buildFromTemplate([
     { label: 'Abrir Lex Messenger', click: showList },
     { type: 'separator' },
     { label: 'Meu status', submenu: statusItems },
+    profileItem,
     ...toggles,
     { type: 'separator' },
     { label: 'Sair do Lex Messenger', click: () => app.quit() },
@@ -230,6 +280,7 @@ function buildMenus() {
           { role: 'about', label: 'Sobre o Lex Messenger' },
           { type: 'separator' },
           { label: 'Meu status', submenu: statusItems },
+          profileItem,
           ...toggles,
           { type: 'separator' },
           {
@@ -245,6 +296,7 @@ function buildMenus() {
               });
               if (r.response === 0) {
                 for (const w of chatWins.values()) w.destroy();
+                presence.stop();
                 await tg.logout();
                 buildMenus();
               }
@@ -287,12 +339,17 @@ function updatePrefs(p: Partial<Prefs>) {
   savePrefs(prefs);
   emit('prefs:changed', prefs);
   buildMenus();
+  if ('shareMusic' in p || 'autoAway' in p || 'status' in p || 'personalMessage' in p) void presence.refresh();
   return prefs;
 }
 
 async function setStatus(status: MyStatus) {
   updatePrefs({ status });
-  await tg.setStatus(status);
+}
+
+function openProfile() {
+  showList();
+  listWin?.webContents.send('profile:open', true);
 }
 
 // ---------- Comunicação com as janelas ----------
@@ -304,6 +361,7 @@ function registerIpc() {
   ipcMain.handle('login:cancel', () => tg.cancelLogin());
   ipcMain.handle('logout', async () => {
     for (const w of chatWins.values()) w.destroy();
+    presence.stop();
     await tg.logout();
   });
   ipcMain.handle('me', () => tg.getMe());
@@ -346,8 +404,23 @@ function registerIpc() {
   ipcMain.handle('media:open', (_e, chatId: string, id: number) => tg.openMedia(chatId, id));
   ipcMain.handle('media:reveal', (_e, chatId: string, id: number) => tg.revealMedia(chatId, id));
   ipcMain.on('open-chat', (_e, chatId: string) => openChat(chatId));
-  ipcMain.handle('status:set', (_e, s: MyStatus) => setStatus(s));
-  ipcMain.handle('about:set', (_e, text: string) => tg.setAbout(String(text)));
+  ipcMain.handle('status:set', (_e, s: MyStatus) => (s in STATUS ? setStatus(s) : undefined));
+  ipcMain.handle('pm:set', (_e, text: string) => void updatePrefs({ personalMessage: String(text).slice(0, 70) }));
+  ipcMain.handle('name:set', (_e, first: string, last: string) => tg.setName(String(first), String(last ?? '')));
+  ipcMain.handle('photo:choose', async (e) => {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(w!, {
+      title: 'Escolha sua nova foto',
+      buttonLabel: 'Usar esta foto',
+      properties: ['openFile'],
+      filters: [{ name: 'Imagens', extensions: ['jpg', 'jpeg', 'png', 'heic', 'webp', 'gif'] }],
+    });
+    if (r.canceled || !r.filePaths[0]) return false;
+    await tg.setPhoto(r.filePaths[0]);
+    return true;
+  });
+  ipcMain.handle('presence', () => presence.info());
+  ipcMain.on('contact:refresh', (_e, id: string) => tg.refreshContact(String(id)));
   ipcMain.handle('prefs', () => prefs);
   ipcMain.handle('prefs:set', (_e, p: Partial<Prefs>) => updatePrefs(p));
   ipcMain.on('shake-me', (e) => {
@@ -373,16 +446,22 @@ if (!app.requestSingleInstanceLock()) {
     buildMenus();
     if (process.env.LEX_DEMO) enableDemo(tg);
     createListWindow();
-    await tg.init(prefs.status);
+    await tg.init(prefs.status === 'invisible');
     buildMenus();
-    if (process.env.LEX_DEMO) snapshot(openChat, emit);
+    if (process.env.LEX_DEMO)
+      snapshot({
+        openChat,
+        emit,
+        list: () => listWin,
+        toast: () => toastFor('101', tg.getContact('101') ?? undefined, 'Ana Paula', 'Recebeu a petição? Dá uma olhada quando puder 😊', 'message'),
+      });
   });
   app.on('activate', showList);
   app.on('before-quit', async (e) => {
     if (quitting) return;
     quitting = true;
     e.preventDefault();
-    await Promise.race([tg.goOffline(), new Promise((r) => setTimeout(r, 1500))]);
+    await Promise.race([Promise.all([presence.shutdown(), tg.goOffline()]), new Promise((r) => setTimeout(r, 3000))]);
     app.quit();
   });
 }

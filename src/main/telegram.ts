@@ -1,5 +1,5 @@
 // Conexão com o Telegram (conta do próprio usuário, via MTProto/GramJS).
-import { app, shell } from 'electron';
+import { app, nativeImage, shell } from 'electron';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir, release } from 'node:os';
 import { basename, extname, join } from 'node:path';
@@ -7,6 +7,7 @@ import { Api, TelegramClient, utils } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { NewMessage, NewMessageEvent, Raw } from 'telegram/events';
 import { LogLevel } from 'telegram/extensions/Logger';
+import { CustomFile } from 'telegram/client/uploads';
 import type { Entity } from 'telegram/define';
 import {
   NUDGE_TEXT,
@@ -17,9 +18,9 @@ import {
   type LoginStep,
   type MediaInfo,
   type Me,
-  type MyStatus,
   type Presence,
 } from '../shared/types';
+import { parseBio } from '../shared/status';
 import { clearSession, loadSession, saveSession } from './store';
 
 declare const __API_ID__: string;
@@ -38,6 +39,8 @@ export interface Hooks {
   onContactOnline(contact: Contact): void;
   isChatOpenAndFocused(chatId: string): boolean;
   unreadChanged(total: number): void;
+  /** Login concluído e contatos carregados. */
+  ready(me: Me): void;
 }
 
 class Cancelled extends Error {}
@@ -144,7 +147,16 @@ function serviceText(action: Api.TypeMessageAction): string {
   if (action instanceof Api.MessageActionPinMessage) return 'fixou uma mensagem';
   if (action instanceof Api.MessageActionPhoneCall) return '📞 chamada de voz';
   if (action instanceof Api.MessageActionChatCreate) return `criou o grupo "${action.title}"`;
-  return 'evento da conversa';
+  if (action instanceof Api.MessageActionContactSignUp) return 'entrou no Telegram';
+  if (action instanceof Api.MessageActionScreenshotTaken) return 'tirou uma captura de tela';
+  if (action instanceof Api.MessageActionHistoryClear) return 'limpou o histórico';
+  if (action instanceof Api.MessageActionChatJoinedByRequest) return 'entrou no grupo';
+  if (action instanceof Api.MessageActionGroupCall) return '📞 chamada em grupo';
+  if (action instanceof Api.MessageActionSetMessagesTTL)
+    return action.period ? 'ativou as mensagens temporárias' : 'desativou as mensagens temporárias';
+  if (action instanceof Api.MessageActionChannelCreate) return `criou o canal "${action.title}"`;
+  // Eventos técnicos (pagamentos, temas, etc.) não aparecem na conversa.
+  return '';
 }
 
 export class TelegramService {
@@ -160,7 +172,10 @@ export class TelegramService {
   private previews = new Map<string, string | null>();
   private downloaded = new Map<string, string>();
   private me: Me | null = null;
-  private myStatus: MyStatus = 'online';
+  private appearOffline = false;
+  private abouts = new Map<string, string>();
+  private aboutQueue: string[] = [];
+  private aboutTimer: NodeJS.Timeout | null = null;
   private timers: NodeJS.Timeout[] = [];
   private reloadTimer: NodeJS.Timeout | null = null;
   private lastTypingSent = new Map<string, number>();
@@ -183,8 +198,8 @@ export class TelegramService {
   private newClient(session = '') {
     const client = new TelegramClient(new StringSession(session), API_ID, API_HASH, {
       connectionRetries: 10,
-      deviceModel: 'Lex Messenger (Mac)',
-      systemVersion: `macOS ${release()}`,
+      deviceModel: process.platform === 'darwin' ? 'Lex Messenger (Mac)' : 'Lex Messenger (Windows)',
+      systemVersion: `${process.platform === 'darwin' ? 'macOS' : 'Windows'} ${release()}`,
       appVersion: __APP_VERSION__,
       langCode: 'pt',
       systemLangCode: 'pt-BR',
@@ -196,8 +211,8 @@ export class TelegramService {
   }
 
   /** Ao abrir o app: reaproveita a sessão salva, se houver. */
-  async init(status: MyStatus) {
-    this.myStatus = status;
+  async init(appearOffline: boolean) {
+    this.appearOffline = appearOffline;
     if (!this.hasKeys) return this.setState('logged-out');
     const saved = loadSession();
     if (!saved) return this.setState('logged-out');
@@ -317,6 +332,8 @@ export class TelegramService {
     this.avatars.clear();
     this.previews.clear();
     this.me = null;
+    this.abouts.clear();
+    this.aboutQueue = [];
     this.hooks.unreadChanged(0);
     this.setState('logged-out');
   }
@@ -335,6 +352,11 @@ export class TelegramService {
     // Mantém o "online" ativo e recalcula quem está ausente.
     this.timers.push(setInterval(() => void this.applyStatus(), 4 * 60 * 1000));
     this.timers.push(setInterval(() => this.refreshAway(), 60 * 1000));
+    // Mensagens pessoais mudam sem aviso: relê as de quem está online a cada 15 minutos.
+    this.timers.push(
+      setInterval(() => this.queueAbouts([...this.contacts.values()].filter((c) => c.kind === 'user' && c.presence !== 'offline').map((c) => c.id)), 15 * 60 * 1000),
+    );
+    this.hooks.ready(this.me!);
   }
 
   private stopTimers() {
@@ -354,10 +376,13 @@ export class TelegramService {
     this.me = {
       id: u.id.toString(),
       name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username || 'Eu',
+      firstName: u.firstName ?? '',
+      lastName: u.lastName ?? '',
       username: u.username ?? '',
       phone: u.phone ? `+${u.phone}` : '',
       about,
       hasPhoto: u.photo instanceof Api.UserProfilePhoto,
+      photoVersion: this.me?.photoVersion ?? 0,
     };
     this.entities.set('me', u);
     this.hooks.emit('me:changed', this.me);
@@ -398,6 +423,8 @@ export class TelegramService {
       unread: 0,
       hasPhoto,
       pinned: false,
+      about: this.abouts.get(id) ?? '',
+      status: parseBio(this.abouts.get(id)).status,
       ...base,
     };
   }
@@ -423,10 +450,59 @@ export class TelegramService {
       );
     }
     this.emitContacts();
+    this.queueAbouts(
+      [...this.contacts.values()]
+        .filter((c) => c.kind === 'user' && !this.abouts.has(c.id))
+        .sort((a, b) => b.lastDate - a.lastDate)
+        .slice(0, 150)
+        .map((c) => c.id),
+    );
+  }
+
+  // ---------- Mensagem pessoal (bio) dos contatos ----------
+
+  /** Lê as bios aos poucos, para não esbarrar no limite de pedidos do Telegram. */
+  private queueAbouts(ids: string[], first = false) {
+    for (const id of ids) {
+      const i = this.aboutQueue.indexOf(id);
+      if (i >= 0) this.aboutQueue.splice(i, 1);
+      if (first) this.aboutQueue.unshift(id);
+      else this.aboutQueue.push(id);
+    }
+    if (!this.aboutTimer) this.nextAbout(0);
+  }
+
+  private nextAbout(delay: number) {
+    this.aboutTimer = setTimeout(async () => {
+      const id = this.aboutQueue.shift();
+      if (!id || !this.client || this.state !== 'ready') {
+        this.aboutTimer = null;
+        return;
+      }
+      let wait = 700;
+      try {
+        const full = await this.client.invoke(new Api.users.GetFullUser({ id: this.entity(id) }));
+        const about = full.fullUser.about ?? '';
+        this.abouts.set(id, about);
+        const c = this.contacts.get(id);
+        if (c && c.about !== about) this.patch(id, { about, status: parseBio(about).status });
+      } catch (e) {
+        const secs = (e as { seconds?: number }).seconds;
+        if (secs) {
+          this.aboutQueue.unshift(id);
+          wait = (secs + 1) * 1000;
+        }
+      }
+      this.nextAbout(wait);
+    }, delay);
+  }
+
+  refreshContact(id: string) {
+    if (this.contacts.get(id)?.kind === 'user') this.queueAbouts([id], true);
   }
 
   private preview(msg: Api.Message): string {
-    if (msg.action) return serviceText(msg.action);
+    if (msg.action) return serviceText(msg.action) || '';
     const text = msg.message === NUDGE_TEXT ? '📳 Chamou a atenção' : msg.message;
     return (text || mediaLabel(mediaOf(msg))).replace(/\s+/g, ' ').slice(0, 80);
   }
@@ -532,6 +608,7 @@ export class TelegramService {
       }
     }
     const cm = await this.toChatMessage(msg, chatId);
+    if (cm.service && !cm.text) return;
     this.hooks.emit('message:new', cm);
     const c = this.contacts.get(chatId);
     if (!c) {
@@ -590,7 +667,10 @@ export class TelegramService {
     if (!this.client) return [];
     const msgs = await this.client.getMessages(this.entity(chatId), { limit: 40, offsetId: beforeId ?? 0 });
     const out: ChatMessage[] = [];
-    for (const m of msgs) out.push(await this.toChatMessage(m, chatId));
+    for (const m of msgs) {
+      const cm = await this.toChatMessage(m, chatId);
+      if (!(cm.service && !cm.text)) out.push(cm);
+    }
     return out.reverse();
   }
 
@@ -633,7 +713,7 @@ export class TelegramService {
   }
 
   typing(chatId: string) {
-    if (!this.client || this.myStatus === 'invisible') return;
+    if (!this.client || this.appearOffline) return;
     const last = this.lastTypingSent.get(chatId) ?? 0;
     if (Date.now() - last < 4000) return;
     this.lastTypingSent.set(chatId, Date.now());
@@ -740,27 +820,54 @@ export class TelegramService {
     if (file) shell.showItemInFolder(file);
   }
 
-  // ---------- Status e mensagem pessoal ----------
+  // ---------- Meu perfil: status, bio, nome e foto ----------
 
-  async setStatus(status: MyStatus) {
-    this.myStatus = status;
+  async setAppearOffline(offline: boolean) {
+    this.appearOffline = offline;
     await this.applyStatus();
   }
 
   private async applyStatus() {
     if (!this.client || this.state !== 'ready') return;
-    await this.client.invoke(new Api.account.UpdateStatus({ offline: this.myStatus === 'invisible' })).catch(() => {});
+    await this.client.invoke(new Api.account.UpdateStatus({ offline: this.appearOffline })).catch(() => {});
   }
 
   async goOffline() {
     await this.client?.invoke(new Api.account.UpdateStatus({ offline: true })).catch(() => {});
   }
 
-  async setAbout(text: string) {
-    if (!this.client || !this.me) return;
-    const about = text.slice(0, 70);
+  /** Grava a bio exatamente como recebida (o Lex monta o texto antes). */
+  async setBio(about: string) {
+    if (!this.client || !this.me || about === this.me.about) return;
     await this.client.invoke(new Api.account.UpdateProfile({ about }));
     this.me = { ...this.me, about };
+    this.hooks.emit('me:changed', this.me);
+  }
+
+  async setName(first: string, last: string) {
+    if (!this.client || !this.me) return;
+    const firstName = first.trim().slice(0, 64);
+    const lastName = last.trim().slice(0, 64);
+    if (!firstName) throw new Error('O nome não pode ficar vazio.');
+    await this.client.invoke(new Api.account.UpdateProfile({ firstName, lastName }));
+    this.me = { ...this.me, firstName, lastName, name: [firstName, lastName].filter(Boolean).join(' ') };
+    this.hooks.emit('me:changed', this.me);
+  }
+
+  /** Corta a imagem em quadrado, reduz e envia como nova foto de perfil. */
+  async setPhoto(path: string) {
+    if (!this.client || !this.me) return;
+    const img = nativeImage.createFromPath(path);
+    if (img.isEmpty()) throw new Error('Não consegui abrir essa imagem. Use JPG ou PNG.');
+    const { width, height } = img.getSize();
+    const side = Math.min(width, height);
+    const square = img.crop({ x: Math.floor((width - side) / 2), y: Math.floor((height - side) / 2), width: side, height: side });
+    const jpeg = square.resize({ width: Math.min(side, 640), height: Math.min(side, 640), quality: 'best' }).toJPEG(90);
+    const file = await this.client.uploadFile({ file: new CustomFile('foto.jpg', jpeg.length, '', jpeg), workers: 1 });
+    await this.client.invoke(new Api.photos.UploadProfilePhoto({ file }));
+    this.avatars.delete('me');
+    this.avatars.delete(this.me.id);
+    this.me = { ...this.me, hasPhoto: true, photoVersion: this.me.photoVersion + 1 };
     this.hooks.emit('me:changed', this.me);
   }
 }

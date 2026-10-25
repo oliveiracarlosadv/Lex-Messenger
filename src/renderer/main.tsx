@@ -4,12 +4,14 @@ import type { AuthState } from '../shared/types';
 import { ChatWindow } from './components/ChatWindow';
 import { ContactList } from './components/ContactList';
 import { Login } from './components/Login';
+import { Toast, type ToastProps } from './components/Toast';
 import { lex } from './lib/api';
 import { playSound } from './lib/sounds';
 import './styles.css';
 
 const route = decodeURIComponent(location.hash.replace(/^#/, ''));
 const chatMatch = route.match(/^\/chat\/(.+)$/);
+const toastMatch = route.match(/^\/toast\/(.+)$/s);
 
 function ListApp() {
   const [auth, setAuth] = useState<AuthState | null>(null);
@@ -28,5 +30,7 @@ function ChatApp({ chatId }: { chatId: string }) {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>{chatMatch ? <ChatApp chatId={chatMatch[1]} /> : <ListApp />}</StrictMode>,
+  <StrictMode>
+    {toastMatch ? <Toast {...(JSON.parse(toastMatch[1]) as ToastProps)} /> : chatMatch ? <ChatApp chatId={chatMatch[1]} /> : <ListApp />}
+  </StrictMode>,
 );

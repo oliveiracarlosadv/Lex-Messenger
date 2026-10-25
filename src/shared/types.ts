@@ -1,7 +1,8 @@
 // Tipos trocados entre o processo principal (Telegram) e as janelas.
 
 export type Presence = 'online' | 'away' | 'offline';
-export type MyStatus = 'online' | 'invisible';
+import type { MyStatus } from './status';
+export type { MyStatus } from './status';
 export type ContactKind = 'user' | 'bot' | 'group' | 'channel' | 'self';
 
 export interface Contact {
@@ -16,6 +17,10 @@ export interface Contact {
   unread: number;
   hasPhoto: boolean;
   pinned: boolean;
+  /** Bio do contato no Telegram (mensagem pessoal, música e status do Lex). */
+  about: string;
+  /** Status do Lex lido da bio (Ocupado, Ausente…). */
+  status?: MyStatus;
 }
 
 export interface Me {
@@ -23,8 +28,13 @@ export interface Me {
   name: string;
   username: string;
   phone: string;
+  firstName: string;
+  lastName: string;
+  /** Bio atual no Telegram, como está lá. */
   about: string;
   hasPhoto: boolean;
+  /** Muda a cada troca de foto, para as janelas recarregarem a imagem. */
+  photoVersion: number;
 }
 
 export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'file' | 'other';
@@ -64,6 +74,19 @@ export interface Prefs {
   notifications: boolean;
   onlineAlerts: boolean;
   status: MyStatus;
+  personalMessage: string;
+  shareMusic: boolean;
+  autoAway: boolean;
+}
+
+export interface PresenceInfo {
+  /** Status escolhido. */
+  status: MyStatus;
+  /** Status em vigor (vira "Ausente" sozinho quando o computador fica parado). */
+  effective: MyStatus;
+  autoAway: boolean;
+  music: string | null;
+  musicError?: string;
 }
 
 export type SoundName = 'message' | 'online' | 'nudge' | 'sent';
@@ -84,6 +107,8 @@ export interface LexEvents {
   nudge: { chatId: string };
   'send:progress': { chatId: string; label: string; progress: number | null };
   'prefs:changed': Prefs;
+  'presence:changed': PresenceInfo;
+  'profile:open': true;
 }
 
 export interface LexApi {
@@ -112,7 +137,11 @@ export interface LexApi {
   revealMedia(chatId: string, msgId: number): Promise<void>;
   openChat(chatId: string): void;
   setStatus(status: MyStatus): Promise<void>;
-  setAbout(text: string): Promise<void>;
+  setPersonalMessage(text: string): Promise<void>;
+  setName(first: string, last: string): Promise<void>;
+  choosePhoto(): Promise<boolean>;
+  presence(): Promise<PresenceInfo>;
+  refreshContact(id: string): void;
   prefs(): Promise<Prefs>;
   setPrefs(p: Partial<Prefs>): Promise<Prefs>;
   shakeMe(): void;

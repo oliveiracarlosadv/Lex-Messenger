@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Contact, Me, MyStatus, Prefs } from '../../shared/types';
+import { STATUS, STATUS_ORDER } from '../../shared/status';
+import type { Contact, Me, MyStatus, PresenceInfo, Prefs } from '../../shared/types';
 import { lex } from '../lib/api';
+import { describe } from '../lib/presence';
 import { Avatar } from './Avatar';
 import { Buddy, KindIcon } from './Icons';
+import { ProfileDialog } from './ProfileDialog';
 
 type Section = 'online' | 'offline' | 'groups' | 'others';
 const TITLES: Record<Section, string> = {
@@ -33,24 +36,29 @@ export function ContactList() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
-  const [about, setAbout] = useState('');
-  const [editingAbout, setEditingAbout] = useState(false);
+  const [pm, setPm] = useState('');
+  const [editingPm, setEditingPm] = useState(false);
+  const [presence, setPresence] = useState<PresenceInfo | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    void lex.me().then((m) => {
-      setMe(m);
-      setAbout(m?.about ?? '');
-    });
+    void lex.me().then(setMe);
     void lex.contacts().then(setContacts);
-    void lex.prefs().then(setPrefs);
+    void lex.prefs().then((p) => {
+      setPrefs(p);
+      setPm(p.personalMessage);
+    });
+    void lex.presence().then(setPresence);
     const offs = [
-      lex.on('me:changed', (m) => {
-        setMe(m);
-        setAbout(m.about);
-      }),
+      lex.on('me:changed', setMe),
+      lex.on('presence:changed', setPresence),
+      lex.on('profile:open', () => setProfileOpen(true)),
       lex.on('contacts:changed', setContacts),
       lex.on('contact:patch', (p) => setContacts((list) => list.map((c) => (c.id === p.id ? { ...c, ...p } : c)))),
-      lex.on('prefs:changed', setPrefs),
+      lex.on('prefs:changed', (p) => {
+        setPrefs(p);
+        setPm(p.personalMessage);
+      }),
     ];
     return () => offs.forEach((f) => f());
   }, []);
@@ -78,52 +86,74 @@ export function ContactList() {
     return groups;
   }, [contacts, query]);
 
-  const saveAbout = () => {
-    setEditingAbout(false);
-    if (me && about !== me.about) void lex.setAbout(about);
+  const savePm = () => {
+    setEditingPm(false);
+    if (prefs && pm !== prefs.personalMessage) void lex.setPersonalMessage(pm);
   };
 
   const status: MyStatus = prefs?.status ?? 'online';
+  const effective: MyStatus = presence?.effective ?? status;
+  const music = prefs?.shareMusic && effective !== 'invisible' ? presence?.music : null;
 
   return (
     <div className="list-window">
       <header className="list-head">
-        <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={48} />
+        <button className="avatar-btn" onClick={() => setProfileOpen(true)} title="Trocar foto e nome">
+          <Avatar id="me" name={me?.name ?? ''} hasPhoto={me?.hasPhoto} size={48} version={me?.photoVersion} />
+        </button>
         <div className="list-me">
           <div className="me-line">
-            <Buddy presence={status === 'online' ? 'online' : 'offline'} size={16} />
-            <b className="me-name">{me?.name ?? '…'}</b>
+            <Buddy presence={STATUS[effective].color} size={16} title={STATUS[effective].label} />
+            <button className="me-name" onClick={() => setProfileOpen(true)} title="Editar meu perfil">
+              {me?.name ?? '…'}
+            </button>
             <select
               className="status-select"
               value={status}
               onChange={(e) => void lex.setStatus(e.target.value as MyStatus)}
               aria-label="Meu status"
             >
-              <option value="online">(Disponível)</option>
-              <option value="invisible">(Aparecer offline)</option>
+              {STATUS_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  ({STATUS[s].label})
+                </option>
+              ))}
             </select>
           </div>
-          {editingAbout ? (
-            <input
-              className="about-input"
-              autoFocus
-              maxLength={70}
-              value={about}
-              onChange={(e) => setAbout(e.target.value)}
-              onBlur={saveAbout}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveAbout();
-                if (e.key === 'Escape') {
-                  setAbout(me?.about ?? '');
-                  setEditingAbout(false);
-                }
-              }}
-            />
-          ) : (
-            <button className="about" onClick={() => setEditingAbout(true)} title="Aparece como sua bio no Telegram">
-              {me?.about || '<Digite uma mensagem pessoal>'}
+          {presence?.autoAway && <div className="auto-away">Ausente automaticamente (computador parado)</div>}
+          <div className="pm-line">
+            {editingPm ? (
+              <input
+                className="about-input"
+                autoFocus
+                maxLength={70}
+                value={pm}
+                placeholder="Digite uma mensagem pessoal"
+                onChange={(e) => setPm(e.target.value)}
+                onBlur={savePm}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') savePm();
+                  if (e.key === 'Escape') {
+                    setPm(prefs?.personalMessage ?? '');
+                    setEditingPm(false);
+                  }
+                }}
+              />
+            ) : (
+              <button className="about" onClick={() => setEditingPm(true)} title="Aparece como sua bio no Telegram">
+                {music ? `🎵 ${music}` : prefs?.personalMessage || '<Digite uma mensagem pessoal>'}
+              </button>
+            )}
+            <button
+              className={`music-btn ${prefs?.shareMusic ? 'on' : ''}`}
+              onClick={() => void lex.setPrefs({ shareMusic: !prefs?.shareMusic })}
+              title={prefs?.shareMusic ? 'Parar de mostrar a música que estou ouvindo' : 'Mostrar a música que estou ouvindo'}
+              aria-pressed={!!prefs?.shareMusic}
+            >
+              🎵
             </button>
-          )}
+          </div>
+          {presence?.musicError && <div className="music-error">{presence.musicError}</div>}
         </div>
       </header>
 
@@ -143,7 +173,9 @@ export function ContactList() {
                 {TITLES[s]} ({list.length})
               </button>
               {!isCollapsed &&
-                list.map((c) => (
+                list.map((c) => {
+                  const d = describe(c);
+                  return (
                   <div
                     key={c.id}
                     role="option"
@@ -153,15 +185,20 @@ export function ContactList() {
                     onClick={() => setSelected(c.id)}
                     onDoubleClick={() => lex.openChat(c.id)}
                     onKeyDown={(e) => e.key === 'Enter' && lex.openChat(c.id)}
-                    title={c.subtitle}
+                    title={[c.subtitle, c.lastMessage && `Última mensagem: ${c.lastMessage}`].filter(Boolean).join('\n')}
                   >
-                    <KindIcon kind={c.kind} presence={c.presence} />
+                    <KindIcon kind={c.kind} color={d.color} title={d.label || undefined} />
                     <span className="contact-name">{c.name}</span>
-                    {c.presence === 'away' && <span className="contact-status">(Ausente)</span>}
-                    <span className="contact-sub">{c.lastMessage ? ` — ${c.lastMessage}` : ''}</span>
+                    {d.label && <span className={`contact-status ${d.color}`}>({d.label})</span>}
+                    {d.personal ? (
+                      <span className={`contact-sub personal ${d.music ? 'music' : ''}`}> — {d.personal}</span>
+                    ) : (
+                      <span className="contact-sub">{c.lastMessage ? ` — ${c.lastMessage}` : ''}</span>
+                    )}
                     {c.unread > 0 && <span className="badge">{c.unread > 99 ? '99+' : c.unread}</span>}
                   </div>
-                ))}
+                  );
+                })}
               {!isCollapsed && !list.length && <p className="empty">Ninguém online agora.</p>}
             </section>
           );
@@ -169,6 +206,7 @@ export function ContactList() {
       </div>
 
       <footer className="list-foot">Clique duas vezes em um contato para conversar.</footer>
+      {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }
