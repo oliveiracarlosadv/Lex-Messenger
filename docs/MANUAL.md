@@ -214,6 +214,13 @@ baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada a
 - Onde funciona: **Android 14 ou mais novo** (gravação: Android 15+), **Mac** e **Windows** (prints e gravações
   feitos pelo próprio sistema, salvos na pasta padrão). No **iPhone pelo Safari** não é possível saber de prints.
 
+### Excluir conversa e bloquear 🗑 🚫
+No menu **⋯** no alto da conversa (ou com o botão direito / toque longo no contato, na lista):
+- **🚫 Bloquear contato**: a pessoa não consegue mais mandar mensagens nem ligar, e não vê quando você está online.
+  Para desfazer, **✅ Desbloquear** no mesmo lugar (ou em Configurações > Bloqueados).
+- **🗑 Excluir conversa**: apaga a conversa da sua lista; marque **“Apagar também para Fulano”** para apagar dos dois
+  lados. Em grupos e canais, a opção é **Sair**. Não dá para desfazer.
+
 ### SMS / RCS 💬
 O botão **💬** no alto da conversa abre o **app de mensagens do aparelho** (no Android, o Mensagens do Google; no
 iPhone e no Mac, o Mensagens) com o número da pessoa e o texto que você estava escrevendo. Se os dois aparelhos

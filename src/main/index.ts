@@ -577,6 +577,12 @@ function registerIpc() {
     playSound('sent');
   });
   ipcMain.handle('chat:export', (_e, chatId: string) => tg.exportChat(String(chatId)));
+  ipcMain.handle('chat:delete', async (_e, chatId: string, all: boolean) => {
+    await tg.deleteChat(String(chatId), !!all);
+    const w = chatWins.get(String(chatId));
+    if (w && !w.isDestroyed()) w.close();
+  });
+  ipcMain.handle('chat:block', (_e, chatId: string, b: boolean) => tg.setBlockedContact(String(chatId), !!b));
   ipcMain.on('chat:view', (_e, chatId: string, view: ChatView | null) => {
     if (view) chatViews.set(String(chatId), view);
     else chatViews.delete(String(chatId));

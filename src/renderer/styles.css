@@ -2486,3 +2486,30 @@ body.toast-body {
   letter-spacing: 0.2px;
   color: #3f86da;
 }
+.head-menu-wrap {
+  position: relative;
+}
+.head-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 71;
+  min-width: 230px;
+}
+.more-btn {
+  margin-left: 0;
+}
+.danger-fill {
+  background: linear-gradient(180deg, #ff9a8f, #d9362a);
+  border-color: #b3261e;
+}
+.chat-to {
+  overflow: visible;
+}
+.chat-to .chat-sub {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.head-menu-wrap {
+  z-index: 72;
+}

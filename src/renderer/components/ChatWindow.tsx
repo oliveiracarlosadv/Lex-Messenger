@@ -16,6 +16,7 @@ import { LoopMedia, StickerPicker } from './StickerPicker';
 import { VideoPlayer } from './VideoPlayer';
 import { SensitiveCover } from './SensitiveCover';
 import { SmsDialog } from './SmsDialog';
+import { DeleteChatDialog, toggleBlock } from './ChatActions';
 import { applyToggle, parseChecklist, parseToggle, type Checklist } from '../../shared/checklist';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏'];
@@ -53,6 +54,8 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [ttlMenu, setTtlMenu] = useState(false);
   const [newList, setNewList] = useState(false);
   const [sms, setSms] = useState(false);
+  const [headMenu, setHeadMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [stickers, setStickers] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -386,16 +389,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           <span className="chat-sub">
             {d?.label ? ` (${d.label})` : ''} {contact?.subtitle && `— ${contact.subtitle}`}
           </span>
-          {contact && (
-            <button className="mute-btn export-btn" onClick={() => void exportChat()} title="Exportar a conversa (a outra pessoa é avisada)">
-              📤
-            </button>
-          )}
-          {contact?.kind === 'user' && (
-            <button className="mute-btn sms-btn" onClick={() => setSms(true)} title="Enviar por SMS/RCS pelo app de mensagens do aparelho">
-              💬
-            </button>
-          )}
+
           {contact && (
             <button
               className="mute-btn fav-btn"
@@ -410,13 +404,44 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           )}
           {contact && contact.kind !== 'self' && (
             <button
-              className="mute-btn"
+              className="mute-btn more-btn"
               onClick={() => void toggleMute()}
               title={contact.muted ? 'Conversa silenciada. Clique para voltar a receber avisos.' : 'Silenciar esta conversa'}
               aria-pressed={!!contact.muted}
             >
               {contact.muted ? '🔕' : '🔔'}
             </button>
+          )}
+          {contact && (
+            <div className="head-menu-wrap">
+              <button className="mute-btn" onClick={() => setHeadMenu(!headMenu)} title="Mais opções" aria-label="Mais opções" aria-expanded={headMenu}>
+                ⋯
+              </button>
+              {headMenu && (
+                <>
+                  <div className="menu-back" onMouseDown={() => setHeadMenu(false)} />
+                  <div className="msg-menu head-menu" role="menu">
+                    <button role="menuitem" onClick={() => (setHeadMenu(false), void exportChat())}>
+                      📤 Exportar conversa
+                    </button>
+                    {contact.kind === 'user' && (
+                      <button role="menuitem" onClick={() => (setHeadMenu(false), setSms(true))}>
+                        💬 Enviar por SMS / RCS
+                      </button>
+                    )}
+                    {contact.kind === 'user' && (
+                      <button role="menuitem" onClick={() => (setHeadMenu(false), void toggleBlock(contact, flashNotice))}>
+                        {contact.blocked ? '✅ Desbloquear contato' : '🚫 Bloquear contato'}
+                      </button>
+                    )}
+                    <hr />
+                    <button role="menuitem" className="danger" onClick={() => (setHeadMenu(false), setDeleting(true))}>
+                      🗑 {contact.kind === 'group' || contact.kind === 'channel' ? 'Sair e excluir conversa' : 'Excluir conversa'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
         {d?.personal && <div className={`chat-pm ${d.music ? 'music' : ''}`}>{d.personal}</div>}
@@ -459,6 +484,8 @@ export function ChatWindow({ chatId }: { chatId: string }) {
               </span>
             ) : notice ? (
               <b>{notice}</b>
+            ) : contact?.blocked ? (
+              <b>🚫 Você bloqueou {name}. Desbloqueie pelo menu ⋯ para conversar.</b>
             ) : typing ? (
               <span>✏️ {typing} está digitando uma mensagem…</span>
             ) : contact?.kind === 'user' && d?.label && d.color === 'busy' ? (
@@ -698,6 +725,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           }}
         />
       )}
+      {deleting && contact && <DeleteChatDialog contact={contact} onClose={() => setDeleting(false)} />}
       {sms && contact && <SmsDialog name={contact.name} phone={contact.phone} text={text} onClose={() => setSms(false)} />}
       {newList && (
         <NewChecklistDialog

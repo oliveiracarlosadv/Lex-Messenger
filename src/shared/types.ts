@@ -29,6 +29,8 @@ export interface Contact {
   favorite?: boolean;
   /** Telefone, quando a pessoa compartilha com você no Telegram (para SMS/RCS). */
   phone?: string;
+  /** Você bloqueou esta pessoa. */
+  blocked?: boolean;
   /** Até que mensagem minha a pessoa já leu (para os ✓✓). */
   readOutboxMaxId?: number;
 }
@@ -218,6 +220,8 @@ export interface LexEvents {
   'settings:open': true;
   /** Ligou/desligou a conexão (botão Desligado). */
   'connection:changed': { connected: boolean; offlineUntil: number };
+  /** Conversa excluída: as janelas dela fecham. */
+  'chat:removed': { chatId: string };
 }
 
 export interface LexApi {
@@ -279,6 +283,9 @@ export interface LexApi {
   setOffline(minutes: number | null): Promise<void>;
   /** Exporta a conversa para um arquivo (a outra pessoa é avisada). Devolve false se desistir. */
   exportChat(chatId: string): Promise<boolean>;
+  /** Exclui a conversa (para mim, ou para os dois). Em grupos e canais: sai deles. */
+  deleteChat(chatId: string, forEveryone: boolean): Promise<void>;
+  setBlockedContact(chatId: string, blocked: boolean): Promise<void>;
   /** O que está na tela da conversa agora (para avisar sobre prints e gravações). */
   reportView(chatId: string, view: { lastId: number; sensitive: boolean; temporary: boolean } | null): void;
   getSensitive(chatId: string): Promise<boolean>;

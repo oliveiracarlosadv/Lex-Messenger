@@ -38,6 +38,10 @@ export function snapshot(h: SnapHooks) {
     await wait(1500);
     writeFileSync(join(dir, 'contatos.png'), (await list.webContents.capturePage()).toPNG());
     writeFileSync(join(dir, 'conversa.png'), (await chat.webContents.capturePage()).toPNG());
+    await chat.webContents.executeJavaScript("document.querySelector('[aria-label=\"Mais opções\"]')?.click()");
+    await wait(400);
+    writeFileSync(join(dir, 'menu-conversa.png'), (await chat.webContents.capturePage()).toPNG());
+    await chat.webContents.executeJavaScript("document.querySelector('.menu-back')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))");
     list.webContents.send('profile:open', true);
     h.toast();
     await wait(2000);

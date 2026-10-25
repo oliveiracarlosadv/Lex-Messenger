@@ -29,6 +29,7 @@ function ListApp() {
 
 function ChatApp({ chatId }: { chatId: string }) {
   useEffect(() => lex.on('auth:state', (s) => s !== 'ready' && s !== 'connecting' && window.close()), []);
+  useEffect(() => lex.on('chat:removed', (r) => r.chatId === chatId && window.close()), [chatId]);
   return <ChatWindow chatId={chatId} />;
 }
 

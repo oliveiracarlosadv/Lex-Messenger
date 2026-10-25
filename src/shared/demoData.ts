@@ -74,6 +74,8 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.searchGifs = async () => [];
   t.getSelfDestruct = () => 0;
   t.getSensitive = () => false;
+  t.deleteChat = async () => {};
+  t.setBlockedContact = async () => {};
   t.setSensitive = () => {};
   t.setSelfDestruct = () => {};
   t.setFavorite = async (id: string, fav: boolean) => {

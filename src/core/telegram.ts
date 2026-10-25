@@ -664,6 +664,7 @@ export class TelegramService {
         this.abouts.set(id, about);
         const c = this.contacts.get(id);
         if (c && c.about !== about) this.patch(id, { about, status: parseBio(about).status });
+        if (c && !!c.blocked !== !!full.fullUser.blocked) this.patch(id, { blocked: !!full.fullUser.blocked });
       } catch (e) {
         const secs = (e as { seconds?: number }).seconds;
         if (secs) {
@@ -1242,6 +1243,34 @@ export class TelegramService {
       if ((x instanceof Api.UpdateNewMessage || x instanceof Api.UpdateNewChannelMessage) && x.message instanceof Api.Message) return x.message;
     }
     return undefined;
+  }
+
+  // ---------- Excluir conversa e bloquear ----------
+
+  async deleteChat(chatId: string, forEveryone: boolean) {
+    const c = this.client!;
+    const e = this.entities.get(chatId);
+    if (e instanceof Api.Channel) {
+      // Grupo grande ou canal: sair dele.
+      await c.invoke(new Api.channels.LeaveChannel({ channel: await c.getInputEntity(e) }));
+    } else if (e instanceof Api.Chat) {
+      await c.invoke(new Api.messages.DeleteChatUser({ chatId: e.id, userId: new Api.InputUserSelf(), revokeHistory: forEveryone }));
+      await c.invoke(new Api.messages.DeleteHistory({ peer: this.entity(chatId), maxId: 0, revoke: false })).catch(() => {});
+    } else {
+      // Conversa individual: apaga o histórico (de mim, ou dos dois), em partes até acabar.
+      for (let i = 0; i < 50; i++) {
+        const r = await c.invoke(new Api.messages.DeleteHistory({ peer: this.entity(chatId), maxId: 0, revoke: forEveryone, justClear: false }));
+        if (!r.offset) break;
+      }
+    }
+    this.contacts.delete(chatId);
+    this.hooks.emit('chat:removed', { chatId });
+    this.emitContacts();
+  }
+
+  async setBlockedContact(chatId: string, blocked: boolean) {
+    await this.setBlocked(chatId, blocked);
+    this.patch(chatId, { blocked });
   }
 
   // ---------- Exportar e avisos de print/gravação ----------

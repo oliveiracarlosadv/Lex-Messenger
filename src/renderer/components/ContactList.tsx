@@ -10,6 +10,7 @@ import { ProfileDialog } from './ProfileDialog';
 import { SettingsDialog } from './SettingsDialog';
 import { NewGroupDialog } from './NewGroupDialog';
 import { QuickBar } from './QuickBar';
+import { DeleteChatDialog, toggleBlock } from './ChatActions';
 
 type Section = 'favorites' | 'online' | 'offline' | 'groups' | 'others';
 const TITLES: Record<Section, string> = {
@@ -49,6 +50,7 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
   const [rowMenu, setRowMenu] = useState<{ c: Contact; x: number; y: number } | null>(null);
+  const [deleting, setDeleting] = useState<Contact | null>(null);
   const toggleFavorite = async (c: Contact) => {
     try {
       await lex.setFavorite(c.id, !c.favorite);
@@ -261,11 +263,12 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
       </footer>
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
       {groupOpen && <NewGroupDialog onClose={() => setGroupOpen(false)} />}
+      {deleting && <DeleteChatDialog contact={deleting} onClose={() => setDeleting(null)} />}
       {rowMenu && (
         <div className="menu-back" onMouseDown={() => setRowMenu(null)} onContextMenu={(e) => e.preventDefault()}>
           <div
             className="msg-menu"
-            style={{ left: Math.min(rowMenu.x, window.innerWidth - 220), top: Math.min(rowMenu.y, window.innerHeight - 110) }}
+            style={{ left: Math.min(rowMenu.x, window.innerWidth - 230), top: Math.min(rowMenu.y, window.innerHeight - 210) }}
             onMouseDown={(e) => e.stopPropagation()}
             role="menu"
           >
@@ -286,6 +289,27 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
               }}
             >
               {rowMenu.c.favorite ? '☆ Tirar dos favoritos' : '⭐ Adicionar aos favoritos'}
+            </button>
+            {rowMenu.c.kind === 'user' && (
+              <button
+                role="menuitem"
+                onClick={() => {
+                  void toggleBlock(rowMenu.c, (t) => alert(t));
+                  setRowMenu(null);
+                }}
+              >
+                {rowMenu.c.blocked ? '✅ Desbloquear' : '🚫 Bloquear contato'}
+              </button>
+            )}
+            <button
+              role="menuitem"
+              className="danger"
+              onClick={() => {
+                setDeleting(rowMenu.c);
+                setRowMenu(null);
+              }}
+            >
+              🗑 Excluir conversa
             </button>
           </div>
         </div>

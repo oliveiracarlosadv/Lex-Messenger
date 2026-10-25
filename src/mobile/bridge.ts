@@ -445,6 +445,11 @@ export class MobileBridge {
       setFavorite: (id, fav) => tg.setFavorite(id, fav),
       setSensitive: async (id, on) => tg.setSensitive(id, on),
       exportChat: (id) => tg.exportChat(id),
+      deleteChat: async (id, all) => {
+        await tg.deleteChat(id, all);
+        if (this.currentChat === id) history.back();
+      },
+      setBlockedContact: (id, b) => tg.setBlockedContact(id, b),
       reportView: (id, view) => {
         if (view) this.views.set(id, view);
         else this.views.delete(id);
