@@ -1,6 +1,8 @@
 # Histórico de versões
 
-## v0.5.0
+## v1.0.0
+**Primeira versão oficial do Lex Messenger — Comunicação em primeiro lugar!** Disponível para Mac, Windows, Android e
+iPhone (pelo Safari). Reúne tudo das versões de teste (0.1 a 0.5) e mais:
 - **Excluir conversa** (para mim ou para os dois; em grupos, sair) e **bloquear/desbloquear contato**, no novo menu ⋯ da conversa e no menu do contato.
 - **Exportar conversa** 📤 para um arquivo; a outra pessoa é avisada.
 - **Avisos de print e gravação de tela** (aviso oficial do Telegram para prints; diz se havia mensagem temporária ou mídia sensível na tela) no Android 14+, Mac e Windows.
