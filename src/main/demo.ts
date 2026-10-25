@@ -73,6 +73,12 @@ export function loginSnapshot() {
   setTimeout(async () => {
     const [w] = BrowserWindow.getAllWindows();
     writeFileSync(join(dir, 'entrada.png'), (await w.webContents.capturePage()).toPNG());
+    // Tela de criar conta (número sem Telegram)
+    await w.webContents.executeJavaScript("[...document.querySelectorAll('button')].find(b => b.textContent.includes('criar conta'))?.click()");
+    await new Promise((r) => setTimeout(r, 400));
+    w.webContents.send('login:step', { step: 'signup' });
+    await new Promise((r) => setTimeout(r, 800));
+    writeFileSync(join(dir, 'criar-conta.png'), (await w.webContents.capturePage()).toPNG());
     app.exit(0);
   }, 3000);
 }

@@ -3,6 +3,7 @@
 ## v0.5.0
 - **iPhone sem App Store**: app pelo Safari (“Adicionar à Tela de Início”), com as mesmas telas do Android; áudios no formato de voz do Telegram também no iPhone.
 - **Mensagens que se autodestroem** (30 s a 24 h), apagadas para os dois lados; o aviso 🔥 some em 12 horas.
+- **Criar conta do Telegram** pelo Lex, para quem ainda não tem (código por SMS, nome e aceite dos Termos de Serviço do Telegram na própria tela).
 - **Mídia sensível** 🔞: foto, vídeo ou recado vai coberto (spoiler do Telegram) e só aparece quando a pessoa toca; ao fechar, cobre de novo.
 - **Lista de tarefas** na conversa: um cria, o outro marca como feito, com progresso para os dois.
 - **Figurinhas e GIFs**: recentes, pacotes, GIFs salvos e busca; GIFs e figurinhas animadas tocam na conversa.

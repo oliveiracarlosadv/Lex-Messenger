@@ -141,6 +141,8 @@ export type LoginStep =
   | { step: 'phone'; error?: string }
   | { step: 'code'; viaApp: boolean; error?: string }
   | { step: 'password'; hint?: string; error?: string }
+  /** Número sem conta no Telegram: nome, sobrenome e aceite dos Termos. Resposta: JSON {first, last}. */
+  | { step: 'signup'; error?: string }
   | { step: 'qr'; url: string; expires: number; error?: string }
   | { step: 'done' }
   | { step: 'failed'; error: string };

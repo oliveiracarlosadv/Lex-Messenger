@@ -74,6 +74,16 @@ Você precisa ter uma conta no Telegram (no celular). Há dois jeitos de entrar:
 
 Se você ativou a **verificação em duas etapas** no Telegram, o app também pede essa senha.
 
+**Não tem Telegram? Crie a conta pelo Lex**
+1. Na tela de entrada, toque em **Não tenho Telegram — criar conta** e digite o seu celular com DDD.
+2. O código chega **por SMS** (você ainda não tem o app do Telegram). Digite o código.
+3. Informe **nome** e, se quiser, **sobrenome**. Leia os **Termos de Serviço** e a **Política de Privacidade** do
+   Telegram (os links abrem no navegador), marque **“Li e aceito”** e toque em **Criar conta**.
+
+A conta é do Telegram, gratuita: depois dá para usar o mesmo número no app oficial também. Se o Telegram não permitir
+criar a conta por aqui (ele às vezes restringe por país ou por número), o Lex avisa: nesse caso, crie pelo app oficial
+e depois entre no Lex normalmente.
+
 Você só faz isso uma vez: nas próximas aberturas, o Lex Messenger entra sozinho.
 
 ## 3. Lista de contatos

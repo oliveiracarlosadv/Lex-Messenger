@@ -38,7 +38,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 
 ## O que ele faz
 
-- **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone.
+- **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone — e quem **não tem Telegram** pode **criar a conta** ali mesmo.
 - **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
 - **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
 - **Mensagens que se autodestroem** ⏱: escolha 30 s, 1 min, 5 min, 1 h ou 24 h; a mensagem some para os dois lados e o aviso 🔥 também some em 12 horas.

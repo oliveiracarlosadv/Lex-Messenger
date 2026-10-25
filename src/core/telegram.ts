@@ -109,7 +109,11 @@ const ERRORS: Record<string, string> = {
   PHONE_CODE_EMPTY: 'Digite o código recebido.',
   PASSWORD_HASH_INVALID: 'Senha de verificação em duas etapas incorreta.',
   PHONE_NUMBER_BANNED: 'Este número está bloqueado pelo Telegram.',
-  PHONE_NUMBER_UNOCCUPIED: 'Este número ainda não tem conta no Telegram. Crie a conta no app oficial primeiro.',
+  PHONE_NUMBER_UNOCCUPIED: 'Este número ainda não tem conta no Telegram.',
+  FIRSTNAME_INVALID: 'Nome inválido. Use letras e no máximo 64 caracteres.',
+  LASTNAME_INVALID: 'Sobrenome inválido.',
+  PHONE_NUMBER_FLOOD: 'Muitas tentativas com este número. Tente mais tarde.',
+  PHONE_NUMBER_OCCUPIED: 'Este número já tem conta no Telegram: use “Entrar com número de telefone”.',
   API_ID_INVALID: 'As chaves do aplicativo (API ID/HASH) são inválidas.',
 };
 
@@ -124,6 +128,8 @@ function friendlyError(err: unknown): string {
 }
 
 const RETRYABLE = new Set([
+  'FIRSTNAME_INVALID',
+  'LASTNAME_INVALID',
   'PHONE_NUMBER_INVALID',
   'PHONE_CODE_INVALID',
   'PHONE_CODE_EMPTY',
@@ -413,6 +419,8 @@ export class TelegramService {
       if (code === 'SESSION_PASSWORD_NEEDED') return false;
       if (RETRYABLE.has(code) || code.startsWith('FLOOD_WAIT')) return false;
       if (method === 'qr' && (code === 'AUTH_TOKEN_EXPIRED' || !code)) return false;
+      if (/SIGN_?UP|REGISTRATION/i.test(code))
+        this.loginError = 'O Telegram não permitiu criar a conta por aqui. Crie pelo app oficial do Telegram e depois entre no Lex com o seu número.';
       this.hooks.emit('login:step', { step: 'failed', error: this.loginError });
       return true;
     };
@@ -440,8 +448,12 @@ export class TelegramService {
           phoneNumber: () => this.ask({ step: 'phone' }),
           phoneCode: (viaApp) => this.ask({ step: 'code', viaApp: !!viaApp }),
           password: (hint) => this.ask({ step: 'password', hint }),
+          // Número sem conta: a pessoa informa o nome e aceita os Termos do Telegram na tela do Lex
+          // (o aceite que a biblioteca envia depois só acontece porque ela marcou "Li e aceito").
           firstAndLastNames: async () => {
-            throw new Error('Este número ainda não tem conta no Telegram. Crie a conta no app oficial primeiro.');
+            const v = JSON.parse(await this.ask({ step: 'signup' })) as { first: string; last: string; accepted: boolean };
+            if (!v.accepted) throw new Cancelled();
+            return [v.first.trim(), v.last.trim() || undefined];
           },
           onError,
         });
