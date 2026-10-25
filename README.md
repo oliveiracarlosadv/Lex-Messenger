@@ -9,7 +9,8 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-arm64.dmg"><b>⬇️ Mac (Apple M1, M2, M3, M4)</b></a> ·
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-x64.dmg"><b>⬇️ Mac (Intel)</b></a> ·
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Windows-Instalador.exe"><b>⬇️ Windows</b></a> ·
-  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Android.apk"><b>⬇️ Android</b></a>
+  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Android.apk"><b>⬇️ Android</b></a> ·
+  <a href="https://oliveiracarlosadv.github.io/Lex-Messenger/"><b>📱 iPhone (pelo Safari)</b></a>
 </p>
 
 <p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/MANUAL.md">Manual</a> · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
@@ -40,6 +41,10 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 - **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone.
 - **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
 - **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
+- **Mensagens que se autodestroem** ⏱: escolha 30 s, 1 min, 5 min, 1 h ou 24 h; a mensagem some para os dois lados e o aviso 🔥 também some em 12 horas.
+- **Lista de tarefas** 📋 na conversa: você cria, a outra pessoa marca como feito, e os dois veem o progresso.
+- **Figurinhas e GIFs** 🎞️ (recentes, seus pacotes, GIFs salvos e busca), tocando dentro da conversa — assim como **vídeos e áudios**.
+- **Favoritos** ⭐ no topo da lista (pasta “Favoritos” do Telegram, igual em todos os aparelhos) e **criar grupos** 👥.
 - **Câmera na conversa** 📷: tire foto, grave vídeo ou mande um **recado** (o vídeo redondo do Telegram), com prévia antes de enviar.
 - **Mensagens de áudio** 🎤: segure para gravar e solte para enviar, ou use o modo **mãos livres** (um toque grava sem segurar). Tocador com a onda sonora, velocidade 1x/1,5x/2x e **“ouvir em sequência”**.
 - **Tudo o que se faz numa conversa do Telegram**: responder citando, editar, apagar (para mim ou para todos), encaminhar, reagir com emoji, copiar, ✓✓ de lido, prévias de links e silenciar a conversa (🔕).
@@ -66,6 +71,10 @@ Lex Messenger para a pasta Aplicativos. Na primeira vez, o macOS avisa que não 
 **Android:** baixe o `LexMessenger-Android.apk` no celular e toque nele para instalar. O Android pede para
 permitir a instalação "desta fonte" (o navegador ou o app de arquivos): permita e toque em **Instalar**. Passo a passo
 no [Manual](docs/MANUAL.md#android).
+
+**iPhone (sem App Store):** abra **https://oliveiracarlosadv.github.io/Lex-Messenger/** no **Safari**, toque em
+**Compartilhar** e em **“Adicionar à Tela de Início”**. O Lex vira um ícone na tela, igual a um app. No iPhone, os avisos
+só chegam com o app aberto (a Apple não deixa apps fora da App Store rodarem em segundo plano).
 
 **Windows:** baixe e execute o instalador. Se aparecer “O Windows protegeu o computador”, clique em
 **Mais informações > Executar assim mesmo**.

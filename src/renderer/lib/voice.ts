@@ -18,6 +18,9 @@ export class VoiceRecorder {
   private levels: number[] = [];
   private timer = 0;
   private startedAt = 0;
+  /** iPhone (Safari): o gravador do sistema não grava Opus; usamos um codificador próprio que já gera Ogg/Opus. */
+  private opus: { start(): Promise<void>; stop(): Promise<void>; ondataavailable: (b: ArrayBuffer) => void } | null = null;
+  private opusDone: Promise<Uint8Array> | null = null;
   /** Nível atual (0 a 1), para a animação durante a gravação. */
   level = 0;
 
@@ -26,9 +29,11 @@ export class VoiceRecorder {
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
     });
     this.ctx = new AudioContext();
+    if (this.ctx.state === 'suspended') await this.ctx.resume();
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 512;
-    this.ctx.createMediaStreamSource(this.stream).connect(this.analyser);
+    const source = this.ctx.createMediaStreamSource(this.stream);
+    source.connect(this.analyser);
     const buf = new Float32Array(this.analyser.fftSize);
     this.timer = window.setInterval(() => {
       this.analyser!.getFloatTimeDomainData(buf);
@@ -38,7 +43,19 @@ export class VoiceRecorder {
       this.level = Math.min(1, rms * 4);
       this.levels.push(rms);
     }, 50);
-    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+    if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      const [{ default: Recorder }, { default: encoderPath }] = await Promise.all([
+        import('opus-recorder'),
+        import('opus-recorder/dist/encoderWorker.min.js?url'),
+      ]);
+      const opus = new Recorder({ sourceNode: source, encoderPath, encoderApplication: 2048, numberOfChannels: 1, encoderSampleRate: 48000 });
+      this.opusDone = new Promise((r) => (opus.ondataavailable = (b: ArrayBuffer) => r(new Uint8Array(b))));
+      await opus.start();
+      this.opus = opus;
+      this.startedAt = performance.now();
+      return;
+    }
+    const mime = 'audio/webm;codecs=opus';
     this.recorder = new MediaRecorder(this.stream, { mimeType: mime, audioBitsPerSecond: 32000 });
     this.chunks = [];
     this.recorder.ondataavailable = (e) => e.data.size && this.chunks.push(e.data);
@@ -60,6 +77,7 @@ export class VoiceRecorder {
 
   cancel() {
     try {
+      void this.opus?.stop();
       this.recorder?.stop();
     } catch {
       /* já parado */
@@ -68,6 +86,13 @@ export class VoiceRecorder {
   }
 
   async stop(): Promise<VoiceResult | null> {
+    if (this.opus) {
+      const duration = Math.max(1, Math.round(this.elapsed));
+      await this.opus.stop();
+      const ogg = await this.opusDone!;
+      this.cleanup();
+      return { ogg, duration, waveform: makeWaveform(this.levels) };
+    }
     const rec = this.recorder;
     if (!rec) return null;
     const done = new Promise<void>((r) => (rec.onstop = () => r()));

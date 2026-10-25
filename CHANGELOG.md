@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## v0.5.0
+- **iPhone sem App Store**: app pelo Safari (“Adicionar à Tela de Início”), com as mesmas telas do Android; áudios no formato de voz do Telegram também no iPhone.
+- **Mensagens que se autodestroem** (30 s a 24 h), apagadas para os dois lados; o aviso 🔥 some em 12 horas.
+- **Lista de tarefas** na conversa: um cria, o outro marca como feito, com progresso para os dois.
+- **Figurinhas e GIFs**: recentes, pacotes, GIFs salvos e busca; GIFs e figurinhas animadas tocam na conversa.
+- **Vídeos tocam dentro da conversa**.
+- **Favoritos** (pasta “⭐ Favoritos” do Telegram, sincronizada) e **criar grupos**.
+- **Android**: “música que estou ouvindo”; chamar atenção na barra de notificações com **Abrir conversa / Agora não**; notificações somem quando a conversa é lida.
+- Computador: avisos no canto somem quando a conversa é lida.
+- Fotos maiores na lista de contatos.
+- **Correção**: a sua resposta agora mostra na hora a mensagem que está sendo respondida.
+
 ## v0.4.1
 - **Mac**: o Lex volta a aparecer sempre no **Cmd + Tab** e no Dock (os avisos no canto o tiravam de lá).
 - **Correção**: a foto nova não aparecia depois de trocada. Agora aparece na hora, e fotos trocadas em outro aparelho são atualizadas quando você volta ao Lex (ou quando o computador sai da suspensão).

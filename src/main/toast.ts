@@ -16,6 +16,12 @@ const HEIGHT = 116;
 const GAP = 8;
 const MAX = 4;
 const toasts: BrowserWindow[] = [];
+const toastChat = new WeakMap<BrowserWindow, string>();
+
+/** Conversa lida: fecha os avisos dela que ainda estão na tela. */
+export function closeToasts(chatId: string) {
+  for (const w of [...toasts]) if (!w.isDestroyed() && toastChat.get(w) === chatId) w.close();
+}
 
 type Setup = (win: BrowserWindow, hash: string) => void;
 
@@ -71,6 +77,7 @@ export function showToast(data: ToastData, setup: Setup, preload: string) {
   // skipTransformProcessType: sem isso, o macOS tira o Lex do Dock e do Cmd+Tab.
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   toasts.push(win);
+  toastChat.set(win, data.chatId);
   win.on('closed', () => {
     const i = toasts.indexOf(win);
     if (i >= 0) toasts.splice(i, 1);

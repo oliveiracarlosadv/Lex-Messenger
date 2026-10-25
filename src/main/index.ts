@@ -8,7 +8,7 @@ import { enableDemo, loginSnapshot, snapshot } from './demo';
 import { PresenceManager } from '../core/presence';
 import { TelegramService } from '../core/telegram';
 import { desktopPlatform, desktopPresence } from './platform';
-import { showToast, type ToastData } from './toast';
+import { closeToasts, showToast, type ToastData } from './toast';
 
 app.setName('Lex Messenger');
 // Os sons tocam sozinhos, sem precisar de um clique antes (o padrão do Chromium bloqueia).
@@ -34,6 +34,8 @@ function allWindows() {
 function emit<K extends keyof LexEvents>(event: K, data: LexEvents[K]) {
   for (const w of allWindows()) w.webContents.send(event, data);
   if (event === 'auth:state') buildMenus();
+  // Conversa lida (aqui ou em outro aparelho): somem os avisos dela.
+  if (event === 'contact:patch' && (data as LexEvents['contact:patch']).unread === 0) closeToasts((data as LexEvents['contact:patch']).id);
 }
 
 function playSound(name: SoundName) {
@@ -506,6 +508,18 @@ function registerIpc() {
   ipcMain.handle('settings:block', (_e, id: string, blocked: boolean) => tg.setBlocked(String(id), !!blocked));
   ipcMain.handle('settings:clear-cache', () => tg.clearCache());
   ipcMain.on('settings:open', () => openSettings());
+  ipcMain.handle('stk:panel', () => tg.stickerPanel());
+  ipcMain.handle('stk:pack', (_e, id: string) => tg.stickerPack(String(id)));
+  ipcMain.handle('stk:gifs', (_e, chatId: string, q: string) => tg.searchGifs(String(chatId), String(q)));
+  ipcMain.handle('stk:thumb', (_e, key: string) => tg.pickThumb(String(key)));
+  ipcMain.handle('stk:send', async (_e, chatId: string, key: string) => {
+    await tg.sendPick(String(chatId), String(key));
+    playSound('sent');
+  });
+  ipcMain.handle('fav:set', (_e, chatId: string, fav: boolean) => tg.setFavorite(String(chatId), !!fav));
+  ipcMain.handle('ttl:set', (_e, chatId: string, s: number) => tg.setSelfDestruct(String(chatId), Number(s) || 0));
+  ipcMain.handle('ttl:get', (_e, chatId: string) => tg.getSelfDestruct(String(chatId)));
+  ipcMain.handle('group:create', (_e, title: string, members: string[]) => tg.createGroup(String(title), members.map(String)));
   ipcMain.on('copy', (_e, text: string) => clipboard.writeText(String(text)));
   ipcMain.handle('camera:ask', async () => {
     if (process.platform !== 'darwin') return true;

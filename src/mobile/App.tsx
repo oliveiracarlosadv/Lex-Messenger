@@ -8,6 +8,41 @@ import { lex } from '../renderer/lib/api';
 import { playSound, unlockAudio } from '../renderer/lib/sounds';
 import type { InAppToast, MobileBridge } from './bridge';
 import { NudgePopup, type NudgeData } from '../renderer/components/NudgePopup';
+import { isIOS, isNative } from './platform';
+
+/** iPhone no Safari, ainda não instalado na tela de início: explica como instalar. */
+function InstallHint() {
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone || matchMedia('(display-mode: standalone)').matches;
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem('lex-install-hint') === '0';
+    } catch {
+      return false;
+    }
+  });
+  if (isNative || !isIOS || standalone || hidden) return null;
+  return (
+    <div className="install-hint" role="note">
+      <span>
+        📲 <b>Instale no iPhone:</b> toque em <b>Compartilhar</b> <span className="ios-share">⬆︎</span> e depois em{' '}
+        <b>“Adicionar à Tela de Início”</b>.
+      </span>
+      <button
+        aria-label="Fechar"
+        onClick={() => {
+          setHidden(true);
+          try {
+            localStorage.setItem('lex-install-hint', '0');
+          } catch {
+            /* ignora */
+          }
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
 
 const chatFromHash = () => {
   const m = location.hash.match(/^#\/chat\/(.+)$/);
@@ -61,10 +96,17 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
   const otherUnread = Object.entries(unread).reduce((n, [id, v]) => (id === chat ? n : n + v), 0);
 
   if (!auth) return null;
-  if (auth !== 'ready') return <Login auth={auth} />;
+  if (auth !== 'ready')
+    return (
+      <>
+        <InstallHint />
+        <Login auth={auth} />
+      </>
+    );
 
   return (
     <div className="mobile-shell">
+      <InstallHint />
       <div className={`screen list-screen ${chat ? 'behind' : ''}`}>
         <ContactList />
       </div>

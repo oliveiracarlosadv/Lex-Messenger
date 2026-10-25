@@ -98,8 +98,12 @@ export function ProfileDialog({ me, prefs, presence, onClose }: { me: Me; prefs:
           <input type="checkbox" checked={prefs.shareMusic} onChange={(e) => void lex.setPrefs({ shareMusic: e.target.checked })} />
           🎵 Mostrar a música que estou ouvindo
           <span className="hint block">
-            {lex.platform === 'darwin' ? 'Apple Music ou Spotify.' : 'O player de música que estiver tocando.'} Aparece no lugar da mensagem
-            pessoal enquanto toca.
+            {lex.platform === 'darwin'
+              ? 'Apple Music ou Spotify.'
+              : lex.features.mobile
+                ? 'O app de música que estiver tocando (o Android pede para liberar o "Acesso a notificações").'
+                : 'O player de música que estiver tocando.'}{' '}
+            Aparece no lugar da mensagem pessoal enquanto toca.
           </span>
         </label>
         )}

@@ -29,6 +29,11 @@ export const history: ChatMessage[] = [
   { id: 4, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 600, text: '', media: { kind: 'file', name: 'peticao-inicial.pdf', size: 248000, mime: 'application/pdf' } },
   { id: 5, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 590, text: 'Recebeu a petição? Dá uma olhada em https://www.lexml.gov.br', media: { kind: 'webpage', link: { url: 'https://www.lexml.gov.br', site: 'LexML Brasil', title: 'LexML — Rede de Informação Legislativa e Jurídica', description: 'Portal especializado em informação jurídica e legislativa.', hasPhoto: false } } },
   { id: 10, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 300, text: '', media: { kind: 'video', round: true, duration: 12, width: 384, height: 384 } },
+  { id: 11, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 250, text: '📋 Lista: Documentos para a audiência\n☐ Procuração assinada\n☐ RG e CPF\n☐ Comprovante de residência\n☐ Rol de testemunhas' },
+  { id: 12, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 200, text: '✅ Feito: Procuração assinada', replyTo: { id: 11, senderName: me.name, text: '📋 Lista: Documentos para a audiência' } },
+  { id: 13, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 190, text: '✅ Feito: RG e CPF', replyTo: { id: 11, senderName: me.name, text: '📋 Lista: Documentos para a audiência' } },
+  { id: 14, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 150, text: 'Me manda o endereço até amanhã?', selfDestruct: '1 h' },
+  { id: 15, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 140, text: '🔥 Mensagem autodestruída', destroyedNotice: true },
   { id: 6, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 120, text: NUDGE_TEXT, nudge: true },
 ];
 
@@ -44,6 +49,8 @@ const demoPhoto = (id: string) => {
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 };
 for (const c of contacts) if (PHOTO_IDS.has(c.id)) c.hasPhoto = true;
+for (const c of contacts) if (c.id === '102' || c.id === '-201') c.favorite = true;
+
 
 /** Troca os métodos do motor por dados fictícios. */
 export function applyDemo(tg: object, loggedOut = false) {
@@ -61,6 +68,15 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.setAppearOffline = async () => {};
   t.setBio = async () => {};
   t.refreshContact = () => {};
+  t.stickerPanel = async () => ({ recent: [], packs: [{ id: '1:1', title: 'Clássicos' }], gifs: [] });
+  t.stickerPack = async () => [];
+  t.searchGifs = async () => [];
+  t.getSelfDestruct = () => 0;
+  t.setSelfDestruct = () => {};
+  t.setFavorite = async (id: string, fav: boolean) => {
+    const c = contacts.find((x) => x.id === id);
+    if (c) c.favorite = fav;
+  };
   t.accountSettings = async () => ({
     privacy: { lastSeen: 'contacts', photo: 'everybody', phone: 'nobody', invites: 'contacts', forwards: 'everybody', calls: 'contacts' },
     twoStep: true,

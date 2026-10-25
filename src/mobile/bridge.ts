@@ -4,13 +4,13 @@ import { Haptics } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Preferences } from '@capacitor/preferences';
 import { Browser } from '@capacitor/browser';
-import { PresenceManager } from '../core/presence';
+import { MusicPermissionError, PresenceManager } from '../core/presence';
 import { TelegramService } from '../core/telegram';
 import { applyDemo } from '../shared/demoData';
 import { STATUS } from '../shared/status';
 import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents, type MyStatus, type Prefs } from '../shared/types';
 import { LexNative } from './native';
-import { mobilePlatform, pickFiles } from './platform';
+import { isIOS, isNative, mobilePlatform, pickFiles } from './platform';
 import type { NudgeData } from '../renderer/components/NudgePopup';
 
 declare const __APP_VERSION__: string;
@@ -48,6 +48,8 @@ export class MobileBridge {
   private tg: TelegramService;
   private presence: PresenceManager;
   private notifId = 1;
+  /** Notificações abertas por conversa, para tirar da barra quando a conversa for lida. */
+  private shown = new Map<string, number[]>();
   private lastNudge = new Map<string, number>();
   private lastOnlineAlert = 0;
   /** Conversa aberta na tela agora (o celular só mostra uma por vez). */
@@ -75,6 +77,16 @@ export class MobileBridge {
       () => this.prefs,
       (p) => void this.savePrefs(p),
       (info) => this.emit('presence:changed', info),
+      {
+        // Música tocando no celular (precisa de "Acesso a notificações" liberado nos ajustes do Android).
+        nowPlaying: async () => {
+          if (this.demo) return null;
+          const r = await LexNative.nowPlaying();
+          if (!r.granted) throw new MusicPermissionError();
+          return r.title ? { title: r.title, artist: r.artist ?? '' } : null;
+        },
+        musicPermissionHint: 'Libere o Lex em Ajustes > Notificações > Acesso a notificações (toque em 🎵 de novo para abrir).',
+      },
     );
     if (this.demo) applyDemo(this.tg, /demo=login/.test(location.search));
   }
@@ -86,7 +98,20 @@ export class MobileBridge {
     } catch {
       /* usa o padrão */
     }
+    // Botões da notificação de "chamou a sua atenção": Abrir conversa / Agora não.
+    void LocalNotifications.registerActionTypes({
+      types: [
+        {
+          id: 'NUDGE',
+          actions: [
+            { id: 'open', title: 'Abrir conversa', foreground: true },
+            { id: 'later', title: 'Agora não', destructive: true },
+          ],
+        },
+      ],
+    }).catch(() => {});
     void LocalNotifications.addListener('localNotificationActionPerformed', (a) => {
+      if (a.actionId === 'later') return;
       const chatId = a.notification.extra?.chatId;
       if (chatId) this.openChat(String(chatId));
     }).catch(() => {});
@@ -108,6 +133,11 @@ export class MobileBridge {
   }
 
   emit<K extends keyof LexEvents>(event: K | 'toast' | 'nudge-popup', data: LexEvents[K] | InAppToast | NudgeData) {
+    // Conversa lida (aqui ou em outro aparelho): some da barra de notificações.
+    if (event === 'contact:patch') {
+      const p = data as LexEvents['contact:patch'];
+      if (p.unread === 0) this.clearNotifications(p.id);
+    }
     this.listeners.get(event)?.forEach((cb) => cb(data));
   }
 
@@ -156,18 +186,29 @@ export class MobileBridge {
     else await LexNative.stopKeepAlive().catch(() => {});
   }
 
-  private notify(chatId: string, title: string, body: string) {
+  private clearNotifications(chatId: string) {
+    const ids = this.shown.get(chatId);
+    if (!ids?.length) return;
+    this.shown.delete(chatId);
+    void LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => {});
+    void LocalNotifications.removeDeliveredNotifications?.({ notifications: ids.map((id) => ({ id, title: '', body: '' })) }).catch(() => {});
+  }
+
+  private notify(chatId: string, title: string, body: string, actionTypeId?: string) {
     if (!this.prefs.notifications) return;
+    const id = this.notifId++;
+    this.shown.set(chatId, [...(this.shown.get(chatId) ?? []), id]);
     LocalNotifications.schedule({
       notifications: [
         {
-          id: this.notifId++,
+          id,
           title,
           body,
           largeBody: body,
           channelId: CHANNEL,
           group: chatId,
           extra: { chatId },
+          actionTypeId,
           smallIcon: 'ic_stat_lex',
           iconColor: '#2b6cc4',
         },
@@ -183,11 +224,14 @@ export class MobileBridge {
     if (m.nudge) {
       void Haptics.vibrate({ duration: 700 }).catch(() => {});
       this.sound('nudge');
+      const who = c?.name ?? m.senderName;
       if (visible) {
         this.shake();
         // Fora da conversa: pergunta se quer abrir.
-        if (this.currentChat !== m.chatId) this.emit('nudge-popup', { chatId: m.chatId, name: c?.name ?? m.senderName, hasPhoto: !!c?.hasPhoto });
-      } else this.notify(m.chatId, title, '📳 chamou a sua atenção! Toque para abrir a conversa.');
+        if (this.currentChat !== m.chatId) this.emit('nudge-popup', { chatId: m.chatId, name: who, hasPhoto: !!c?.hasPhoto });
+      }
+      // Na barra de notificações, sempre: "Fulano chamou a sua atenção! Deseja abrir a conversa?" com botões.
+      if (!(visible && this.currentChat === m.chatId)) this.notify(m.chatId, `📳 ${who} chamou a sua atenção!`, 'Deseja abrir a conversa?', 'NUDGE');
       return;
     }
     if (this.currentChat === m.chatId && visible) return;
@@ -216,6 +260,7 @@ export class MobileBridge {
   }
 
   openChat(chatId: string) {
+    this.clearNotifications(chatId);
     location.hash = `#/chat/${encodeURIComponent(chatId)}`;
   }
 
@@ -225,8 +270,9 @@ export class MobileBridge {
     const tg = this.tg;
     return {
       version: __APP_VERSION__,
-      platform: this.demo ? 'web' : 'android',
-      features: { music: false, mobile: true },
+      platform: isNative ? 'android' : isIOS ? 'ios' : 'web',
+      // No iPhone (Safari) não há como saber a música tocando.
+      features: { music: isNative, mobile: true },
       on: (event, cb) => this.on(event, cb as Listener),
       authState: async () => tg.authState(),
       loginStart: async (method) => void tg.login(method),
@@ -288,11 +334,26 @@ export class MobileBridge {
       block: (id) => tg.setBlocked(id, true),
       clearCache: async () => tg.clearCache(),
       openSettings: () => this.emit('settings:open', true),
+      createGroup: (title, members) => tg.createGroup(title, members),
+      setSelfDestruct: async (id, s) => tg.setSelfDestruct(id, s),
+      setFavorite: (id, fav) => tg.setFavorite(id, fav),
+      stickerPanel: () => tg.stickerPanel(),
+      stickerPack: (id) => tg.stickerPack(id),
+      searchGifs: (id, q) => tg.searchGifs(id, q),
+      pickThumb: (key) => tg.pickThumb(key),
+      sendPick: async (id, key) => {
+        await tg.sendPick(id, key);
+        this.sound('sent');
+      },
+      getSelfDestruct: async (id) => tg.getSelfDestruct(id),
       openSystemNotificationSettings: () => void LexNative.openNotificationSettings().catch(() => {}),
       copyText: (text) => void navigator.clipboard?.writeText(text).catch(() => {}),
       pathForFile: () => '',
       typing: (id) => tg.typing(id),
-      markRead: (id) => tg.markRead(id),
+      markRead: (id) => {
+        tg.markRead(id);
+        this.clearNotifications(id);
+      },
       mediaPreview: (id, msg) => tg.mediaPreview(id, msg),
       openMedia: (id, msg) => tg.openMedia(id, msg),
       saveMedia: (id, msg) => tg.saveMedia(id, msg),
@@ -317,6 +378,9 @@ export class MobileBridge {
       refreshContact: (id) => tg.refreshContact(id),
       prefs: async () => this.prefs,
       setPrefs: async (p) => {
+        // Ligou a música sem a permissão do Android: abre a tela para liberar.
+        if (p.shareMusic && !this.demo && !(await LexNative.musicAccess().catch(() => ({ granted: true }))).granted)
+          await LexNative.requestMusicAccess().catch(() => {});
         await this.savePrefs(p);
         if ('background' in p) await this.applyBackground();
         await this.presence.refresh();

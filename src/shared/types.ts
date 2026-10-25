@@ -25,6 +25,8 @@ export interface Contact {
   muted?: boolean;
   /** Assinante do Telegram Premium (selo ⭐). */
   premium?: boolean;
+  /** Está na pasta "⭐ Favoritos" do Telegram. */
+  favorite?: boolean;
   /** Até que mensagem minha a pessoa já leu (para os ✓✓). */
   readOutboxMaxId?: number;
 }
@@ -44,7 +46,7 @@ export interface Me {
   premium?: boolean;
 }
 
-export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'file' | 'webpage' | 'other';
+export type MediaKind = 'photo' | 'video' | 'audio' | 'voice' | 'sticker' | 'gif' | 'file' | 'webpage' | 'other';
 
 export interface MediaInfo {
   kind: MediaKind;
@@ -55,6 +57,8 @@ export interface MediaInfo {
   duration?: number;
   /** Mensagem de voz: 100 valores de 0 a 31 (a "onda"). */
   waveform?: number[];
+  /** Figurinha: imagem parada, vídeo (webm) ou animação do Telegram (tgs). */
+  anim?: 'static' | 'video' | 'lottie';
   /** Vídeo redondo ("recado") do Telegram. */
   round?: boolean;
   width?: number;
@@ -80,6 +84,20 @@ export interface ChatMessage {
   forwardedFrom?: string;
   edited?: boolean;
   reactions?: Reaction[];
+  /** Mensagem temporária: "1 min", "1 h"… (some sozinha). */
+  selfDestruct?: string;
+  /** Aviso "🔥 Mensagem autodestruída" (também some em 12 h). */
+  destroyedNotice?: boolean;
+}
+
+/** Figurinha ou GIF no seletor. */
+export interface PickItem {
+  key: string;
+  kind: 'sticker' | 'gif';
+}
+export interface StickerPack {
+  id: string;
+  title: string;
 }
 
 export interface CaptureOpts {
@@ -223,6 +241,20 @@ export interface LexApi {
   block(id: string): Promise<void>;
   clearCache(): Promise<void>;
   openSettings(): void;
+  /** Cria um grupo com os contatos escolhidos. Devolve o id da conversa e quem não pôde ser adicionado. */
+  createGroup(title: string, memberIds: string[]): Promise<{ chatId: string; notAdded: string[] }>;
+  /** Liga (segundos) ou desliga (0) a autodestruição das próximas mensagens da conversa. */
+  setSelfDestruct(chatId: string, seconds: number): Promise<void>;
+  getSelfDestruct(chatId: string): Promise<number>;
+  /** Põe ou tira da pasta "⭐ Favoritos" (sincronizada com todos os aparelhos e com o Telegram oficial). */
+  setFavorite(chatId: string, favorite: boolean): Promise<void>;
+  /** Figurinhas recentes, pacotes instalados e GIFs salvos. */
+  stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }>;
+  stickerPack(id: string): Promise<PickItem[]>;
+  searchGifs(chatId: string, query: string): Promise<PickItem[]>;
+  /** Miniatura de uma figurinha/GIF do seletor. */
+  pickThumb(key: string): Promise<{ url: string; video: boolean } | null>;
+  sendPick(chatId: string, key: string): Promise<void>;
   openSystemNotificationSettings?(): void;
   copyText(text: string): void;
   pathForFile(file: File): string;

@@ -11,8 +11,20 @@ import { describe } from '../lib/presence';
 import { ForwardDialog, MessageMenu, type MenuState } from './MessageMenu';
 import { CameraDialog } from './CameraDialog';
 import { RoundVideo } from './RoundVideo';
+import { ChecklistCard, NewChecklistDialog } from './Checklist';
+import { LoopMedia, StickerPicker } from './StickerPicker';
+import { VideoPlayer } from './VideoPlayer';
+import { applyToggle, parseChecklist, parseToggle, type Checklist } from '../../shared/checklist';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏'];
+const TTL_OPTIONS: [number, string][] = [
+  [0, 'Desligado'],
+  [30, '30 segundos'],
+  [60, '1 minuto'],
+  [300, '5 minutos'],
+  [3600, '1 hora'],
+  [86400, '24 horas'],
+];
 
 export function ChatWindow({ chatId }: { chatId: string }) {
   const [contact, setContact] = useState<Contact | null>(null);
@@ -33,6 +45,10 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [forward, setForward] = useState<ChatMessage | null>(null);
   const [camera, setCamera] = useState(false);
+  const [ttl, setTtl] = useState(0);
+  const [ttlMenu, setTtlMenu] = useState(false);
+  const [newList, setNewList] = useState(false);
+  const [stickers, setStickers] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -53,6 +69,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     });
     lex.markRead(chatId);
     lex.refreshContact(chatId);
+    void lex.getSelfDestruct(chatId).then(setTtl);
     const offs = [
       lex.on('message:new', (m) => {
         if (m.chatId !== chatId) return;
@@ -297,6 +314,18 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const canWrite = contact?.kind !== 'channel';
   const readMax = contact?.kind === 'user' ? contact.readOutboxMaxId ?? 0 : 0;
 
+  // Listas de tarefas: o estado de cada lista é o texto dela + as marcações respondidas a ela.
+  const lists = new Map<number, Checklist>();
+  for (const m of messages) {
+    const c = parseChecklist(m.text);
+    if (c) lists.set(m.id, c);
+  }
+  for (const m of messages) {
+    const t = parseToggle(m.text);
+    const target = m.replyTo && lists.get(m.replyTo.id);
+    if (t && target) lists.set(m.replyTo!.id, applyToggle(target, t.item, t.done));
+  }
+
   return (
     <div
       className={`chat-window ${dragOver ? 'drag-over' : ''}`}
@@ -318,6 +347,18 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           <span className="chat-sub">
             {d?.label ? ` (${d.label})` : ''} {contact?.subtitle && `— ${contact.subtitle}`}
           </span>
+          {contact && (
+            <button
+              className="mute-btn fav-btn"
+              onClick={() =>
+                void lex.setFavorite(chatId, !contact.favorite).catch((e) => flashNotice((e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')))
+              }
+              title={contact.favorite ? 'Tirar dos favoritos' : 'Adicionar aos favoritos'}
+              aria-pressed={!!contact.favorite}
+            >
+              {contact.favorite ? '⭐' : '☆'}
+            </button>
+          )}
           {contact && contact.kind !== 'self' && (
             <button
               className="mute-btn"
@@ -354,6 +395,8 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 onMenu={openMenu}
                 onReact={(emoji) => void react(m, emoji)}
                 onJump={jumpTo}
+                checklist={lists.get(m.id)}
+                onError={flashNotice}
               />
             ))}
             </div>
@@ -431,11 +474,28 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                     </div>
                   )}
                 </div>
+                <div className="picker-wrap">
+                  <button className="mini-btn" onClick={() => setStickers(!stickers)} title="Figurinhas e GIFs" aria-label="Figurinhas e GIFs" aria-expanded={stickers}>
+                    🎞️
+                  </button>
+                  {stickers && (
+                    <StickerPicker
+                      chatId={chatId}
+                      onClose={() => setStickers(false)}
+                      onSent={() => {
+                        stickBottom.current = true;
+                      }}
+                    />
+                  )}
+                </div>
                 <button className="mini-btn" onClick={() => void sendFiles()} title="Enviar arquivos" aria-label="Enviar arquivos">
                   📎
                 </button>
                 <button className="mini-btn" onClick={() => void sendFiles(undefined, true)} title="Enviar fotos e vídeos da galeria" aria-label="Enviar fotos e vídeos">
                   🖼️
+                </button>
+                <button className="mini-btn" onClick={() => setNewList(true)} title="Lista de tarefas" aria-label="Criar lista de tarefas">
+                  📋
                 </button>
                 <button className="mini-btn" onClick={() => setCamera(true)} title="Câmera: foto, vídeo ou recado" aria-label="Abrir a câmera">
                   📷
@@ -449,6 +509,40 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 >
                   📳
                 </button>
+                <div className="picker-wrap">
+                  <button
+                    className={`mini-btn ttl-btn ${ttl ? 'on' : ''}`}
+                    onClick={() => setTtlMenu(!ttlMenu)}
+                    title="Mensagens que se autodestroem"
+                    aria-label="Mensagens que se autodestroem"
+                    aria-expanded={ttlMenu}
+                  >
+                    ⏱{ttl ? <span>{TTL_OPTIONS.find(([v]) => v === ttl)?.[1].replace('segundos', 's').replace('minutos', 'min').replace('minuto', 'min').replace('horas', 'h').replace('hora', 'h')}</span> : null}
+                  </button>
+                  {ttlMenu && (
+                    <div className="ttl-menu" role="menu">
+                      <b>Autodestruir as próximas mensagens</b>
+                      {TTL_OPTIONS.map(([v, label]) => (
+                        <button
+                          key={v}
+                          role="menuitemradio"
+                          aria-checked={ttl === v}
+                          className={ttl === v ? 'on' : ''}
+                          onClick={() => {
+                            setTtl(v);
+                            setTtlMenu(false);
+                            void lex.setSelfDestruct(chatId, v);
+                            flashNotice(v ? `Mensagens temporárias ligadas: somem em ${label}.` : 'Mensagens temporárias desligadas.');
+                          }}
+                        >
+                          {ttl === v ? '● ' : '○ '}
+                          {label}
+                        </button>
+                      ))}
+                      <span className="hint">Apaga para os dois lados. Depois fica o aviso 🔥, que some em 12 horas.</span>
+                    </div>
+                  )}
+                </div>
                 <label className="seq-toggle" title="Mãos livres: ao terminar um áudio, o próximo toca sozinho">
                   <input
                     type="checkbox"
@@ -465,7 +559,13 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 <textarea
                   ref={inputRef}
                   value={text}
-                  placeholder={lex.features.mobile ? 'Escreva sua mensagem…' : 'Escreva sua mensagem… (Enter envia, Shift+Enter pula linha)'}
+                  placeholder={
+                    ttl
+                      ? `⏱ Mensagem temporária: some em ${TTL_OPTIONS.find(([v]) => v === ttl)?.[1]}…`
+                      : lex.features.mobile
+                        ? 'Escreva sua mensagem…'
+                        : 'Escreva sua mensagem… (Enter envia, Shift+Enter pula linha)'
+                  }
                   onChange={(e) => {
                     setText(e.target.value);
                     if (e.target.value) lex.typing(chatId);
@@ -524,6 +624,15 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           onDelete={(all) => void remove(menu.m, all)}
         />
       )}
+      {newList && (
+        <NewChecklistDialog
+          chatId={chatId}
+          onClose={() => {
+            setNewList(false);
+            stickBottom.current = true;
+          }}
+        />
+      )}
       {camera && (
         <CameraDialog
           chatId={chatId}
@@ -563,9 +672,11 @@ interface ItemProps {
   onMenu: (m: ChatMessage, e: React.MouseEvent) => void;
   onReact: (emoji: string) => void;
   onJump: (id: number) => void;
+  checklist?: Checklist;
+  onError: (t: string) => void;
 }
 
-function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump }: ItemProps) {
+function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump, checklist, onError }: ItemProps) {
   const newDay = !prev || !sameDay(prev.date, m.date);
   const day = newDay && <div className="day-sep">{formatDay(m.date)}</div>;
 
@@ -575,6 +686,28 @@ function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump }:
         {day}
         <div className="service-msg">
           {m.senderName} {m.text} <span className="time">{formatTime(m.date)}</span>
+        </div>
+      </>
+    );
+  }
+  const toggle = m.replyTo ? parseToggle(m.text) : null;
+  if (toggle) {
+    return (
+      <>
+        {day}
+        <div className="service-msg checklist-note" id={`msg-${m.id}`}>
+          {toggle.done ? '✅' : '↩️'} {m.out ? 'Você' : m.senderName} {toggle.done ? 'marcou' : 'desmarcou'} “{toggle.item}”{' '}
+          <span className="time">{formatTime(m.date)}</span>
+        </div>
+      </>
+    );
+  }
+  if (m.destroyedNotice) {
+    return (
+      <>
+        {day}
+        <div className="service-msg destroyed" id={`msg-${m.id}`}>
+          🔥 {m.out ? 'Sua mensagem se autodestruiu' : `Uma mensagem de ${m.senderName} se autodestruiu`} <span className="time">{formatTime(m.date)}</span>
         </div>
       </>
     );
@@ -598,6 +731,11 @@ function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump }:
       <div className={`msg-block ${m.out ? 'me' : 'them'}`} id={`msg-${m.id}`} onContextMenu={(e) => onMenu(m, e)}>
         <div className="says">
           <b className="sender">{m.senderName}</b> diz: <span className="time">({formatTime(m.date)})</span>
+          {m.selfDestruct && (
+            <span className="ttl-badge" title="Mensagem temporária: apaga sozinha para os dois lados">
+              ⏱ some em {m.selfDestruct}
+            </span>
+          )}
           {m.out && checks && (
             <span className={`checks ${read ? 'read' : ''}`} title={read ? 'Lida' : 'Enviada'}>
               {read ? '✓✓' : '✓'}
@@ -616,7 +754,9 @@ function MessageItem({ m, prev, chatId, read, checks, onMenu, onReact, onJump }:
             </button>
           )}
           {m.media && m.media.kind !== 'webpage' && <Media m={m} chatId={chatId} />}
-          {m.text && (
+          {checklist ? (
+            <ChecklistCard m={m} list={checklist} chatId={chatId} onError={onError} />
+          ) : m.text && (
             <div className="msg-text">
               {splitLinks(m.text).map((p, i) =>
                 p.url ? (
@@ -672,6 +812,9 @@ function LinkCard({ m, chatId }: { m: ChatMessage; chatId: string }) {
 
 function Media({ m, chatId }: { m: ChatMessage; chatId: string }) {
   if (m.media!.kind === 'video' && m.media!.round) return <RoundVideo m={m} chatId={chatId} />;
+  if (m.media!.kind === 'video' && (m.media!.size ?? 0) <= 150 * 1024 * 1024) return <VideoPlayer m={m} chatId={chatId} />;
+  if (m.media!.kind === 'gif' && (m.media!.size ?? 0) < 25 * 1024 * 1024) return <LoopMedia chatId={chatId} msgId={m.id} kind="gif" />;
+  if (m.media!.kind === 'sticker' && m.media!.anim === 'video') return <LoopMedia chatId={chatId} msgId={m.id} kind="sticker" />;
   if (m.media!.kind === 'voice' || (m.media!.kind === 'audio' && (m.media!.size ?? 0) < 25 * 1024 * 1024)) return <VoicePlayer m={m} chatId={chatId} />;
   return <FileMedia m={m} chatId={chatId} />;
 }
@@ -713,7 +856,7 @@ function FileMedia({ m, chatId }: { m: ChatMessage; chatId: string }) {
       </button>
     );
   }
-  const icon = { photo: '🖼️', video: '🎬', audio: '🎵', voice: '🎤', sticker: '🙂', file: '📄', webpage: '🔗', other: '📎' }[media.kind];
+  const icon = { photo: '🖼️', video: '🎬', audio: '🎵', voice: '🎤', sticker: '🙂', gif: '🎞️', file: '📄', webpage: '🔗', other: '📎' }[media.kind];
   return (
     <div className="file-card">
       <span className="file-icon">{icon}</span>

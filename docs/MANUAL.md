@@ -42,7 +42,22 @@
   avisos voltam quando você abrir o Lex de novo. Em celulares Xiaomi, Samsung e Motorola, vale também liberar o
   “início automático”/“sem restrições de bateria” para o Lex nos ajustes do aparelho.
 - Na conversa, a **seta ‹** volta para a lista e mostra quantas mensagens não lidas há nas outras conversas.
-- Ainda não tem: “música que estou ouvindo”.
+- **Música que estou ouvindo**: ao ligar o 🎵, o Android pede para liberar o **“Acesso a notificações”** para o Lex
+  (Ajustes > Notificações > Acesso a notificações). É só o jeito que o Android dá para saber qual música está tocando;
+  o Lex não lê suas notificações.
+- **Chamar atenção** chega na barra de notificações como “Fulano chamou a sua atenção! Deseja abrir a conversa?”, com
+  os botões **Abrir conversa** e **Agora não**.
+- Notificações de uma conversa **somem da barra** quando ela é lida (aqui ou em outro aparelho).
+
+### iPhone (sem App Store)
+1. No iPhone, abra o **Safari** (precisa ser o Safari) e entre em **https://oliveiracarlosadv.github.io/Lex-Messenger/**.
+2. Toque em **Compartilhar** (o quadrado com a seta para cima) e depois em **“Adicionar à Tela de Início”** > **Adicionar**.
+3. Abra o **Lex Messenger** pelo ícone novo na tela de início e entre com o número de telefone.
+
+**Diferenças no iPhone:** a Apple não deixa apps instalados fora da App Store funcionarem em segundo plano, então
+os avisos de mensagem só aparecem com o Lex aberto na tela; ao abrir, ele busca tudo o que chegou. Também não há
+“música que estou ouvindo”. Conversas, áudios, câmera, recados, figurinhas, listas, autodestruição e configurações
+funcionam como no Android.
 
 ## 2. Entrar com a sua conta do Telegram
 
@@ -85,6 +100,14 @@ O Telegram só conhece “online” e “offline”. Por isso o Lex Messenger co
 **“⛔ Ocupado · Audiência às 14h”**. Quem usa o Lex Messenger vê o bonequinho vermelho; quem usa o Telegram comum vê
 esse texto no seu perfil. **Aparecer offline** deixa você offline no Telegram e não mostra status nem música. Ao sair
 do Lex Messenger, a bio volta a ser só a sua mensagem pessoal.
+
+### Favoritos ⭐ e grupos 👥
+- **Favoritar**: clique com o botão direito num contato (no celular, toque e segure) e escolha **Adicionar aos
+  favoritos**, ou toque na **☆** no alto da conversa. Os favoritos ficam na seção **⭐ Favoritos**, no topo da lista.
+  Eles ficam numa pasta “Favoritos” da sua conta do Telegram, então aparecem iguais no Mac, no Android, no iPhone e
+  no app oficial.
+- **Criar grupo**: toque em **👥** ao lado da engrenagem, dê um nome, escolha os participantes e toque em **Criar
+  grupo**. Se alguém não puder ser adicionado (por privacidade), o Lex avisa.
 
 ## 3.1 Configurações ⚙️
 
@@ -135,6 +158,30 @@ Com a caixa de texto vazia, o botão **Enviar** vira um **🎤**.
 - **🔁 Ouvir áudios em sequência** (na barra de baixo): ao terminar um áudio, o próximo toca sozinho.
 - Contas **Telegram Premium** também veem o botão **Aa**, que transforma o áudio em texto. Nas demais contas, ele não
   aparece.
+
+### Mensagens que se autodestroem ⏱
+Toque no **⏱** da barra de baixo e escolha **30 segundos, 1 minuto, 5 minutos, 1 hora ou 24 horas**. A partir daí,
+tudo o que você mandar nessa conversa (texto, foto, áudio, vídeo) leva a marca **“⏱ some em…”** e é **apagado para
+os dois lados** quando o tempo acaba. No lugar, fica o aviso **“🔥 Mensagem autodestruída”**, que **também some
+12 horas depois**. Para parar, toque em ⏱ e escolha **Desligado**.
+
+- Quem apaga é o Lex de quem enviou: se o seu aparelho estiver sem internet na hora marcada, a mensagem some assim
+  que ele voltar a se conectar.
+- Quem usa o Telegram comum também vê a marca “⏱ Some em…” e vê a mensagem sumir.
+- O Lex guarda só o **número** da mensagem e a hora de apagar — nunca o conteúdo.
+
+### Lista de tarefas 📋
+Toque no **📋**, dê um título e escreva os itens (um por linha). A outra pessoa **toca nos quadradinhos** para marcar
+como feito (ou desmarcar), e a lista mostra **“2 de 5 feitos”** para os dois. Quem criou a lista também pode marcar.
+Cada marcação aparece na conversa como “✅ Ana marcou “Procuração””.
+
+### Figurinhas e GIFs 🎞️
+Toque no **🎞️**: **🕘** são as figurinhas recentes, **GIF** traz os GIFs salvos e uma busca (ex.: “obrigado”), e os
+outros botões são os seus pacotes de figurinhas. Toque numa para enviar. GIFs e figurinhas animadas tocam sozinhos na
+conversa.
+
+### Vídeos 🎬
+Toque no vídeo para assistir **dentro da conversa**, com pausa, barra de tempo e tela cheia (vídeos de até 150 MB).
 
 ### Câmera: foto, vídeo e recado 📷
 Toque no **📷** da barra de baixo da conversa e escolha:
