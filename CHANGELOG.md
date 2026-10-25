@@ -1,6 +1,8 @@
 # Histórico de versões
 
 ## v0.5.0
+- **Exportar conversa** 📤 para um arquivo; a outra pessoa é avisada.
+- **Avisos de print e gravação de tela** (aviso oficial do Telegram para prints; diz se havia mensagem temporária ou mídia sensível na tela) no Android 14+, Mac e Windows.
 - Lema: **Comunicação em primeiro lugar!** (tela de entrada, “Sobre”, README e manual).
 - **Manual do Lex Messenger em PDF**, com capa, sumário, fotos das telas, Termos e Privacidade.
 - Ao abrir o app de novo, vai **direto para a lista** (com “Conectando…” no topo), sem mostrar a tela inicial.
