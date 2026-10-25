@@ -6,6 +6,17 @@ import { Share } from '@capacitor/share';
 import type { FileInput, Platform } from '../core/telegram';
 
 const SESSION_KEY = 'lex-session';
+const TEMP = 'temporarios';
+
+async function writeTemp(name: string, data: Buffer) {
+  const r = await Filesystem.writeFile({
+    path: `${TEMP}/${Date.now()}-${name}`,
+    data: Buffer.from(data).toString('base64'),
+    directory: Directory.Cache,
+    recursive: true,
+  });
+  return r.uri;
+}
 
 async function shareFile(uri: string, title: string) {
   await Share.share({ files: [uri], dialogTitle: title });
@@ -19,25 +30,18 @@ export const mobilePlatform: Platform = {
   loadSession: async () => (await Preferences.get({ key: SESSION_KEY })).value ?? '',
   saveSession: async (value) => Preferences.set({ key: SESSION_KEY, value }),
   clearSession: async () => Preferences.remove({ key: SESSION_KEY }),
-  async saveDownload(name, data) {
-    const r = await Filesystem.writeFile({
-      path: `recebidos/${Date.now()}-${name}`,
-      data: Buffer.from(data).toString('base64'),
-      directory: Directory.Cache,
-      recursive: true,
-    });
-    return r.uri;
+  // Abrir: cópia temporária no cache do app, entregue ao app que o usuário escolher; apagada ao reabrir o Lex.
+  async openTemp(name, data) {
+    await shareFile(await writeTemp(name, data), 'Abrir com…');
   },
-  async hasDownload(ref) {
-    try {
-      await Filesystem.stat({ path: ref });
-      return true;
-    } catch {
-      return false;
-    }
+  // Salvar…: o menu do Android deixa o usuário escolher (Arquivos, Drive, galeria…).
+  async saveAs(name, data) {
+    await shareFile(await writeTemp(name, data), 'Salvar ou compartilhar');
+    return true;
   },
-  openFile: (ref) => shareFile(ref, 'Abrir com…'),
-  revealFile: (ref) => shareFile(ref, 'Salvar ou compartilhar'),
+  clearTemp: async () => {
+    await Filesystem.rmdir({ path: TEMP, directory: Directory.Cache, recursive: true }).catch(() => {});
+  },
   async squareJpeg(input: FileInput) {
     if (typeof input === 'string') throw new Error('Escolha uma imagem.');
     const bmp = await createImageBitmap(new Blob([input.data as BlobPart]));

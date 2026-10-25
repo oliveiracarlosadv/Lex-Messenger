@@ -16,6 +16,7 @@ import {
   type LexEvents,
   type LoginStep,
   type AccountSettings,
+  type CaptureOpts,
   type MediaInfo,
   type Me,
   type PrivacyKey,
@@ -44,11 +45,15 @@ export interface Platform {
   loadSession(): Promise<string>;
   saveSession(value: string): Promise<void>;
   clearSession(): Promise<void>;
-  /** Guarda um arquivo baixado e devolve uma referência para abrir depois. */
-  saveDownload(name: string, data: Buffer): Promise<string>;
-  hasDownload(ref: string): Promise<boolean>;
-  openFile(ref: string): Promise<void>;
-  revealFile(ref: string): Promise<void>;
+  /**
+   * Abre um arquivo recebido a partir de uma cópia TEMPORÁRIA (apagada ao fechar o app).
+   * Nada vai para Downloads, galeria ou memória do app sem o usuário pedir.
+   */
+  openTemp(name: string, data: Buffer): Promise<void>;
+  /** "Salvar…": o usuário escolhe onde guardar. Devolve false se ele desistir. */
+  saveAs(name: string, data: Buffer): Promise<boolean>;
+  /** Apaga as cópias temporárias. */
+  clearTemp(): Promise<void>;
   /** Foto de perfil: corta em quadrado, reduz e devolve JPEG. */
   squareJpeg(input: FileInput): Promise<Buffer>;
 }
@@ -144,6 +149,9 @@ function mediaOf(msg: Api.Message): MediaInfo | undefined {
       if (a instanceof Api.DocumentAttributeVideo && info.kind === 'file') {
         info.kind = 'video';
         info.duration = a.duration;
+        info.round = !!a.roundMessage;
+        info.width = a.w;
+        info.height = a.h;
       }
       if (a instanceof Api.DocumentAttributeAudio) {
         info.kind = a.voice ? 'voice' : 'audio';
@@ -257,7 +265,6 @@ export class TelegramService {
   private wasOnline = new Map<string, number>();
   private avatars = new Map<string, string | null>();
   private previews = new Map<string, string | null>();
-  private downloaded = new Map<string, string>();
   private me: Me | null = null;
   private appearOffline = false;
   private abouts = new Map<string, string>();
@@ -975,7 +982,7 @@ export class TelegramService {
   clearCache() {
     this.previews.clear();
     this.avatars.clear();
-    this.downloaded.clear();
+    void this.platform.clearTemp();
   }
 
   async sendFiles(chatId: string, files: FileInput[]) {
@@ -1022,6 +1029,37 @@ export class TelegramService {
     }
   }
 
+  /** Foto, vídeo ou recado redondo feitos com a câmera da conversa. */
+  async sendCaptured(chatId: string, data: Uint8Array, o: CaptureOpts) {
+    if (!this.client || !data.length) return;
+    const label = { photo: 'Enviando foto', video: 'Enviando vídeo', round: 'Enviando recado' }[o.kind];
+    this.hooks.emit('send:progress', { chatId, label, progress: 0 });
+    try {
+      const file = new CustomFile(o.name, data.length, '', Buffer.from(data));
+      const isVideo = o.kind !== 'photo';
+      const sent = await this.client.sendFile(this.entity(chatId), {
+        file,
+        videoNote: o.kind === 'round',
+        supportsStreaming: isVideo,
+        attributes: isVideo
+          ? [
+              new Api.DocumentAttributeVideo({
+                duration: Math.max(1, Math.round(o.duration ?? 1)),
+                w: o.width ?? 0,
+                h: o.height ?? 0,
+                roundMessage: o.kind === 'round',
+                supportsStreaming: true,
+              }),
+            ]
+          : undefined,
+        progressCallback: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
+      });
+      await this.emitSent(chatId, sent);
+    } finally {
+      this.hooks.emit('send:progress', { chatId, label: '', progress: null });
+    }
+  }
+
   /** Baixa o anexo inteiro para tocar dentro do app (áudios, até 25 MB). */
   async mediaData(chatId: string, msgId: number): Promise<string | null> {
     const key = `data:${chatId}:${msgId}`;
@@ -1032,7 +1070,7 @@ export class TelegramService {
     if (!msg || !info || (info.size ?? 0) > 25 * 1024 * 1024) return null;
     const buf = await this.client.downloadMedia(msg, {});
     if (!buf || !Buffer.isBuffer(buf)) return null;
-    const mime = info.kind === 'voice' ? 'audio/ogg' : info.mime || 'application/octet-stream';
+    const mime = info.kind === 'voice' ? 'audio/ogg' : info.mime || (info.kind === 'video' ? 'video/mp4' : 'application/octet-stream');
     const url = `data:${mime};base64,${buf.toString('base64')}`;
     this.previews.set(key, url);
     return url;
@@ -1106,39 +1144,36 @@ export class TelegramService {
     return url;
   }
 
-  private async download(chatId: string, msgId: number): Promise<string | null> {
-    const key = `${chatId}:${msgId}`;
-    const cached = this.downloaded.get(key);
-    if (cached && (await this.platform.hasDownload(cached))) return cached;
+  /** Baixa o anexo para a memória (não grava em disco). */
+  private async download(chatId: string, msgId: number): Promise<{ name: string; data: Buffer } | null> {
     const msg = await this.getMessage(chatId, msgId);
     const info = msg && mediaOf(msg);
     if (!msg || !info) return null;
     const name = (info.name ?? `arquivo-${msgId}`).replace(/[/\\:]/g, '_');
     this.hooks.emit('send:progress', { chatId, label: `Baixando ${name}`, progress: 0 });
-    let ref: string;
     try {
       const buf = await this.client!.downloadMedia(msg, {
         progressCallback: (got, total) =>
           this.hooks.emit('send:progress', { chatId, label: `Baixando ${name}`, progress: Number(total) ? Number(got) / Number(total) : null }),
       });
-      if (!buf || !Buffer.isBuffer(buf)) return null;
-      ref = await this.platform.saveDownload(name, buf);
+      return buf && Buffer.isBuffer(buf) ? { name, data: buf } : null;
     } finally {
       this.hooks.emit('send:progress', { chatId, label: '', progress: null });
     }
-    this.downloaded.set(key, ref);
-    return ref;
   }
 
+  /** Abrir: cópia temporária, apagada quando o app fecha. */
   async openMedia(chatId: string, msgId: number) {
-    const file = await this.download(chatId, msgId);
-    if (file) await this.platform.openFile(file);
+    const f = await this.download(chatId, msgId);
+    if (f) await this.platform.openTemp(f.name, f.data);
   }
 
-  async revealMedia(chatId: string, msgId: number) {
-    const file = await this.download(chatId, msgId);
-    if (file) await this.platform.revealFile(file);
+  /** Salvar…: só quando o usuário pede, no lugar que ele escolher. */
+  async saveMedia(chatId: string, msgId: number): Promise<boolean> {
+    const f = await this.download(chatId, msgId);
+    return f ? this.platform.saveAs(f.name, f.data) : false;
   }
+
 
   // ---------- Meu perfil: status, bio, nome e foto ----------
 

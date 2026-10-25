@@ -7,6 +7,7 @@ import { Login } from '../renderer/components/Login';
 import { lex } from '../renderer/lib/api';
 import { playSound, unlockAudio } from '../renderer/lib/sounds';
 import type { InAppToast, MobileBridge } from './bridge';
+import { NudgePopup, type NudgeData } from '../renderer/components/NudgePopup';
 
 const chatFromHash = () => {
   const m = location.hash.match(/^#\/chat\/(.+)$/);
@@ -18,6 +19,7 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
   const [chat, setChat] = useState<string | null>(chatFromHash);
   const [toast, setToast] = useState<InAppToast | null>(null);
   const [unread, setUnread] = useState<Record<string, number>>({});
+  const [nudge, setNudge] = useState<NudgeData | null>(null);
   const toastTimer = useRef(0);
 
   useEffect(() => {
@@ -29,15 +31,16 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
     window.addEventListener('click', unlock, { once: true });
     // Não lidas por conversa, para o contador do botão voltar (canais não contam).
     const fromList = (list: Contact[]) =>
-      setUnread(Object.fromEntries(list.filter((c) => c.kind !== 'channel').map((c) => [c.id, c.unread])));
+      setUnread(Object.fromEntries(list.filter((c) => c.kind !== 'channel').map((c) => [c.id, c.muted ? 0 : c.unread])));
     void lex.contacts().then(fromList);
     const offs = [
       lex.on('contacts:changed', fromList),
       lex.on('contact:patch', (p) => {
-        if (typeof p.unread === 'number') setUnread((u) => (p.id in u ? { ...u, [p.id]: p.unread! } : u));
+        if (typeof p.unread === 'number' || 'muted' in p) void lex.contacts().then(fromList);
       }),
       lex.on('auth:state', setAuth),
       lex.on('sound', playSound),
+      bridge.on('nudge-popup', (n) => setNudge(n as NudgeData)),
       bridge.on('toast', (t) => {
         setToast(t as InAppToast);
         window.clearTimeout(toastTimer.current);
@@ -80,6 +83,18 @@ export function MobileApp({ bridge }: { bridge: MobileBridge }) {
             </button>
           </div>
           <ChatWindow chatId={chat} />
+        </div>
+      )}
+      {nudge && (
+        <div className="modal-back nudge-back">
+          <NudgePopup
+            data={nudge}
+            onOpen={() => {
+              setNudge(null);
+              lex.openChat(nudge.chatId);
+            }}
+            onClose={() => setNudge(null)}
+          />
         </div>
       )}
       {toast && (

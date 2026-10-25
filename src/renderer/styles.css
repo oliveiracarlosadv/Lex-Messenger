@@ -1528,3 +1528,206 @@ body.toast-body {
 .danger-btn {
   color: #b3261e;
 }
+
+/* ---------- Câmera e recados ---------- */
+.camera-back {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 18, 40, 0.75);
+  padding: 12px;
+}
+.camera {
+  width: 100%;
+  max-width: 520px;
+  background: #0f1a2e;
+  border-radius: 14px;
+  padding: 12px;
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.camera .hint {
+  color: #b9c6dc;
+}
+.camera-view {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.camera-view video,
+.camera-view img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.camera-view .mirror {
+  transform: scaleX(-1);
+}
+.camera-view.round {
+  width: 72%;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 3px solid #4f93e2;
+}
+.camera-rec {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.camera-modes {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+.camera-modes button {
+  border: 1px solid #3a4a68;
+  background: transparent;
+  color: #dce6f5;
+  border-radius: 14px;
+  padding: 4px 12px;
+}
+.camera-modes button.on {
+  background: #2b6cc4;
+  border-color: #2b6cc4;
+  color: #fff;
+}
+.camera-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.shutter {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: #fff;
+  box-shadow: inset 0 0 0 3px #0f1a2e;
+}
+.shutter.video {
+  background: #e0362a;
+}
+.shutter.video.on {
+  background: #e0362a;
+  border-radius: 14px;
+  width: 54px;
+  height: 54px;
+}
+.round-video {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  margin: 4px 0;
+  background: #0f1a2e;
+  display: block;
+}
+.round-video video,
+.round-video img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.round-empty {
+  font-size: 40px;
+}
+.round-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.round-ring circle {
+  fill: none;
+  stroke: #4fd16a;
+  stroke-width: 3;
+}
+.round-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 34px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.round-time {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+/* ---------- "Chamou a sua atenção" ---------- */
+.nudge-popup {
+  position: absolute;
+  inset: 6px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e0a35a;
+  background: linear-gradient(180deg, #ffffff 0%, #fff6ea 60%, #ffe9cf 100%);
+  box-shadow: 0 10px 30px rgba(60, 30, 0, 0.35);
+}
+.modal-back .nudge-popup {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 25vh;
+}
+.nudge-bar {
+  background: linear-gradient(180deg, #ffb35c, #e07a00);
+}
+.nudge-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.nudge-body b {
+  display: block;
+  font-size: 15px;
+  color: #8a4a00;
+}
+.nudge-body span {
+  color: var(--ink);
+}
+.nudge-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 14px 12px;
+}

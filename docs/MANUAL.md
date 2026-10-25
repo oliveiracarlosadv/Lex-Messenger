@@ -33,7 +33,8 @@
 - O aviso de mensagem aparece no **topo da tela** com o app aberto; com o app em segundo plano, vira notificação do
   Android.
 - **Chamar atenção** faz o celular **vibrar** e a tela tremer.
-- Arquivos recebidos abrem pelo menu **“Abrir com…”**; o botão **Compartilhar** permite salvar ou mandar para outro app.
+- **Abrir** mostra o arquivo pelo menu **“Abrir com…”** sem guardar nada; **Salvar…** abre o menu do Android para você
+  escolher onde guardar (Arquivos, Drive, galeria etc.).
 - **Em segundo plano**: o Lex continua conectado e avisando com o app fora da tela. Fica um aviso fixo e discreto
   **“Conectado ao Telegram”** na barra de notificações: é ele que impede o Android de desligar o app. Na primeira vez,
   o Android pergunta se o Lex pode **rodar em segundo plano sem economia de bateria**: toque em **Permitir**.
@@ -117,6 +118,7 @@ mensagem pessoal vira **“🎵 Nome da música — Artista”**; quando para, v
 - Cada conversa abre em **uma janela só dela**. Enter envia; **Shift + Enter** pula linha.
 - O aviso **“Fulano está digitando uma mensagem…”** aparece embaixo do histórico.
 - **Emoticons**: clique em 😊 ▾ ou digite `:)` `:D` `;)` `:(` `:P` `:O` `<3` e similares.
+- Ao abrir uma conversa, ela já aparece na **última mensagem**.
 - Cada mensagem mostra **quem enviou e a hora** em cima, com o texto logo abaixo. Seu nome fica em verde; o do contato, em azul.
 - **Carregar mensagens anteriores** fica no topo do histórico.
 - Links são clicáveis e abrem no navegador.
@@ -132,6 +134,19 @@ Com a caixa de texto vazia, o botão **Enviar** vira um **🎤**.
 - **Aa** transforma o áudio em texto. É um recurso do **Telegram Premium**: sem a assinatura, o Telegram às vezes
   libera algumas transcrições de cortesia.
 
+### Câmera: foto, vídeo e recado 📷
+Toque no **📷** da barra de baixo da conversa e escolha:
+- **📷 Foto**: toque no botão branco para tirar a foto.
+- **🎬 Vídeo**: toque no botão vermelho para começar e de novo para parar.
+- **⭕ Recado**: um vídeo **redondo** de até 1 minuto, como um áudio com imagem (o mesmo das “mensagens de vídeo”
+  do Telegram). Quem recebe vê a bolinha tocando, inclusive no app oficial.
+
+Depois de tirar ou gravar, aparece a **prévia**: toque em **Enviar ➤** ou em **↺ Refazer**. O **🔄** troca entre a
+câmera da frente e a de trás. Na primeira vez, o sistema pede permissão para usar a **câmera** (e o microfone, para
+vídeos): permita. Fotos e vídeos que já estão no aparelho continuam no **🖼️**.
+
+Na conversa, toque no **recado redondo** para assistir com som; toque de novo para pausar.
+
 ### Responder, reagir, editar, apagar, encaminhar
 Clique com o **botão direito** numa mensagem (no celular, **toque e segure**), ou no **⋯** ao lado da hora:
 - **Reações**: escolha um emoji na linha de cima; para tirar, toque de novo nele.
@@ -143,7 +158,12 @@ Clique com o **botão direito** numa mensagem (no celular, **toque e segure**), 
 - **🔔/🔕** no alto da conversa silencia aquela conversa: ela para de tocar som e de avisar.
 
 ### Chamar atenção 📳
-Clique em **Chamar atenção**. Se a outra pessoa usa o Lex Messenger, a janela dela treme e toca um som. Se ela usa o
+Quando alguém chama a **sua** atenção, aparece um aviso no meio da tela, tremendo e com o som de chocalho:
+**“Fulano chamou a sua atenção! Deseja abrir a conversa?”**. Escolha **Abrir conversa** ou **Agora não**. Se a
+conversa já estiver aberta na sua frente, ela só treme. No celular em segundo plano, chega uma notificação; toque nela
+para abrir a conversa.
+
+Para chamar a atenção de alguém, toque no **📳** da barra de baixo da conversa. Se a outra pessoa usa o Lex Messenger, a janela dela treme e toca um som. Se ela usa o
 Telegram comum, recebe a mensagem “📳 Chamou sua atenção!”. Para não exagerar, é preciso esperar 10 segundos entre
 uma chamada e outra.
 
@@ -154,8 +174,11 @@ uma chamada e outra.
 
 O app sempre pergunta antes de enviar. Fotos chegam como foto; os demais, como arquivo.
 
-Arquivos recebidos têm os botões **Abrir** e **Mostrar na pasta**. Eles são salvos em
-**Downloads > Lex Messenger**.
+Arquivos recebidos têm os botões **Abrir** e **Salvar…**:
+- **Abrir** usa uma cópia **temporária**, apagada quando o Lex fecha. Nada é guardado no computador nem no celular.
+- **Salvar…** guarda uma cópia **onde você escolher** (no computador, a pasta sugerida é Downloads).
+
+O Lex **nunca** guarda sozinho fotos, vídeos, recados ou áudios, nem na galeria nem na memória do app.
 
 ## 5. Avisos, barra de menus e Dock
 

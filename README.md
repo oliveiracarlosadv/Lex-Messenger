@@ -40,6 +40,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 - **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone.
 - **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
 - **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
+- **Câmera na conversa** 📷: tire foto, grave vídeo ou mande um **recado** (o vídeo redondo do Telegram), com prévia antes de enviar.
 - **Mensagens de áudio** 🎤: segure para gravar e solte para enviar, ou use o modo **mãos livres** (um toque grava sem segurar). Tocador com a onda sonora, velocidade 1x/1,5x/2x e **“ouvir em sequência”**.
 - **Tudo o que se faz numa conversa do Telegram**: responder citando, editar, apagar (para mim ou para todos), encaminhar, reagir com emoji, copiar, ✓✓ de lido, prévias de links e silenciar a conversa (🔕).
 - **Configurações do Telegram**: avisos, privacidade (visto por último, foto, telefone, grupos, encaminhamentos, chamadas), aparelhos conectados, bloqueados e verificação em duas etapas.

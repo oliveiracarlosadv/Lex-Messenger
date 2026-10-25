@@ -9,6 +9,8 @@ import { VoicePlayer, getSequential, setSequential } from './VoicePlayer';
 import { VoiceRecord } from './VoiceRecord';
 import { describe } from '../lib/presence';
 import { ForwardDialog, MessageMenu, type MenuState } from './MessageMenu';
+import { CameraDialog } from './CameraDialog';
+import { RoundVideo } from './RoundVideo';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏'];
 
@@ -30,7 +32,9 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [forward, setForward] = useState<ChatMessage | null>(null);
+  const [camera, setCamera] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const stickBottom = useRef(true);
   const typingTimer = useRef<number>(0);
@@ -103,6 +107,25 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     const el = historyRef.current;
     if (el && stickBottom.current) el.scrollTop = el.scrollHeight;
   }, [messages, typing]);
+
+  // Abre sempre na última mensagem: se fotos, áudios e prévias terminam de carregar depois
+  // (ou o teclado do celular abre), a conversa continua grudada no fim.
+  useEffect(() => {
+    const el = historyRef.current;
+    const inner = innerRef.current;
+    if (!el || !inner) return;
+    const ro = new ResizeObserver(() => {
+      if (stickBottom.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(inner);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Ao abrir (ou trocar de) conversa, começa no fim.
+  useEffect(() => {
+    stickBottom.current = true;
+  }, [chatId]);
 
   const flashNotice = (t: string) => {
     setNotice(t);
@@ -312,6 +335,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
       <div className="chat-main">
         <div className="chat-left">
           <div className="history" ref={historyRef} onScroll={onScroll}>
+            <div className="history-inner" ref={innerRef}>
             {loading && <p className="muted center">Carregando conversa…</p>}
             {!loading && hasMore && (
               <button className="link-btn older" onClick={() => void loadOlder()}>
@@ -332,6 +356,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 onJump={jumpTo}
               />
             ))}
+            </div>
           </div>
 
           <div className="status-line" aria-live="polite">
@@ -409,8 +434,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 <button className="mini-btn" onClick={() => void sendFiles()} title="Enviar arquivos" aria-label="Enviar arquivos">
                   📎
                 </button>
-                <button className="mini-btn" onClick={() => void sendFiles(undefined, true)} title="Enviar fotos e vídeos" aria-label="Enviar fotos">
+                <button className="mini-btn" onClick={() => void sendFiles(undefined, true)} title="Enviar fotos e vídeos da galeria" aria-label="Enviar fotos e vídeos">
                   🖼️
+                </button>
+                <button className="mini-btn" onClick={() => setCamera(true)} title="Câmera: foto, vídeo ou recado" aria-label="Abrir a câmera">
+                  📷
                 </button>
                 <button
                   className="mini-btn"
@@ -494,6 +522,16 @@ export function ChatWindow({ chatId }: { chatId: string }) {
           onCopy={menu.m.text ? () => lex.copyText(menu.m.text) : undefined}
           onForward={() => setForward(menu.m)}
           onDelete={(all) => void remove(menu.m, all)}
+        />
+      )}
+      {camera && (
+        <CameraDialog
+          chatId={chatId}
+          onClose={() => {
+            setCamera(false);
+            stickBottom.current = true;
+          }}
+          onError={flashNotice}
         />
       )}
       {forward && (
@@ -633,6 +671,7 @@ function LinkCard({ m, chatId }: { m: ChatMessage; chatId: string }) {
 }
 
 function Media({ m, chatId }: { m: ChatMessage; chatId: string }) {
+  if (m.media!.kind === 'video' && m.media!.round) return <RoundVideo m={m} chatId={chatId} />;
   if (m.media!.kind === 'voice' || (m.media!.kind === 'audio' && (m.media!.size ?? 0) < 25 * 1024 * 1024)) return <VoicePlayer m={m} chatId={chatId} />;
   return <FileMedia m={m} chatId={chatId} />;
 }
@@ -664,7 +703,7 @@ function FileMedia({ m, chatId }: { m: ChatMessage; chatId: string }) {
     [],
   );
   const open = () => void run(() => lex.openMedia(chatId, m.id));
-  const reveal = () => void run(() => lex.revealMedia(chatId, m.id));
+  const save = () => void run(async () => void (await lex.saveMedia(chatId, m.id)));
 
   if (visual && preview) {
     return (
@@ -687,8 +726,8 @@ function FileMedia({ m, chatId }: { m: ChatMessage; chatId: string }) {
           <button className="link-btn" onClick={open} disabled={busy}>
             {busy ? 'Baixando…' : 'Abrir'}
           </button>
-          <button className="link-btn" onClick={reveal} disabled={busy}>
-            {lex.features.mobile ? 'Compartilhar' : 'Mostrar na pasta'}
+          <button className="link-btn" onClick={save} disabled={busy} title="Guardar uma cópia onde você escolher">
+            Salvar…
           </button>
         </div>
       )}

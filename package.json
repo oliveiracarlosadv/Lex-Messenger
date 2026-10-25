@@ -93,7 +93,8 @@
       "hardenedRuntime": false,
       "extendInfo": {
         "NSAppleEventsUsageDescription": "O Lex Messenger lê a música que está tocando no Apple Music ou no Spotify para mostrar na sua mensagem pessoal, se você ativar essa opção.",
-        "NSMicrophoneUsageDescription": "O Lex Messenger usa o microfone para gravar mensagens de voz, só quando você aperta o botão de gravar."
+        "NSMicrophoneUsageDescription": "O Lex Messenger usa o microfone para gravar mensagens de voz, só quando você aperta o botão de gravar.",
+        "NSCameraUsageDescription": "O Lex Messenger usa a câmera para tirar fotos e gravar vídeos e recados dentro da conversa, só quando você abre a câmera."
       }
     },
     "dmg": {

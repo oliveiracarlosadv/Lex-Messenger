@@ -9,9 +9,9 @@ import { TelegramService } from '../core/telegram';
 import { applyDemo } from '../shared/demoData';
 import { STATUS } from '../shared/status';
 import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents, type MyStatus, type Prefs } from '../shared/types';
-import { Directory, Filesystem } from '@capacitor/filesystem';
 import { LexNative } from './native';
 import { mobilePlatform, pickFiles } from './platform';
+import type { NudgeData } from '../renderer/components/NudgePopup';
 
 declare const __APP_VERSION__: string;
 
@@ -90,6 +90,7 @@ export class MobileBridge {
       const chatId = a.notification.extra?.chatId;
       if (chatId) this.openChat(String(chatId));
     }).catch(() => {});
+    await mobilePlatform.clearTemp(); // apaga cópias temporárias de antes
     await this.tg.init(this.prefs.status === 'invisible');
   }
 
@@ -106,7 +107,7 @@ export class MobileBridge {
     return () => this.listeners.get(event)?.delete(cb);
   }
 
-  emit<K extends keyof LexEvents>(event: K | 'toast', data: LexEvents[K] | InAppToast) {
+  emit<K extends keyof LexEvents>(event: K | 'toast' | 'nudge-popup', data: LexEvents[K] | InAppToast | NudgeData) {
     this.listeners.get(event)?.forEach((cb) => cb(data));
   }
 
@@ -183,9 +184,10 @@ export class MobileBridge {
       void Haptics.vibrate({ duration: 700 }).catch(() => {});
       this.sound('nudge');
       if (visible) {
-        this.openChat(m.chatId);
         this.shake();
-      } else this.notify(m.chatId, title, '📳 chamou a sua atenção!');
+        // Fora da conversa: pergunta se quer abrir.
+        if (this.currentChat !== m.chatId) this.emit('nudge-popup', { chatId: m.chatId, name: c?.name ?? m.senderName, hasPhoto: !!c?.hasPhoto });
+      } else this.notify(m.chatId, title, '📳 chamou a sua atenção! Toque para abrir a conversa.');
       return;
     }
     if (this.currentChat === m.chatId && visible) return;
@@ -264,6 +266,11 @@ export class MobileBridge {
       mediaData: (id, msg) => tg.mediaData(id, msg),
       // No Android, o pedido de microfone aparece sozinho ao começar a gravar.
       askMicrophone: async () => true,
+      askCamera: async () => true,
+      sendCaptured: async (id, data, opts) => {
+        await tg.sendCaptured(id, data, opts);
+        this.sound('sent');
+      },
       sendReply: async (id, text, replyTo) => {
         await tg.sendText(id, text, replyTo);
         this.sound('sent');
@@ -279,10 +286,7 @@ export class MobileBridge {
       endSession: (hash) => tg.endSession(hash),
       unblock: (id) => tg.setBlocked(id, false),
       block: (id) => tg.setBlocked(id, true),
-      clearCache: async () => {
-        tg.clearCache();
-        await Filesystem.rmdir({ path: 'recebidos', directory: Directory.Cache, recursive: true }).catch(() => {});
-      },
+      clearCache: async () => tg.clearCache(),
       openSettings: () => this.emit('settings:open', true),
       openSystemNotificationSettings: () => void LexNative.openNotificationSettings().catch(() => {}),
       copyText: (text) => void navigator.clipboard?.writeText(text).catch(() => {}),
@@ -291,7 +295,7 @@ export class MobileBridge {
       markRead: (id) => tg.markRead(id),
       mediaPreview: (id, msg) => tg.mediaPreview(id, msg),
       openMedia: (id, msg) => tg.openMedia(id, msg),
-      revealMedia: (id, msg) => tg.revealMedia(id, msg),
+      saveMedia: (id, msg) => tg.saveMedia(id, msg),
       openChat: (id) => this.openChat(id),
       setStatus: async (s: MyStatus) => {
         if (!(s in STATUS)) return;

@@ -28,6 +28,7 @@ export const history: ChatMessage[] = [
   { id: 9, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 650, text: 'Perfeito, vou revisar a cláusula 4.', replyTo: { id: 3, senderName: me.name, text: 'Mandei a minuta agora há pouco.' }, edited: true },
   { id: 4, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 600, text: '', media: { kind: 'file', name: 'peticao-inicial.pdf', size: 248000, mime: 'application/pdf' } },
   { id: 5, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 590, text: 'Recebeu a petição? Dá uma olhada em https://www.lexml.gov.br', media: { kind: 'webpage', link: { url: 'https://www.lexml.gov.br', site: 'LexML Brasil', title: 'LexML — Rede de Informação Legislativa e Jurídica', description: 'Portal especializado em informação jurídica e legislativa.', hasPhoto: false } } },
+  { id: 10, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 300, text: '', media: { kind: 'video', round: true, duration: 12, width: 384, height: 384 } },
   { id: 6, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 120, text: NUDGE_TEXT, nudge: true },
 ];
 

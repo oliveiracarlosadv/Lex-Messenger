@@ -1,14 +1,16 @@
 // O que o motor do Telegram precisa do computador (Mac/Windows): sessão, arquivos e foto.
-import { app, nativeImage, powerMonitor, shell } from 'electron';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { app, BrowserWindow, dialog, nativeImage, powerMonitor, shell } from 'electron';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { release } from 'node:os';
-import { basename, extname, join } from 'node:path';
+import { join } from 'node:path';
 import type { PresencePlatform } from '../core/presence';
 import type { FileInput, Platform } from '../core/telegram';
 import { nowPlaying } from './music';
 import { clearSession, loadSession, saveSession } from './store';
 
 const isMac = process.platform === 'darwin';
+const tempDir = () => join(app.getPath('temp'), 'lex-messenger-abertos');
 
 export const desktopPlatform: Platform = {
   deviceModel: isMac ? 'Lex Messenger (Mac)' : 'Lex Messenger (Windows)',
@@ -16,22 +18,25 @@ export const desktopPlatform: Platform = {
   loadSession: async () => loadSession(),
   saveSession: async (v) => saveSession(v),
   clearSession: async () => clearSession(),
-  async saveDownload(name, data) {
-    const dir = join(app.getPath('downloads'), 'Lex Messenger');
+  // Abrir: cópia temporária numa pasta própria, apagada quando o app fecha.
+  async openTemp(name, data) {
+    const dir = join(tempDir(), randomUUID());
     mkdirSync(dir, { recursive: true });
-    let file = join(dir, name);
-    for (let n = 2; existsSync(file); n++) {
-      const ext = extname(name);
-      file = join(dir, `${basename(name, ext)} (${n})${ext}`);
-    }
-    writeFileSync(file, data);
-    return file;
+    const file = join(dir, name);
+    writeFileSync(file, data, { mode: 0o600 });
+    await shell.openPath(file);
   },
-  hasDownload: async (ref) => existsSync(ref),
-  openFile: async (ref) => {
-    await shell.openPath(ref);
+  // Salvar…: o usuário escolhe a pasta (o padrão sugerido é Downloads).
+  async saveAs(name, data) {
+    const win = BrowserWindow.getFocusedWindow();
+    const opts = { title: 'Salvar arquivo', buttonLabel: 'Salvar', defaultPath: join(app.getPath('downloads'), name) };
+    const r = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts);
+    if (r.canceled || !r.filePath) return false;
+    writeFileSync(r.filePath, data);
+    shell.showItemInFolder(r.filePath);
+    return true;
   },
-  revealFile: async (ref) => shell.showItemInFolder(ref),
+  clearTemp: async () => rmSync(tempDir(), { recursive: true, force: true }),
   async squareJpeg(input: FileInput) {
     const img = typeof input === 'string' ? nativeImage.createFromPath(input) : nativeImage.createFromBuffer(Buffer.from(input.data));
     if (img.isEmpty()) throw new Error('Não consegui abrir essa imagem. Use JPG ou PNG.');

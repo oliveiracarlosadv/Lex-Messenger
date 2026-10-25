@@ -3,6 +3,10 @@
 ## v0.4.0
 - **Mensagens de áudio** em todas as versões: segurar para gravar, ou **mãos livres** (um toque grava sem segurar). Tocador com onda sonora, velocidade e “ouvir em sequência”. Áudios no formato de voz do Telegram.
 - **Ações nas mensagens**: responder citando, editar, apagar para mim/para todos, encaminhar, reações, copiar; ✓/✓✓ de lido; “(editada)”; mensagens encaminhadas identificadas.
+- **Câmera na conversa**: foto, vídeo e **recado** (vídeo redondo do Telegram, em MP4), com prévia, “refazer” e troca de câmera; recados tocam dentro da conversa.
+- **Chamar atenção**: quem recebe vê um aviso no meio da tela perguntando se quer abrir a conversa.
+- **Nada é guardado sem você pedir**: abrir um arquivo usa uma cópia temporária (apagada ao fechar o app); o botão **Salvar…** guarda onde você escolher. Antes, o Lex do computador salvava sozinho em Downloads.
+- Conversas abrem sempre na **última mensagem**, mesmo quando fotos e prévias carregam depois.
 - **Prévias de links** (cartão com site, título e imagem).
 - **Silenciar conversas** (🔕), que também deixam de contar no número de não lidas.
 - **Configurações**: avisos, privacidade, aparelhos conectados, bloqueados, verificação em duas etapas e limpeza de temporários.

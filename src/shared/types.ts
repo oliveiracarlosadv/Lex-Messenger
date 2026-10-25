@@ -55,6 +55,10 @@ export interface MediaInfo {
   duration?: number;
   /** Mensagem de voz: 100 valores de 0 a 31 (a "onda"). */
   waveform?: number[];
+  /** Vídeo redondo ("recado") do Telegram. */
+  round?: boolean;
+  width?: number;
+  height?: number;
   /** Prévia de link. */
   link?: { url: string; site?: string; title?: string; description?: string; hasPhoto: boolean };
 }
@@ -76,6 +80,14 @@ export interface ChatMessage {
   forwardedFrom?: string;
   edited?: boolean;
   reactions?: Reaction[];
+}
+
+export interface CaptureOpts {
+  kind: 'photo' | 'video' | 'round';
+  name: string;
+  duration?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface Reaction {
@@ -194,6 +206,9 @@ export interface LexApi {
   mediaData(chatId: string, msgId: number): Promise<string | null>;
   /** Pede acesso ao microfone (no Mac, o sistema pergunta na primeira vez). */
   askMicrophone(): Promise<boolean>;
+  askCamera(): Promise<boolean>;
+  /** Envia o que foi feito com a câmera da conversa: foto, vídeo ou recado redondo. */
+  sendCaptured(chatId: string, data: Uint8Array, opts: CaptureOpts): Promise<void>;
   sendReply(chatId: string, text: string, replyTo: number): Promise<void>;
   editMessage(chatId: string, id: number, text: string): Promise<void>;
   deleteMessages(chatId: string, ids: number[], forEveryone: boolean): Promise<void>;
@@ -215,7 +230,8 @@ export interface LexApi {
   markRead(chatId: string): void;
   mediaPreview(chatId: string, msgId: number): Promise<string | null>;
   openMedia(chatId: string, msgId: number): Promise<void>;
-  revealMedia(chatId: string, msgId: number): Promise<void>;
+  /** Abre uma cópia temporária do anexo (apagada ao fechar o app). */
+  saveMedia(chatId: string, msgId: number): Promise<boolean>;
   openChat(chatId: string): void;
   setStatus(status: MyStatus): Promise<void>;
   setPersonalMessage(text: string): Promise<void>;

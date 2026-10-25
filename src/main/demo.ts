@@ -15,6 +15,7 @@ interface SnapHooks {
   emit: (e: 'typing', d: { chatId: string; name: string }) => void;
   list: () => BrowserWindow | null;
   toast: () => void;
+  nudge: () => BrowserWindow | null;
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -59,6 +60,9 @@ export function snapshot(h: SnapHooks) {
     writeFileSync(join(dir, 'menu-mensagem.png'), (await chat.webContents.capturePage()).toPNG());
     const toastWin = BrowserWindow.getAllWindows().find((w) => w !== list && w !== chat);
     if (toastWin) writeFileSync(join(dir, 'aviso.png'), (await toastWin.webContents.capturePage()).toPNG());
+    const n = h.nudge();
+    await wait(1500);
+    if (n) writeFileSync(join(dir, 'chamar-atencao.png'), (await n.webContents.capturePage()).toPNG());
     app.exit(0);
   })();
 }

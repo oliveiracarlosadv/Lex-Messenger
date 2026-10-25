@@ -72,10 +72,13 @@ const tg = new TelegramService(
     const win = chatWins.get(msg.chatId);
     const focused = !!win && !win.isDestroyed() && win.isFocused();
     if (msg.nudge) {
-      const w = openChat(msg.chatId, false);
-      shake(w);
       playSound('nudge');
-      if (!focused) toastFor(msg.chatId, contact, msg.senderName, 'chamou a sua atenção!', 'nudge');
+      // Conversa aberta: ela treme. Se não estiver na frente, aparece a pergunta "Deseja abrir a conversa?".
+      if (win && !win.isDestroyed()) shake(win);
+      if (!focused) {
+        nudgePopup(msg.chatId, contact?.name ?? msg.senderName, !!contact?.hasPhoto);
+        if (process.platform === 'darwin') app.dock?.bounce('critical');
+      }
       return;
     }
     if (focused) return;
@@ -103,6 +106,44 @@ const presence = new PresenceManager(
   },
   desktopPresence,
 );
+
+// ---------- "Chamou a sua atenção": pergunta se quer abrir a conversa ----------
+
+let nudgeWin: BrowserWindow | null = null;
+
+function nudgePopup(chatId: string, name: string, hasPhoto: boolean) {
+  if (nudgeWin && !nudgeWin.isDestroyed()) nudgeWin.destroy();
+  const w = new BrowserWindow({
+    width: 400,
+    height: 220,
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    transparent: true,
+    hasShadow: true,
+    show: false,
+    center: true,
+    backgroundColor: '#00000000',
+    webPreferences: webPreferences(),
+  });
+  w.setAlwaysOnTop(true, 'pop-up-menu');
+  w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  secure(w);
+  w.once('ready-to-show', () => {
+    w.show();
+    w.focus();
+    shake(w);
+  });
+  w.on('closed', () => {
+    if (nudgeWin === w) nudgeWin = null;
+  });
+  nudgeWin = w;
+  load(w, `/nudge/${encodeURIComponent(JSON.stringify({ chatId, name, hasPhoto }))}`);
+}
 
 // ---------- Avisos no canto da tela (estilo MSN) ----------
 
@@ -457,6 +498,15 @@ function registerIpc() {
   ipcMain.handle('settings:clear-cache', () => tg.clearCache());
   ipcMain.on('settings:open', () => openSettings());
   ipcMain.on('copy', (_e, text: string) => clipboard.writeText(String(text)));
+  ipcMain.handle('camera:ask', async () => {
+    if (process.platform !== 'darwin') return true;
+    if (systemPreferences.getMediaAccessStatus('camera') === 'granted') return true;
+    return systemPreferences.askForMediaAccess('camera');
+  });
+  ipcMain.handle('send:captured', async (_e, chatId: string, data: Uint8Array, opts) => {
+    await tg.sendCaptured(chatId, data, opts);
+    playSound('sent');
+  });
   ipcMain.handle('mic:ask', async () => {
     if (process.platform !== 'darwin') return true;
     if (systemPreferences.getMediaAccessStatus('microphone') === 'granted') return true;
@@ -466,7 +516,7 @@ function registerIpc() {
   ipcMain.on('mark-read', (_e, chatId: string) => tg.markRead(chatId));
   ipcMain.handle('media:preview', (_e, chatId: string, id: number) => tg.mediaPreview(chatId, id));
   ipcMain.handle('media:open', (_e, chatId: string, id: number) => tg.openMedia(chatId, id));
-  ipcMain.handle('media:reveal', (_e, chatId: string, id: number) => tg.revealMedia(chatId, id));
+  ipcMain.handle('media:save', (_e, chatId: string, id: number) => tg.saveMedia(chatId, id));
   ipcMain.on('open-chat', (_e, chatId: string) => openChat(chatId));
   ipcMain.handle('status:set', (_e, s: MyStatus) => (s in STATUS ? setStatus(s) : undefined));
   ipcMain.handle('pm:set', (_e, text: string) => void updatePrefs({ personalMessage: String(text).slice(0, 70) }));
@@ -504,6 +554,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showList);
   app.whenReady().then(async () => {
     registerIpc();
+    void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito
     tray = new Tray(trayIcon());
     tray.setToolTip('Lex Messenger');
     tray.on('click', () => (process.platform === 'darwin' ? tray?.popUpContextMenu() : showList()));
@@ -518,6 +569,10 @@ if (!app.requestSingleInstanceLock()) {
         emit,
         list: () => listWin,
         toast: () => toastFor('101', tg.getContact('101') ?? undefined, 'Ana Paula', 'Recebeu a petição? Dá uma olhada quando puder 😊', 'message'),
+        nudge: () => {
+          nudgePopup('102', 'Dr. Ricardo Lima', false);
+          return nudgeWin;
+        },
       });
   });
   app.on('activate', showList);
@@ -526,6 +581,7 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true;
     e.preventDefault();
     await Promise.race([Promise.all([presence.shutdown(), tg.goOffline()]), new Promise((r) => setTimeout(r, 3000))]);
+    await desktopPlatform.clearTemp(); // nada fica guardado depois que o app fecha
     app.quit();
   });
 }
