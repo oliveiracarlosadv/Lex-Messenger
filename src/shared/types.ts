@@ -59,6 +59,8 @@ export interface MediaInfo {
   waveform?: number[];
   /** Figurinha: imagem parada, vídeo (webm) ou animação do Telegram (tgs). */
   anim?: 'static' | 'video' | 'lottie';
+  /** Mídia sensível (spoiler do Telegram): fica coberta até a pessoa tocar. */
+  sensitive?: boolean;
   /** Vídeo redondo ("recado") do Telegram. */
   round?: boolean;
   width?: number;
@@ -103,6 +105,8 @@ export interface StickerPack {
 export interface CaptureOpts {
   kind: 'photo' | 'video' | 'round';
   name: string;
+  /** Mandar coberta, como "🔞 mídia sensível". */
+  sensitive?: boolean;
   duration?: number;
   width?: number;
   height?: number;
@@ -248,6 +252,9 @@ export interface LexApi {
   getSelfDestruct(chatId: string): Promise<number>;
   /** Põe ou tira da pasta "⭐ Favoritos" (sincronizada com todos os aparelhos e com o Telegram oficial). */
   setFavorite(chatId: string, favorite: boolean): Promise<void>;
+  /** Liga/desliga "próximas fotos e vídeos como sensíveis" nesta conversa. */
+  setSensitive(chatId: string, on: boolean): Promise<void>;
+  getSensitive(chatId: string): Promise<boolean>;
   /** Figurinhas recentes, pacotes instalados e GIFs salvos. */
   stickerPanel(): Promise<{ recent: PickItem[]; packs: StickerPack[]; gifs: PickItem[] }>;
   stickerPack(id: string): Promise<PickItem[]>;

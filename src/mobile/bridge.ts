@@ -337,6 +337,8 @@ export class MobileBridge {
       createGroup: (title, members) => tg.createGroup(title, members),
       setSelfDestruct: async (id, s) => tg.setSelfDestruct(id, s),
       setFavorite: (id, fav) => tg.setFavorite(id, fav),
+      setSensitive: async (id, on) => tg.setSensitive(id, on),
+      getSensitive: async (id) => tg.getSensitive(id),
       stickerPanel: () => tg.stickerPanel(),
       stickerPack: (id) => tg.stickerPack(id),
       searchGifs: (id, q) => tg.searchGifs(id, q),

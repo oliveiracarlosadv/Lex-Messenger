@@ -516,6 +516,8 @@ function registerIpc() {
     await tg.sendPick(String(chatId), String(key));
     playSound('sent');
   });
+  ipcMain.handle('sens:set', (_e, chatId: string, on: boolean) => tg.setSensitive(String(chatId), !!on));
+  ipcMain.handle('sens:get', (_e, chatId: string) => tg.getSensitive(String(chatId)));
   ipcMain.handle('fav:set', (_e, chatId: string, fav: boolean) => tg.setFavorite(String(chatId), !!fav));
   ipcMain.handle('ttl:set', (_e, chatId: string, s: number) => tg.setSelfDestruct(String(chatId), Number(s) || 0));
   ipcMain.handle('ttl:get', (_e, chatId: string) => tg.getSelfDestruct(String(chatId)));

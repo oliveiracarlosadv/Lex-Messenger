@@ -34,6 +34,7 @@ export const history: ChatMessage[] = [
   { id: 13, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 190, text: '✅ Feito: RG e CPF', replyTo: { id: 11, senderName: me.name, text: '📋 Lista: Documentos para a audiência' } },
   { id: 14, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 150, text: 'Me manda o endereço até amanhã?', selfDestruct: '1 h' },
   { id: 15, chatId: '101', out: true, senderId: '1', senderName: me.name, date: now - 140, text: '🔥 Mensagem autodestruída', destroyedNotice: true },
+  { id: 16, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 130, text: '', media: { kind: 'photo', sensitive: true } },
   { id: 6, chatId: '101', out: false, senderId: '101', senderName: 'Ana Paula', date: now - 120, text: NUDGE_TEXT, nudge: true },
 ];
 
@@ -72,6 +73,8 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.stickerPack = async () => [];
   t.searchGifs = async () => [];
   t.getSelfDestruct = () => 0;
+  t.getSensitive = () => false;
+  t.setSensitive = () => {};
   t.setSelfDestruct = () => {};
   t.setFavorite = async (id: string, fav: boolean) => {
     const c = contacts.find((x) => x.id === id);

@@ -170,6 +170,13 @@ os dois lados** quando o tempo acaba. No lugar, fica o aviso **“🔥 Mensagem 
 - Quem usa o Telegram comum também vê a marca “⏱ Some em…” e vê a mensagem sumir.
 - O Lex guarda só o **número** da mensagem e a hora de apagar — nunca o conteúdo.
 
+### Mídia sensível 🔞
+Para mandar uma foto, vídeo ou recado **coberto**, toque no **🔞** da barra de baixo (vale para as próximas fotos e
+vídeos daquela conversa) ou marque **🔞 Marcar como sensível** na prévia da câmera. Quem recebe vê só um quadro
+escuro **“🔞 Mídia sensível — Toque para ver”**: a mídia aparece ao tocar e **volta a ficar coberta** ao tocar em
+**🙈 Ocultar de novo**, quando o vídeo termina ou ao sair da conversa. Antes de a pessoa tocar, nem a miniatura é
+baixada. No Telegram oficial, ela chega com o efeito de “spoiler” (borrada até tocar).
+
 ### Lista de tarefas 📋
 Toque no **📋**, dê um título e escreva os itens (um por linha). A outra pessoa **toca nos quadradinhos** para marcar
 como feito (ou desmarcar), e a lista mostra **“2 de 5 feitos”** para os dois. Quem criou a lista também pode marcar.

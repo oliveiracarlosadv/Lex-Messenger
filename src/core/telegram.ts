@@ -57,6 +57,8 @@ export interface Platform {
   saveAs(name: string, data: Buffer): Promise<boolean>;
   /** Apaga as cópias temporárias. */
   clearTemp(): Promise<void>;
+  /** Computador: lê um arquivo escolhido (para enviar como mídia sensível). */
+  readFile?(path: string): Promise<Uint8Array>;
   /** Pequenos dados do app (ex.: a lista de mensagens a autodestruir — só números, nunca o conteúdo). */
   loadData(key: string): Promise<string | null>;
   saveData(key: string, value: string): Promise<void>;
@@ -165,10 +167,10 @@ function presenceOf(status: Api.TypeUserStatus | undefined): { presence: Presenc
 function mediaOf(msg: Api.Message): MediaInfo | undefined {
   const m = msg.media;
   if (!m) return undefined;
-  if (m instanceof Api.MessageMediaPhoto) return { kind: 'photo', name: `foto-${msg.id}.jpg`, mime: 'image/jpeg' };
+  if (m instanceof Api.MessageMediaPhoto) return { kind: 'photo', name: `foto-${msg.id}.jpg`, mime: 'image/jpeg', sensitive: !!m.spoiler };
   if (m instanceof Api.MessageMediaDocument && m.document instanceof Api.Document) {
     const doc = m.document;
-    const info: MediaInfo = { kind: 'file', mime: doc.mimeType, size: Number(doc.size) };
+    const info: MediaInfo = { kind: 'file', mime: doc.mimeType, size: Number(doc.size), sensitive: !!m.spoiler };
     // Vídeo primeiro: recados antigos traziam também a marca de voz, e a ordem das marcas varia.
     const attrs = [...doc.attributes].sort((x, y) => Number(y instanceof Api.DocumentAttributeVideo) - Number(x instanceof Api.DocumentAttributeVideo));
     for (const a of attrs) {
@@ -306,6 +308,7 @@ export class TelegramService {
   private favorites = new Set<string>();
   private favFolderId: number | null = null;
   private selfDestruct = new Map<string, number>();
+  private sensitiveChats = new Set<string>();
   private doomed: Doom[] = [];
   private doomBusy = false;
   private myPhotoId = '';
@@ -939,6 +942,62 @@ export class TelegramService {
 
   // ---------- Autodestruição ----------
 
+  // ---------- Mídia sensível (spoiler do Telegram) ----------
+
+  setSensitive(chatId: string, on: boolean) {
+    if (on) this.sensitiveChats.add(chatId);
+    else this.sensitiveChats.delete(chatId);
+  }
+
+  getSensitive(chatId: string) {
+    return this.sensitiveChats.has(chatId);
+  }
+
+  /** Envia foto ou vídeo coberto: quem recebe só vê depois de tocar (no Lex e no Telegram oficial). */
+  private async sendSpoiler(chatId: string, name: string, data: Uint8Array, kind: 'photo' | 'video' | 'round', meta: { duration?: number; width?: number; height?: number } = {}) {
+    const c = this.client!;
+    const label = `Enviando ${name} (sensível)`;
+    this.hooks.emit('send:progress', { chatId, label, progress: 0 });
+    try {
+      const file = await c.uploadFile({
+        file: new CustomFile(name, data.length, '', Buffer.from(data)),
+        workers: 4,
+        onProgress: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
+      });
+      const tag = this.tag(chatId);
+      const media =
+        kind === 'photo'
+          ? new Api.InputMediaUploadedPhoto({ file, spoiler: true })
+          : new Api.InputMediaUploadedDocument({
+              file,
+              spoiler: true,
+              mimeType: name.toLowerCase().endsWith('.webm') ? 'video/webm' : name.toLowerCase().endsWith('.mov') ? 'video/quicktime' : 'video/mp4',
+              attributes: [
+                new Api.DocumentAttributeVideo({
+                  duration: Math.max(1, Math.round(meta.duration ?? 1)),
+                  w: meta.width ?? 0,
+                  h: meta.height ?? 0,
+                  supportsStreaming: true,
+                  roundMessage: kind === 'round',
+                }),
+                new Api.DocumentAttributeFilename({ fileName: name }),
+              ],
+            });
+      const updates = await c.invoke(
+        new Api.messages.SendMedia({
+          peer: this.entity(chatId),
+          media,
+          message: kind === 'round' ? '' : tag,
+          randomId: bigInt(Math.floor(Math.random() * 1e15)),
+        }),
+      );
+      const sent = this.messageFromUpdates(updates);
+      if (sent) await this.emitSent(chatId, sent);
+    } finally {
+      this.hooks.emit('send:progress', { chatId, label: '', progress: null });
+    }
+  }
+
   /** Liga (segundos) ou desliga (0) a autodestruição das próximas mensagens nesta conversa. */
   setSelfDestruct(chatId: string, seconds: number) {
     if (seconds > 0) this.selfDestruct.set(chatId, seconds);
@@ -1332,6 +1391,15 @@ export class TelegramService {
     if (!this.client) return;
     for (const [i, f] of files.entries()) {
       const name = fileName(f);
+      const ext = name.toLowerCase().split('.').pop() ?? '';
+      const visual = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? 'photo' : ['mp4', 'mov', 'm4v', 'webm'].includes(ext) ? 'video' : null;
+      if (this.sensitiveChats.has(chatId) && visual) {
+        const data = typeof f === 'string' ? await this.platform.readFile?.(f) : f.data;
+        if (data) {
+          await this.sendSpoiler(chatId, name, data, visual);
+          continue;
+        }
+      }
       const label = files.length > 1 ? `Enviando ${name} (${i + 1} de ${files.length})` : `Enviando ${name}`;
       this.hooks.emit('send:progress', { chatId, label, progress: 0 });
       try {
@@ -1377,6 +1445,7 @@ export class TelegramService {
   /** Foto, vídeo ou recado redondo feitos com a câmera da conversa. */
   async sendCaptured(chatId: string, data: Uint8Array, o: CaptureOpts) {
     if (!this.client || !data.length) return;
+    if (o.sensitive || this.sensitiveChats.has(chatId)) return this.sendSpoiler(chatId, o.name, data, o.kind, o);
     const label = { photo: 'Enviando foto', video: 'Enviando vídeo', round: 'Enviando recado' }[o.kind];
     this.hooks.emit('send:progress', { chatId, label, progress: 0 });
     try {

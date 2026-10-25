@@ -37,6 +37,7 @@ export const desktopPlatform: Platform = {
     return true;
   },
   clearTemp: async () => rmSync(tempDir(), { recursive: true, force: true }),
+  readFile: async (path) => new Uint8Array(readFileSync(path)),
   loadData: async (key) => {
     try {
       return readFileSync(join(app.getPath('userData'), `${key}.json`), 'utf8');

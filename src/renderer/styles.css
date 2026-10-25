@@ -2135,3 +2135,57 @@ body.toast-body {
   left: auto;
   right: 0;
 }
+
+/* ---------- Mídia sensível ---------- */
+.sensitive-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 240px;
+  max-width: 100%;
+  height: 160px;
+  margin: 3px 0;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 8px, transparent 8px 16px),
+    linear-gradient(160deg, #3b4a66, #1a2236);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.sensitive-cover:hover {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 8px, transparent 8px 16px),
+    linear-gradient(160deg, #46577a, #202a42);
+}
+.sensitive-icon {
+  font-size: 30px;
+}
+.sensitive-cover span:last-child {
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+.sensitive-hide {
+  display: block;
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+.sens-btn.on {
+  background: #fdecea;
+  border-color: #f0a9a2;
+}
+.camera-sensitive {
+  display: block;
+  margin-top: 10px;
+  color: #fff;
+}
+.camera-sensitive input {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+.camera-sensitive span {
+  color: #b9c6dc;
+  font-size: 12px;
+}

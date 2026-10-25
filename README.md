@@ -42,6 +42,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 - **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
 - **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
 - **Mensagens que se autodestroem** ⏱: escolha 30 s, 1 min, 5 min, 1 h ou 24 h; a mensagem some para os dois lados e o aviso 🔥 também some em 12 horas.
+- **Mídia sensível** 🔞: fotos, vídeos e recados chegam cobertos e só aparecem quando a pessoa toca; ao fechar, voltam a ficar cobertos.
 - **Lista de tarefas** 📋 na conversa: você cria, a outra pessoa marca como feito, e os dois veem o progresso.
 - **Figurinhas e GIFs** 🎞️ (recentes, seus pacotes, GIFs salvos e busca), tocando dentro da conversa — assim como **vídeos e áudios**.
 - **Favoritos** ⭐ no topo da lista (pasta “Favoritos” do Telegram, igual em todos os aparelhos) e **criar grupos** 👥.

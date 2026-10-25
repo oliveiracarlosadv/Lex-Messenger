@@ -14,6 +14,7 @@ import { RoundVideo } from './RoundVideo';
 import { ChecklistCard, NewChecklistDialog } from './Checklist';
 import { LoopMedia, StickerPicker } from './StickerPicker';
 import { VideoPlayer } from './VideoPlayer';
+import { SensitiveCover } from './SensitiveCover';
 import { applyToggle, parseChecklist, parseToggle, type Checklist } from '../../shared/checklist';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏'];
@@ -49,6 +50,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [ttlMenu, setTtlMenu] = useState(false);
   const [newList, setNewList] = useState(false);
   const [stickers, setStickers] = useState(false);
+  const [sensitive, setSensitive] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +72,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
     lex.markRead(chatId);
     lex.refreshContact(chatId);
     void lex.getSelfDestruct(chatId).then(setTtl);
+    void lex.getSensitive(chatId).then(setSensitive);
     const offs = [
       lex.on('message:new', (m) => {
         if (m.chatId !== chatId) return;
@@ -497,6 +500,20 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 <button className="mini-btn" onClick={() => setNewList(true)} title="Lista de tarefas" aria-label="Criar lista de tarefas">
                   📋
                 </button>
+                <button
+                  className={`mini-btn sens-btn ${sensitive ? 'on' : ''}`}
+                  onClick={() => {
+                    const on = !sensitive;
+                    setSensitive(on);
+                    void lex.setSensitive(chatId, on);
+                    flashNotice(on ? '🔞 Próximas fotos e vídeos vão como mídia sensível (cobertos até a pessoa tocar).' : 'Fotos e vídeos voltam a ir sem cobertura.');
+                  }}
+                  title="Mandar as próximas fotos e vídeos como mídia sensível"
+                  aria-label="Mídia sensível"
+                  aria-pressed={sensitive}
+                >
+                  🔞
+                </button>
                 <button className="mini-btn" onClick={() => setCamera(true)} title="Câmera: foto, vídeo ou recado" aria-label="Abrir a câmera">
                   📷
                 </button>
@@ -636,6 +653,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
       {camera && (
         <CameraDialog
           chatId={chatId}
+          sensitiveDefault={sensitive}
           onClose={() => {
             setCamera(false);
             stickBottom.current = true;
@@ -811,6 +829,17 @@ function LinkCard({ m, chatId }: { m: ChatMessage; chatId: string }) {
 }
 
 function Media({ m, chatId }: { m: ChatMessage; chatId: string }) {
+  // Mídia sensível: coberta até tocar; ao fechar, cobre de novo.
+  if (m.media!.sensitive)
+    return (
+      <SensitiveCover>
+        <MediaInner m={m} chatId={chatId} />
+      </SensitiveCover>
+    );
+  return <MediaInner m={m} chatId={chatId} />;
+}
+
+function MediaInner({ m, chatId }: { m: ChatMessage; chatId: string }) {
   if (m.media!.kind === 'video' && m.media!.round) return <RoundVideo m={m} chatId={chatId} />;
   if (m.media!.kind === 'video' && (m.media!.size ?? 0) <= 150 * 1024 * 1024) return <VideoPlayer m={m} chatId={chatId} />;
   if (m.media!.kind === 'gif' && (m.media!.size ?? 0) < 25 * 1024 * 1024) return <LoopMedia chatId={chatId} msgId={m.id} kind="gif" />;
