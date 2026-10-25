@@ -1,5 +1,5 @@
 // Processo principal: janelas, ícone na barra de menus, Dock e notificações.
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, shell, systemPreferences, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, screen, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, shell, systemPreferences, Tray } from 'electron';
 import { join } from 'node:path';
 import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
@@ -268,9 +268,12 @@ function openChat(chatId: string, focus = true): BrowserWindow {
   }
   const c = tg.getContact(chatId);
   const offset = (chatWins.size % 6) * 24;
+  // Tamanho: o último que você deixou (ou 640 × 900), cabendo na tela.
+  const wa = screen.getPrimaryDisplay().workAreaSize;
+  const saved = (prefs as Prefs & { chatSize?: [number, number] }).chatSize ?? [640, 900];
   win = new BrowserWindow({
-    width: 620,
-    height: 520,
+    width: Math.min(saved[0], wa.width),
+    height: Math.min(saved[1], wa.height),
     minWidth: 440,
     minHeight: 360,
     title: c ? `${c.name} — Conversa` : 'Conversa',
@@ -287,6 +290,10 @@ function openChat(chatId: string, focus = true): BrowserWindow {
   w.on('focus', () => {
     w.flashFrame(false);
     tg.markRead(chatId);
+  });
+  w.on('resized', () => {
+    const [cw, ch] = w.getSize();
+    updatePrefs({ chatSize: [cw, ch] } as Partial<Prefs>);
   });
   w.on('closed', () => chatWins.delete(chatId));
   chatWins.set(chatId, w);
