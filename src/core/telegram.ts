@@ -143,7 +143,9 @@ function mediaOf(msg: Api.Message): MediaInfo | undefined {
   if (m instanceof Api.MessageMediaDocument && m.document instanceof Api.Document) {
     const doc = m.document;
     const info: MediaInfo = { kind: 'file', mime: doc.mimeType, size: Number(doc.size) };
-    for (const a of doc.attributes) {
+    // Vídeo primeiro: recados antigos traziam também a marca de voz, e a ordem das marcas varia.
+    const attrs = [...doc.attributes].sort((x, y) => Number(y instanceof Api.DocumentAttributeVideo) - Number(x instanceof Api.DocumentAttributeVideo));
+    for (const a of attrs) {
       if (a instanceof Api.DocumentAttributeFilename) info.name = a.fileName;
       if (a instanceof Api.DocumentAttributeSticker) info.kind = 'sticker';
       if (a instanceof Api.DocumentAttributeVideo && info.kind === 'file') {
@@ -153,7 +155,8 @@ function mediaOf(msg: Api.Message): MediaInfo | undefined {
         info.width = a.w;
         info.height = a.h;
       }
-      if (a instanceof Api.DocumentAttributeAudio) {
+      // Recados enviados por versões antigas tinham também a marca de voz: o vídeo redondo vale mais.
+      if (a instanceof Api.DocumentAttributeAudio && !info.round) {
         info.kind = a.voice ? 'voice' : 'audio';
         info.duration = a.duration;
         if (a.waveform?.length) info.waveform = unpackWaveform(a.waveform);
@@ -1039,7 +1042,8 @@ export class TelegramService {
       const isVideo = o.kind !== 'photo';
       const sent = await this.client.sendFile(this.entity(chatId), {
         file,
-        videoNote: o.kind === 'round',
+        // Atenção: não usar "videoNote: true" do GramJS — ele também marca o arquivo como mensagem de VOZ,
+        // e o Telegram passa a mostrar o recado como áudio. O recado é só o atributo de vídeo com roundMessage.
         supportsStreaming: isVideo,
         attributes: isVideo
           ? [

@@ -1,6 +1,7 @@
 # Histórico de versões
 
 ## v0.4.1
+- **Correção**: o recado (vídeo redondo) chegava como áudio. A biblioteca do Telegram marcava o arquivo também como mensagem de voz; agora vai só como vídeo redondo. Recados antigos passam a aparecer como vídeo no Lex.
 - Quem tem foto aparece com a **foto** no lugar do bonequinho (na lista, na conversa e ao encaminhar), com uma **borda da cor do status**: verde disponível, laranja ausente, vermelha ocupado, cinza offline. Sem foto, continua o bonequinho.
 
 ## v0.4.0
