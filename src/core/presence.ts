@@ -1,9 +1,21 @@
 // Junta status, "Ausente" automático, música e mensagem pessoal, e mantém a bio do Telegram em dia.
-import { powerMonitor } from 'electron';
 import { composeBio, parseBio, type MyStatus } from '../shared/status';
 import type { Me, PresenceInfo, Prefs } from '../shared/types';
-import { formatTrack, MusicPermissionError, nowPlaying } from './music';
 import type { TelegramService } from './telegram';
+
+export type NowPlaying = { title: string; artist: string } | null;
+export class MusicPermissionError extends Error {}
+export const formatTrack = (t: NonNullable<NowPlaying>) => (t.artist ? `${t.title} — ${t.artist}` : t.title);
+
+/** O que cada plataforma sabe fazer para a presença (tudo opcional). */
+export interface PresencePlatform {
+  nowPlaying?: () => Promise<NowPlaying>;
+  /** Segundos sem usar o computador. */
+  idleSeconds?: () => number;
+  /** Avisa quando a tela é bloqueada/desbloqueada. */
+  onLock?: (cb: (locked: boolean) => void) => void;
+  musicPermissionHint?: string;
+}
 
 const IDLE_SECONDS = 10 * 60;
 const MUSIC_POLL_MS = 15 * 1000;
@@ -24,6 +36,7 @@ export class PresenceManager {
     private getPrefs: () => Prefs,
     private savePrefs: (p: Partial<Prefs>) => void,
     private emit: (info: PresenceInfo) => void,
+    private platform: PresencePlatform = {},
   ) {}
 
   private listening = false;
@@ -43,10 +56,8 @@ export class PresenceManager {
     this.stop();
     this.active = true;
     if (!this.listening) {
-      // powerMonitor só pode ser usado depois que o app terminou de abrir.
       this.listening = true;
-      powerMonitor.on('lock-screen', () => this.setIdle(true));
-      powerMonitor.on('unlock-screen', () => this.setIdle(false));
+      this.platform.onLock?.((locked) => this.setIdle(locked));
     }
     // A bio pode ter sido mudada pelo celular: ela manda na mensagem pessoal (a não ser que mostre música).
     const parsed = parseBio(me.about);
@@ -73,7 +84,7 @@ export class PresenceManager {
   }
 
   private checkIdle() {
-    this.setIdle(powerMonitor.getSystemIdleTime() >= IDLE_SECONDS);
+    if (this.platform.idleSeconds) this.setIdle(this.platform.idleSeconds() >= IDLE_SECONDS);
   }
 
   private setIdle(idle: boolean) {
@@ -88,11 +99,10 @@ export class PresenceManager {
     let error: string | undefined;
     if (p.shareMusic && p.status !== 'invisible') {
       try {
-        const t = await nowPlaying();
+        const t = this.platform.nowPlaying ? await this.platform.nowPlaying() : null;
         music = t ? formatTrack(t) : null;
       } catch (e) {
-        if (e instanceof MusicPermissionError)
-          error = 'Permita o Lex Messenger em Ajustes do Sistema > Privacidade e Segurança > Automação.';
+        if (e instanceof MusicPermissionError) error = this.platform.musicPermissionHint ?? 'Sem permissão para ler a música.';
       }
     }
     if (music === this.music && error === this.musicError) return;

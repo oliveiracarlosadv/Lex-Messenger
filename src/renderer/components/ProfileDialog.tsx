@@ -93,6 +93,7 @@ export function ProfileDialog({ me, prefs, presence, onClose }: { me: Me; prefs:
           <input value={pm} maxLength={BIO_MAX} placeholder="Ex.: Audiência às 14h ⚖️" onChange={(e) => setPm(e.target.value)} />
         </label>
 
+        {lex.features.music && (
         <label className="check">
           <input type="checkbox" checked={prefs.shareMusic} onChange={(e) => void lex.setPrefs({ shareMusic: e.target.checked })} />
           🎵 Mostrar a música que estou ouvindo
@@ -101,12 +102,15 @@ export function ProfileDialog({ me, prefs, presence, onClose }: { me: Me; prefs:
             pessoal enquanto toca.
           </span>
         </label>
+        )}
         {presence?.musicError && <p className="error">{presence.musicError}</p>}
 
+        {!lex.features.mobile && (
         <label className="check">
           <input type="checkbox" checked={prefs.autoAway} onChange={(e) => void lex.setPrefs({ autoAway: e.target.checked })} />
           🕒 Ficar Ausente depois de 10 minutos sem usar o computador
         </label>
+        )}
 
         <p className="hint">
           O Telegram só mostra “online” e “offline”. Status e música vão no começo da sua bio, e outros Lex Messenger mostram o

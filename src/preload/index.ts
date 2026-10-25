@@ -8,6 +8,7 @@ const invoke = (ch: string, ...args: unknown[]) => ipcRenderer.invoke(ch, ...arg
 const api: LexApi = {
   version: __APP_VERSION__,
   platform: process.platform,
+  features: { music: process.platform === 'darwin' || process.platform === 'win32', mobile: false },
   on(event, cb) {
     const listener = (_e: unknown, data: LexEvents[typeof event]) => cb(data);
     ipcRenderer.on(event, listener);

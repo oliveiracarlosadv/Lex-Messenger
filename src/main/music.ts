@@ -3,8 +3,7 @@
 // Windows: o player que estiver tocando, pelos controles de mídia do sistema.
 import { execFile } from 'node:child_process';
 
-export type NowPlaying = { title: string; artist: string } | null;
-export class MusicPermissionError extends Error {}
+import { MusicPermissionError, type NowPlaying } from '../core/presence';
 
 function run(cmd: string, args: string[], timeout = 5000): Promise<string> {
   return new Promise((resolve, reject) =>
@@ -77,8 +76,4 @@ export async function nowPlaying(): Promise<NowPlaying> {
   }
   if (process.platform === 'win32') return winPlayer();
   return null;
-}
-
-export function formatTrack(t: NonNullable<NowPlaying>): string {
-  return t.artist ? `${t.title} — ${t.artist}` : t.title;
 }

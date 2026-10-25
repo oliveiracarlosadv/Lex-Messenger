@@ -25,6 +25,11 @@ O `.env` está no `.gitignore`: nunca vai para o GitHub.
 | `npm run dev` | Modo de desenvolvimento, com recarga automática. |
 | `npm run dist` | Gera os `.dmg` do Mac em `release/`. |
 | `npm run icons` | Gera os PNGs do ícone a partir de `build/icon.svg` e `build/tray.svg`. |
+| `npm run build:mobile` | Monta o app de celular em `dist-mobile/`. |
+| `npm run android` | Monta e copia para o projeto Android (`android/`). Abrir no Android Studio para rodar no emulador. |
+| `npm run dev:mobile` e abrir `http://localhost:5174/?demo` | App de celular no navegador, com contatos fictícios. |
+| `npx electron scripts/snap-mobile.cjs` | Fotos das telas do celular para o manual (depois de `build:mobile`). |
+| `node scripts/make-android-assets.mjs` | Gera ícones e tela de abertura do Android a partir de `build/icon.svg`. |
 | `LEX_DEMO=1 npx electron .` | Abre com contatos fictícios (sem Telegram). Com `LEX_SNAPSHOT=<pasta>`, salva imagens das telas. |
 
 ## Publicar uma versão
@@ -34,11 +39,20 @@ O `.env` está no `.gitignore`: nunca vai para o GitHub.
    instaladores do Mac (Apple e Intel) e do Windows e cria a Release. Os links do README apontam sempre para a última.
 
 ## Estrutura
-- `src/main/telegram.ts` — conexão com o Telegram (GramJS): login, contatos, mensagens, arquivos, status.
-- `src/main/index.ts` — janelas, barra de menus, Dock, notificações e “tremer a janela”.
+- `src/core/telegram.ts` — o motor do Telegram (GramJS), igual no computador e no celular. O que muda entre eles vem
+  da `Platform` (sessão, salvar/abrir arquivos, cortar a foto): `src/main/platform.ts` e `src/mobile/platform.ts`.
+- `src/core/presence.ts` — status, Ausente automático, música e montagem da bio.
+- `src/main/index.ts` — computador: janelas, barra de menus, Dock, avisos no canto e “tremer a janela”.
+- `src/mobile/` — celular: a ponte `window.lex` (`bridge.ts`), a navegação lista ↔ conversa (`App.tsx`) e os ajustes de tela.
+- `android/` — projeto Android gerado pelo Capacitor (ícones, `MainActivity` e assinatura de teste).
 - `src/preload` — a ponte segura `window.lex` entre as janelas e o processo principal.
 - `src/renderer` — telas em React: entrada, lista de contatos e conversa; sons em `lib/sounds.ts`.
 - `src/shared/types.ts` — tipos compartilhados e o texto do “chamar atenção” (`NUDGE_TEXT`).
+
+## Android: assinatura
+O `.apk` do GitHub é assinado com uma chave **de teste** (`android/app/lex-teste.keystore`, senha pública no
+`build.gradle`), só para que cada versão instale por cima da anterior. Para publicar na Play Store, crie uma chave
+própria e secreta e configure-a como segredo do GitHub.
 
 ## Segurança
 Janelas com `contextIsolation` e `sandbox`, sem acesso direto ao Node; política de conteúdo (CSP) no app final; links

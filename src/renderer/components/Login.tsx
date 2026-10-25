@@ -83,13 +83,24 @@ export function Login({ auth }: { auth: AuthState }) {
         <>
           <p className="center intro">Entre com a sua conta do Telegram. Seus contatos e conversas aparecem aqui.</p>
           {step?.step === 'failed' && <p className="error">{step.error}</p>}
-          <button className="btn btn-primary wide" onClick={() => start('qr')}>
-            📱 Entrar com o celular (QR Code)
-          </button>
-          <p className="hint center">Mais fácil: é só apontar a câmera do Telegram.</p>
-          <button className="btn wide" onClick={() => start('phone')}>
-            ☎️ Entrar com número de telefone
-          </button>
+          {lex.features.mobile ? (
+            <>
+              <button className="btn btn-primary wide" onClick={() => start('phone')}>
+                ☎️ Entrar com número de telefone
+              </button>
+              <p className="hint center">O Telegram manda um código para o app dele, neste mesmo celular.</p>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-primary wide" onClick={() => start('qr')}>
+                📱 Entrar com o celular (QR Code)
+              </button>
+              <p className="hint center">Mais fácil: é só apontar a câmera do Telegram.</p>
+              <button className="btn wide" onClick={() => start('phone')}>
+                ☎️ Entrar com número de telefone
+              </button>
+            </>
+          )}
         </>
       )}
 
@@ -183,7 +194,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
       </div>
       <div className="login-body">{children}</div>
-      <p className="login-foot">Suas mensagens vão direto entre este computador e o Telegram. Nada passa por outros servidores.</p>
+      <p className="login-foot">Suas mensagens vão direto entre este aparelho e o Telegram. Nada passa por outros servidores.</p>
     </div>
   );
 }

@@ -4,3 +4,4 @@ dist-electron/
 release/
 .env
 .DS_Store
+dist-mobile/

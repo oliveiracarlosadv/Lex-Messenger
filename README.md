@@ -8,7 +8,8 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 <p align="center">
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-arm64.dmg"><b>⬇️ Mac (Apple M1, M2, M3, M4)</b></a> ·
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-x64.dmg"><b>⬇️ Mac (Intel)</b></a> ·
-  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Windows-Instalador.exe"><b>⬇️ Windows</b></a>
+  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Windows-Instalador.exe"><b>⬇️ Windows</b></a> ·
+  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Android.apk"><b>⬇️ Android</b></a>
 </p>
 
 <p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/MANUAL.md">Manual</a> · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
@@ -23,6 +24,11 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 <p align="center">
   <img src="docs/imagens/perfil.png" width="230" alt="Meu perfil">
   <img src="docs/imagens/aviso.png" width="300" alt="Aviso de nova mensagem no canto da tela">
+</p>
+
+<p align="center">
+  <img src="docs/imagens/android-contatos.png" width="200" alt="Android: lista de contatos">
+  <img src="docs/imagens/android-conversa.png" width="200" alt="Android: conversa">
 </p>
 
 <sub>As imagens usam contatos fictícios.</sub>
@@ -49,6 +55,10 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 Lex Messenger para a pasta Aplicativos. Na primeira vez, o macOS avisa que não pode verificar o desenvolvedor: abra
 **Ajustes do Sistema > Privacidade e Segurança**, role até o fim e clique em **Abrir Mesmo Assim**.
 
+**Android:** baixe o `LexMessenger-Android.apk` no celular e toque nele para instalar. O Android pede para
+permitir a instalação "desta fonte" (o navegador ou o app de arquivos): permita e toque em **Instalar**. Passo a passo
+no [Manual](docs/MANUAL.md#android).
+
 **Windows:** baixe e execute o instalador. Se aparecer “O Windows protegeu o computador”, clique em
 **Mais informações > Executar assim mesmo**.
 
@@ -63,7 +73,7 @@ guardada criptografada no seu computador (no Mac, pelo Chaveiro). Detalhes em [P
 
 ## Para desenvolvedores
 
-Electron + React + TypeScript + Vite + Tailwind, com [GramJS](https://github.com/gram-js/gramjs) (MTProto).
+Electron (computador) e Capacitor (Android) + React + TypeScript + Vite + Tailwind, com [GramJS](https://github.com/gram-js/gramjs) (MTProto).
 Como compilar e publicar: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ---

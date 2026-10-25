@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lex Messenger</string>
+    <string name="title_activity_main">Lex Messenger</string>
+    <string name="package_name">br.com.lextecnologias.messenger</string>
+    <string name="custom_url_scheme">br.com.lextecnologias.messenger</string>
+</resources>

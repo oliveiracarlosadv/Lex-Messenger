@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## v0.3.0
+- **Versão para Android** (`LexMessenger-Android.apk`): mesma conta, contatos e visual. Lista de contatos como tela inicial, conversa com botão de voltar, aviso estilo MSN no topo, notificações do Android com o app em segundo plano, vibração ao chamar atenção, envio de fotos e arquivos, abrir e compartilhar anexos, Meu perfil e status.
+- No Android ainda não há “música que estou ouvindo” nem avisos com o app totalmente fechado.
+- Por dentro: o motor do Telegram passou a ser o mesmo no computador e no celular.
+
 ## v0.2.0
 - **Aviso no canto da tela**, como no MSN: janelinha com foto, “Fulano diz:” e o começo da mensagem; clique para abrir a conversa. Também avisa quando um contato entra.
 - **Conversa organizada**: cada mensagem mostra quem enviou e a hora em cima, com o texto embaixo.

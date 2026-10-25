@@ -1,6 +1,6 @@
 {
   "name": "lex-messenger",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Mensageiro no estilo classico, usando sua conta do Telegram.",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -11,18 +11,31 @@
     "dev": "concurrently -k \"vite\" \"node scripts/build-main.mjs --watch\" \"wait-on tcp:5173 dist-electron/main.js && cross-env-shell VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "icons": "node scripts/make-icons.mjs",
     "dist": "npm run typecheck && vite build && cross-env LEX_REQUIRE_KEYS=1 node scripts/build-main.mjs && electron-builder --mac",
-    "dist:win": "npm run typecheck && vite build && cross-env LEX_REQUIRE_KEYS=1 node scripts/build-main.mjs && electron-builder --win"
+    "dist:win": "npm run typecheck && vite build && cross-env LEX_REQUIRE_KEYS=1 node scripts/build-main.mjs && electron-builder --win",
+    "build:mobile": "tsc --noEmit -p . && vite build -c vite.mobile.config.ts",
+    "dev:mobile": "vite -c vite.mobile.config.ts",
+    "android": "npm run build:mobile && npx cap sync android"
   },
   "author": "Lex Tecnologias",
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "telegram": "^2.26.22"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
@@ -38,6 +51,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^6.4.5",
+    "vite-plugin-node-polyfills": "^0.28.0",
     "wait-on": "^9.5.1"
   },
   "productName": "Lex Messenger",

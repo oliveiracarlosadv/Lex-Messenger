@@ -1,0 +1,89 @@
+import { useEffect, useRef, useState } from 'react';
+import type { AuthState } from '../shared/types';
+import { Avatar } from '../renderer/components/Avatar';
+import { ChatWindow } from '../renderer/components/ChatWindow';
+import { ContactList } from '../renderer/components/ContactList';
+import { Login } from '../renderer/components/Login';
+import { lex } from '../renderer/lib/api';
+import { playSound, unlockAudio } from '../renderer/lib/sounds';
+import type { InAppToast, MobileBridge } from './bridge';
+
+const chatFromHash = () => {
+  const m = location.hash.match(/^#\/chat\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
+};
+
+export function MobileApp({ bridge }: { bridge: MobileBridge }) {
+  const [auth, setAuth] = useState<AuthState | null>(null);
+  const [chat, setChat] = useState<string | null>(chatFromHash);
+  const [toast, setToast] = useState<InAppToast | null>(null);
+  const toastTimer = useRef(0);
+
+  useEffect(() => {
+    void lex.authState().then(setAuth);
+    const onHash = () => setChat(chatFromHash());
+    window.addEventListener('hashchange', onHash);
+    const unlock = () => unlockAudio();
+    window.addEventListener('touchstart', unlock, { once: true });
+    window.addEventListener('click', unlock, { once: true });
+    const offs = [
+      lex.on('auth:state', setAuth),
+      lex.on('sound', playSound),
+      bridge.on('toast', (t) => {
+        setToast(t as InAppToast);
+        window.clearTimeout(toastTimer.current);
+        toastTimer.current = window.setTimeout(() => setToast(null), 5000);
+      }),
+    ];
+    return () => {
+      offs.forEach((f) => f());
+      window.removeEventListener('hashchange', onHash);
+    };
+  }, [bridge]);
+
+  useEffect(() => {
+    bridge.currentChat = chat;
+    if (chat) setToast((t) => (t?.chatId === chat ? null : t));
+  }, [bridge, chat]);
+
+  if (!auth) return null;
+  if (auth !== 'ready') return <Login auth={auth} />;
+
+  return (
+    <div className="mobile-shell">
+      <div className={`screen list-screen ${chat ? 'behind' : ''}`}>
+        <ContactList />
+      </div>
+      {chat && (
+        <div className="screen chat-screen" key={chat}>
+          <div className="mobile-topbar">
+            <button className="back-btn" onClick={() => history.back()} aria-label="Voltar para os contatos">
+              ‹ Contatos
+            </button>
+          </div>
+          <ChatWindow chatId={chat} />
+        </div>
+      )}
+      {toast && (
+        <button
+          className={`toast mobile-toast toast-${toast.kind}`}
+          onClick={() => {
+            setToast(null);
+            lex.openChat(toast.chatId);
+          }}
+        >
+          <div className="toast-bar">
+            <span>Lex Messenger</span>
+          </div>
+          <div className="toast-main">
+            <Avatar id={toast.chatId} name={toast.name} hasPhoto={toast.hasPhoto} size={40} />
+            <div className="toast-text">
+              <b>{toast.kind === 'message' ? `${toast.title} diz:` : toast.title}</b>
+              <span className="toast-msg">{toast.body}</span>
+            </div>
+          </div>
+        </button>
+      )}
+    </div>
+  );
+}

@@ -144,6 +144,7 @@ export function ContactList() {
                 {music ? `🎵 ${music}` : prefs?.personalMessage || '<Digite uma mensagem pessoal>'}
               </button>
             )}
+            {lex.features.music && (
             <button
               className={`music-btn ${prefs?.shareMusic ? 'on' : ''}`}
               onClick={() => void lex.setPrefs({ shareMusic: !prefs?.shareMusic })}
@@ -152,6 +153,7 @@ export function ContactList() {
             >
               🎵
             </button>
+            )}
           </div>
           {presence?.musicError && <div className="music-error">{presence.musicError}</div>}
         </div>
@@ -182,7 +184,7 @@ export function ContactList() {
                     aria-selected={selected === c.id}
                     tabIndex={0}
                     className={`contact ${selected === c.id ? 'selected' : ''} ${c.unread ? 'has-unread' : ''}`}
-                    onClick={() => setSelected(c.id)}
+                    onClick={() => (lex.features.mobile ? lex.openChat(c.id) : setSelected(c.id))}
                     onDoubleClick={() => lex.openChat(c.id)}
                     onKeyDown={(e) => e.key === 'Enter' && lex.openChat(c.id)}
                     title={[c.subtitle, c.lastMessage && `Última mensagem: ${c.lastMessage}`].filter(Boolean).join('\n')}
@@ -205,7 +207,9 @@ export function ContactList() {
         })}
       </div>
 
-      <footer className="list-foot">Clique duas vezes em um contato para conversar.</footer>
+      <footer className="list-foot">
+        {lex.features.mobile ? 'Toque em um contato para conversar.' : 'Clique duas vezes em um contato para conversar.'}
+      </footer>
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
     </div>
   );

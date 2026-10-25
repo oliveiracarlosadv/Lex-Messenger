@@ -1,0 +1,14 @@
+{
+  "appId": "br.com.lextecnologias.messenger",
+  "appName": "Lex Messenger",
+  "webDir": "dist-mobile",
+  "android": {
+    "backgroundColor": "#dfeaf7"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_lex",
+      "iconColor": "#2b6cc4"
+    }
+  }
+}

@@ -27,6 +27,15 @@ function output(): { c: AudioContext; dest: AudioNode } {
   return { c: ctx, dest: out! };
 }
 
+/** No celular, o som só é liberado depois do primeiro toque na tela. */
+export function unlockAudio() {
+  try {
+    output();
+  } catch {
+    /* sem áudio */
+  }
+}
+
 /** Sininho: síntese FM com brilho que some rápido e corpo que dura mais. */
 function bell(freq: number, start: number, dur = 0.7, vol = 0.3) {
   const { c, dest } = output();

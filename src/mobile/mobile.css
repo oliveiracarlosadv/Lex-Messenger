@@ -1,0 +1,132 @@
+/* Ajustes para o celular: telas cheias, toques maiores e áreas seguras (entalhe da câmera). */
+body.mobile {
+  font-size: 15px;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.screen {
+  position: absolute;
+  inset: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--sky-1), var(--sky-2) 55%, var(--sky-3));
+}
+.list-screen.behind {
+  visibility: hidden;
+}
+.chat-screen {
+  z-index: 5;
+  animation: slide-in 0.2s ease-out;
+}
+@keyframes slide-in {
+  from {
+    transform: translateX(30%);
+    opacity: 0.4;
+  }
+}
+.screen > .list-window,
+.screen > .chat-window {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 0;
+  background: #fff;
+}
+.back-btn {
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 6px 8px;
+}
+
+/* Lista */
+.mobile .contact {
+  padding: 9px 12px 9px 22px;
+}
+.mobile .group-title {
+  padding: 10px 12px 4px;
+}
+.mobile .search input {
+  padding: 9px 11px;
+  font-size: 15px;
+}
+
+/* Conversa: sem a coluna de fotos; barra de ferramentas compacta */
+.mobile .chat-right {
+  display: none;
+}
+.mobile .chat-main {
+  padding: 8px;
+}
+.mobile .chat-toolbar {
+  overflow-x: auto;
+}
+.mobile .tool-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.mobile .compose textarea {
+  height: 52px;
+  font-size: 15px;
+}
+.mobile .btn-send {
+  width: 72px;
+}
+.mobile .media-thumb img {
+  max-width: 100%;
+}
+.mobile .picker {
+  grid-template-columns: repeat(7, 38px);
+}
+.mobile .picker button {
+  height: 38px;
+  font-size: 22px;
+}
+.mobile .modal-back {
+  padding-top: calc(env(safe-area-inset-top) + 12px);
+}
+
+/* Aviso estilo MSN, descendo do topo */
+.mobile-toast {
+  position: fixed;
+  z-index: 60;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 8px;
+  right: 8px;
+  inset: auto;
+  width: calc(100% - 16px);
+  margin: 0 8px;
+  top: calc(env(safe-area-inset-top) + 8px);
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  animation: toast-down 0.25s ease-out;
+}
+@keyframes toast-down {
+  from {
+    transform: translateY(-120%);
+  }
+}
+
+/* Chamar atenção: a tela treme */
+body.shake .mobile-shell {
+  animation: shake 0.6s;
+}
+@keyframes shake {
+  10%, 50%, 90% { transform: translate(-8px, 2px); }
+  30%, 70% { transform: translate(8px, -2px); }
+  100% { transform: none; }
+}

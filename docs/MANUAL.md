@@ -16,6 +16,27 @@
 2. Se aparecer “O Windows protegeu o computador”, clique em **Mais informações > Executar assim mesmo**.
 3. Siga o assistente. Um atalho é criado na Área de Trabalho.
 
+### Android
+1. No celular, abra a [página de downloads](https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest) e
+   toque em **LexMessenger-Android.apk**.
+2. Quando o download terminar, toque no arquivo. O Android avisa que, por segurança, não instala apps desta fonte:
+   toque em **Configurações**, ative **Permitir desta fonte** e volte.
+3. Toque em **Instalar**. Se aparecer um aviso do Google Play Protect, toque em **Instalar mesmo assim** (o app ainda
+   não está na Play Store).
+4. Abra o **Lex Messenger** e toque em **Entrar com número de telefone**. O Telegram manda o código dentro do próprio
+   app do Telegram, no mesmo celular: copie e volte para o Lex.
+5. Permita as **notificações** quando o Android perguntar.
+
+**No celular é um pouco diferente:**
+- A lista de contatos é a tela inicial; **toque** num contato para abrir a conversa e use **‹ Contatos** ou o botão
+  voltar do Android para sair dela.
+- O aviso de mensagem aparece no **topo da tela** com o app aberto; com o app em segundo plano, vira notificação do
+  Android.
+- **Chamar atenção** faz o celular **vibrar** e a tela tremer.
+- Arquivos recebidos abrem pelo menu **“Abrir com…”**; o botão **Compartilhar** permite salvar ou mandar para outro app.
+- Ainda não tem: “música que estou ouvindo” e avisos com o app **totalmente fechado** (virão numa próxima versão).
+  Se o Android fechar o app para economizar bateria, os avisos param até você abri-lo de novo.
+
 ## 2. Entrar com a sua conta do Telegram
 
 Você precisa ter uma conta no Telegram (no celular). Há dois jeitos de entrar:

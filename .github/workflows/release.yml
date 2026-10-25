@@ -50,9 +50,44 @@ jobs:
           name: instaladores-${{ matrix.os }}
           path: ${{ matrix.files }}
           if-no-files-found: error
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir chaves do Telegram
+        run: |
+          if [ -z "$TELEGRAM_API_ID" ] || [ -z "$TELEGRAM_API_HASH" ]; then
+            echo "::error::Cadastre os segredos TELEGRAM_API_ID e TELEGRAM_API_HASH."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build:mobile
+        env:
+          LEX_REQUIRE_KEYS: '1'
+      - run: npx cap sync android
+      - name: Gerar o .apk
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          mkdir -p ../release
+          cp app/build/outputs/apk/release/app-release.apk ../release/LexMessenger-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-android
+          path: release/*.apk
+          if-no-files-found: error
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -5,8 +5,9 @@ import { STATUS, STATUS_ORDER } from '../shared/status';
 import { NUDGE_TEXT, type Contact, type LexEvents, type MyStatus, type Prefs, type SoundName } from '../shared/types';
 import { loadPrefs, savePrefs } from './store';
 import { enableDemo, loginSnapshot, snapshot } from './demo';
-import { PresenceManager } from './presence';
-import { TelegramService } from './telegram';
+import { PresenceManager } from '../core/presence';
+import { TelegramService } from '../core/telegram';
+import { desktopPlatform, desktopPresence } from './platform';
 import { showToast, type ToastData } from './toast';
 
 app.setName('Lex Messenger');
@@ -39,7 +40,8 @@ function playSound(name: SoundName) {
   listWin?.webContents.send('sound', name);
 }
 
-const tg = new TelegramService({
+const tg = new TelegramService(
+  {
   emit,
   isChatOpenAndFocused: (chatId) => {
     const w = chatWins.get(chatId);
@@ -83,7 +85,9 @@ const tg = new TelegramService({
     const body = msg.text || (msg.media ? 'enviou um anexo 📎' : '');
     toastFor(msg.chatId, contact, msg.senderName, body, 'message');
   },
-});
+  },
+  desktopPlatform,
+);
 
 const presence = new PresenceManager(
   tg,
@@ -97,6 +101,7 @@ const presence = new PresenceManager(
     emit('presence:changed', info);
     buildMenus();
   },
+  desktopPresence,
 );
 
 // ---------- Avisos no canto da tela (estilo MSN) ----------

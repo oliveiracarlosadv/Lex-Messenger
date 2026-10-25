@@ -1,8 +1,6 @@
 // Conexão com o Telegram (conta do próprio usuário, via MTProto/GramJS).
-import { app, nativeImage, shell } from 'electron';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir, release } from 'node:os';
-import { basename, extname, join } from 'node:path';
+// Este "motor" roda igual no Mac/Windows (Electron) e no Android (Capacitor). O que muda de um para o outro
+// (onde guardar a sessão, salvar e abrir arquivos, cortar a foto) vem da "Platform" de cada um.
 import { Api, TelegramClient, utils } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { NewMessage, NewMessageEvent, Raw } from 'telegram/events';
@@ -21,7 +19,6 @@ import {
   type Presence,
 } from '../shared/types';
 import { parseBio } from '../shared/status';
-import { clearSession, loadSession, saveSession } from './store';
 
 declare const __API_ID__: string;
 declare const __API_HASH__: string;
@@ -30,6 +27,28 @@ declare const __APP_VERSION__: string;
 const API_ID = Number(__API_ID__);
 const API_HASH = __API_HASH__;
 const AWAY_AFTER_MS = 10 * 60 * 1000;
+
+/** Um arquivo para enviar: caminho no disco (computador) ou bytes já lidos (celular). */
+export type FileInput = string | { name: string; data: Uint8Array };
+
+export interface Platform {
+  deviceModel: string;
+  systemVersion: string;
+  /** Conexão por WebSocket seguro (necessária dentro de um app de celular/navegador). */
+  useWSS?: boolean;
+  loadSession(): Promise<string>;
+  saveSession(value: string): Promise<void>;
+  clearSession(): Promise<void>;
+  /** Guarda um arquivo baixado e devolve uma referência para abrir depois. */
+  saveDownload(name: string, data: Buffer): Promise<string>;
+  hasDownload(ref: string): Promise<boolean>;
+  openFile(ref: string): Promise<void>;
+  revealFile(ref: string): Promise<void>;
+  /** Foto de perfil: corta em quadrado, reduz e devolve JPEG. */
+  squareJpeg(input: FileInput): Promise<Buffer>;
+}
+
+const fileName = (f: FileInput) => (typeof f === 'string' ? f.split(/[\\/]/).pop() || 'arquivo' : f.name);
 
 export interface Hooks {
   emit<K extends keyof LexEvents>(event: K, data: LexEvents[K]): void;
@@ -180,7 +199,10 @@ export class TelegramService {
   private reloadTimer: NodeJS.Timeout | null = null;
   private lastTypingSent = new Map<string, number>();
 
-  constructor(private hooks: Hooks) {}
+  constructor(
+    private hooks: Hooks,
+    private platform: Platform,
+  ) {}
 
   get hasKeys() {
     return Number.isFinite(API_ID) && API_ID > 0 && API_HASH.length > 10;
@@ -198,8 +220,9 @@ export class TelegramService {
   private newClient(session = '') {
     const client = new TelegramClient(new StringSession(session), API_ID, API_HASH, {
       connectionRetries: 10,
-      deviceModel: process.platform === 'darwin' ? 'Lex Messenger (Mac)' : 'Lex Messenger (Windows)',
-      systemVersion: `${process.platform === 'darwin' ? 'macOS' : 'Windows'} ${release()}`,
+      deviceModel: this.platform.deviceModel,
+      systemVersion: this.platform.systemVersion,
+      useWSS: this.platform.useWSS,
       appVersion: __APP_VERSION__,
       langCode: 'pt',
       systemLangCode: 'pt-BR',
@@ -214,7 +237,7 @@ export class TelegramService {
   async init(appearOffline: boolean) {
     this.appearOffline = appearOffline;
     if (!this.hasKeys) return this.setState('logged-out');
-    const saved = loadSession();
+    const saved = await this.platform.loadSession();
     if (!saved) return this.setState('logged-out');
     this.setState('connecting');
     try {
@@ -304,7 +327,7 @@ export class TelegramService {
         });
       }
       if (this.cancelled) return;
-      saveSession((client.session as StringSession).save());
+      await this.platform.saveSession((client.session as StringSession).save());
       this.hooks.emit('login:step', { step: 'done' });
       await this.afterLogin();
     } catch (e) {
@@ -326,7 +349,7 @@ export class TelegramService {
     }
     await this.client?.destroy().catch(() => {});
     this.client = null;
-    clearSession();
+    await this.platform.clearSession();
     this.contacts.clear();
     this.entities.clear();
     this.avatars.clear();
@@ -686,14 +709,16 @@ export class TelegramService {
     await this.emitSent(chatId, sent);
   }
 
-  async sendFiles(chatId: string, paths: string[]) {
+  async sendFiles(chatId: string, files: FileInput[]) {
     if (!this.client) return;
-    for (const [i, path] of paths.entries()) {
-      const label = paths.length > 1 ? `Enviando ${basename(path)} (${i + 1} de ${paths.length})` : `Enviando ${basename(path)}`;
+    for (const [i, f] of files.entries()) {
+      const name = fileName(f);
+      const label = files.length > 1 ? `Enviando ${name} (${i + 1} de ${files.length})` : `Enviando ${name}`;
       this.hooks.emit('send:progress', { chatId, label, progress: 0 });
       try {
+        const file = typeof f === 'string' ? f : new CustomFile(f.name, f.data.length, '', Buffer.from(f.data));
         const sent = await this.client.sendFile(this.entity(chatId), {
-          file: path,
+          file,
           workers: 4,
           progressCallback: (p) => this.hooks.emit('send:progress', { chatId, label, progress: Number(p) }),
         });
@@ -707,9 +732,8 @@ export class TelegramService {
   async sendImageData(chatId: string, dataUrl: string) {
     const m = dataUrl.match(/^data:image\/(png|jpeg|gif|webp);base64,(.+)$/);
     if (!m) return;
-    const file = join(tmpdir(), `imagem-colada-${Date.now()}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`);
-    writeFileSync(file, Buffer.from(m[2], 'base64'));
-    await this.sendFiles(chatId, [file]);
+    const name = `imagem-colada-${Date.now()}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`;
+    await this.sendFiles(chatId, [{ name, data: Buffer.from(m[2], 'base64') }]);
   }
 
   typing(chatId: string) {
@@ -783,41 +807,35 @@ export class TelegramService {
   private async download(chatId: string, msgId: number): Promise<string | null> {
     const key = `${chatId}:${msgId}`;
     const cached = this.downloaded.get(key);
-    if (cached && existsSync(cached)) return cached;
+    if (cached && (await this.platform.hasDownload(cached))) return cached;
     const msg = await this.getMessage(chatId, msgId);
     const info = msg && mediaOf(msg);
     if (!msg || !info) return null;
-    const dir = join(app.getPath('downloads'), 'Lex Messenger');
-    mkdirSync(dir, { recursive: true });
     const name = (info.name ?? `arquivo-${msgId}`).replace(/[/\\:]/g, '_');
-    let file = join(dir, name);
-    for (let n = 2; existsSync(file); n++) {
-      const ext = extname(name);
-      file = join(dir, `${basename(name, ext)} (${n})${ext}`);
-    }
     this.hooks.emit('send:progress', { chatId, label: `Baixando ${name}`, progress: 0 });
+    let ref: string;
     try {
       const buf = await this.client!.downloadMedia(msg, {
         progressCallback: (got, total) =>
           this.hooks.emit('send:progress', { chatId, label: `Baixando ${name}`, progress: Number(total) ? Number(got) / Number(total) : null }),
       });
       if (!buf || !Buffer.isBuffer(buf)) return null;
-      writeFileSync(file, buf);
+      ref = await this.platform.saveDownload(name, buf);
     } finally {
       this.hooks.emit('send:progress', { chatId, label: '', progress: null });
     }
-    this.downloaded.set(key, file);
-    return file;
+    this.downloaded.set(key, ref);
+    return ref;
   }
 
   async openMedia(chatId: string, msgId: number) {
     const file = await this.download(chatId, msgId);
-    if (file) await shell.openPath(file);
+    if (file) await this.platform.openFile(file);
   }
 
   async revealMedia(chatId: string, msgId: number) {
     const file = await this.download(chatId, msgId);
-    if (file) shell.showItemInFolder(file);
+    if (file) await this.platform.revealFile(file);
   }
 
   // ---------- Meu perfil: status, bio, nome e foto ----------
@@ -855,14 +873,9 @@ export class TelegramService {
   }
 
   /** Corta a imagem em quadrado, reduz e envia como nova foto de perfil. */
-  async setPhoto(path: string) {
+  async setPhoto(input: FileInput) {
     if (!this.client || !this.me) return;
-    const img = nativeImage.createFromPath(path);
-    if (img.isEmpty()) throw new Error('Não consegui abrir essa imagem. Use JPG ou PNG.');
-    const { width, height } = img.getSize();
-    const side = Math.min(width, height);
-    const square = img.crop({ x: Math.floor((width - side) / 2), y: Math.floor((height - side) / 2), width: side, height: side });
-    const jpeg = square.resize({ width: Math.min(side, 640), height: Math.min(side, 640), quality: 'best' }).toJPEG(90);
+    const jpeg = await this.platform.squareJpeg(input);
     const file = await this.client.uploadFile({ file: new CustomFile('foto.jpg', jpeg.length, '', jpeg), workers: 1 });
     await this.client.invoke(new Api.photos.UploadProfilePhoto({ file }));
     this.avatars.delete('me');

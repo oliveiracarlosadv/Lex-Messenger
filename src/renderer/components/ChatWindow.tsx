@@ -274,14 +274,15 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                 <textarea
                   ref={inputRef}
                   value={text}
-                  placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter pula linha)"
+                  placeholder={lex.features.mobile ? 'Escreva sua mensagem…' : 'Escreva sua mensagem… (Enter envia, Shift+Enter pula linha)'}
                   onChange={(e) => {
                     setText(e.target.value);
                     if (e.target.value) lex.typing(chatId);
                   }}
                   onPaste={onPaste}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    // No celular, Enter pula linha e o botão Enviar envia.
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !lex.features.mobile) {
                       e.preventDefault();
                       void send();
                     }
@@ -424,7 +425,7 @@ function Media({ m, chatId }: { m: ChatMessage; chatId: string }) {
             {busy ? 'Baixando…' : 'Abrir'}
           </button>
           <button className="link-btn" onClick={reveal} disabled={busy}>
-            Mostrar na pasta
+            {lex.features.mobile ? 'Compartilhar' : 'Mostrar na pasta'}
           </button>
         </div>
       )}

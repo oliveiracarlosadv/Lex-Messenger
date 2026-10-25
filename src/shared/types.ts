@@ -116,6 +116,8 @@ export interface LexEvents {
 export interface LexApi {
   version: string;
   platform: string;
+  /** O que esta plataforma oferece (o celular não tem janelas separadas nem leitura de música). */
+  features: { music: boolean; mobile: boolean };
   on<K extends keyof LexEvents>(event: K, cb: (data: LexEvents[K]) => void): () => void;
   authState(): Promise<AuthState>;
   loginStart(method: 'phone' | 'qr'): Promise<void>;

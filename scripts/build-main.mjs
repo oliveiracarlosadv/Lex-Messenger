@@ -1,25 +1,9 @@
 // Compila o processo principal e o preload do Electron.
 // Lê as chaves do Telegram do arquivo .env e as embute no app.
 import { build, context } from 'esbuild';
-import { existsSync, readFileSync } from 'node:fs';
+import { appVersion, telegramKeys } from './env.mjs';
 
-const env = {};
-if (existsSync('.env')) {
-  for (const line of readFileSync('.env', 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/);
-    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
-  }
-}
-const apiId = process.env.TELEGRAM_API_ID || env.TELEGRAM_API_ID || '';
-const apiHash = process.env.TELEGRAM_API_HASH || env.TELEGRAM_API_HASH || '';
-if (!apiId || !apiHash) {
-  // Instalador para distribuir nunca pode sair sem as chaves: o usuário veria "Falta configurar o aplicativo".
-  if (process.env.LEX_REQUIRE_KEYS) {
-    console.error('Erro: faltam TELEGRAM_API_ID/TELEGRAM_API_HASH (.env ou segredos do GitHub). Instalador não gerado.');
-    process.exit(1);
-  }
-  console.warn('Aviso: TELEGRAM_API_ID/TELEGRAM_API_HASH ausentes no .env — o login não vai funcionar (só modo LEX_DEMO).');
-}
+const { apiId, apiHash } = telegramKeys();
 
 const common = {
   bundle: true,
@@ -31,7 +15,7 @@ const common = {
   define: {
     __API_ID__: JSON.stringify(apiId),
     __API_HASH__: JSON.stringify(apiHash),
-    __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version),
+    __APP_VERSION__: JSON.stringify(appVersion()),
   },
   logLevel: 'info',
 };
