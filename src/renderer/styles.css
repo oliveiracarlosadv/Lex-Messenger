@@ -2361,7 +2361,7 @@ body.toast-body {
   background: linear-gradient(180deg, #8fe866, #3aa52a);
   color: #fff;
 }
-.seg button.on.invisible {
+.seg button.on.invis {
   background: linear-gradient(180deg, #c9d2df, #7d8a9c);
   color: #fff;
 }
@@ -2408,7 +2408,7 @@ body.toast-body {
 }
 .off-sheet {
   position: fixed;
-  z-index: 80;
+  z-index: 90;
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);

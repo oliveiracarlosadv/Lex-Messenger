@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MyStatus, Prefs } from '../../shared/types';
 import { lex } from '../lib/api';
 
@@ -26,7 +26,14 @@ const untilText = (until: number) => {
 /** Online / Invisível / Desligado (com prazo) e Silencioso, sempre à mão no topo da lista. */
 export function QuickBar({ prefs }: { prefs: Prefs }) {
   const [offline, setOfflineState] = useState(prefs.offlineUntil === -1 || prefs.offlineUntil > Date.now() ? prefs.offlineUntil : 0);
-  const [sheet, setSheet] = useState(false);
+  const [sheet, setSheetState] = useState(false);
+  // O mesmo toque que abre o painel não pode fechá-lo (no iPhone o toque "vaza" para o fundo que aparece por baixo).
+  const openedAt = useRef(0);
+  const setSheet = (open: boolean) => {
+    if (!open && performance.now() - openedAt.current < 450) return;
+    if (open) openedAt.current = performance.now();
+    setSheetState(open);
+  };
   const [amount, setAmount] = useState('2');
   const [unit, setUnit] = useState(60);
 
@@ -43,7 +50,7 @@ export function QuickBar({ prefs }: { prefs: Prefs }) {
   };
 
   const off = async (minutes: number) => {
-    setSheet(false);
+    setSheetState(false);
     setOfflineState(minutes > 0 ? Date.now() + minutes * 60_000 : -1);
     await lex.setOffline(minutes);
   };
@@ -58,7 +65,7 @@ export function QuickBar({ prefs }: { prefs: Prefs }) {
           <button
             role="radio"
             aria-checked={mode === 'invisible'}
-            className={mode === 'invisible' ? 'on invisible' : ''}
+            className={mode === 'invisible' ? 'on invis' : ''}
             onClick={() => void goOnline('invisible')}
             title="Aparece offline para os outros, mas continua recebendo mensagens"
           >

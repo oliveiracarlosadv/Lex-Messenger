@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## v1.1.4
+- **Invisível** 👻: ao tocar, o botão sumia da tela (parecia que nada acontecia). Agora fica marcado em cinza.
+- **Desligado** ⏻: o painel de "por quanto tempo" ficava por baixo do fundo escuro e, no iPhone, fechava no mesmo toque. Agora abre por cima e fica aberto.
+
 ## v1.1.3
 - **Código de entrada por SMS** 📩 em todas as versões (Mac, Windows, Android e iPhone): o Lex pede ao Telegram para mandar o código por mensagem de texto ao número informado. Se o Telegram não oferecer SMS para aquele número, o código chega pelo app do Telegram, como antes.
 - **iPhone: anexar fotos e arquivos** pelo 📎 e pela 🖼️ galeria voltou a funcionar no app instalado.
