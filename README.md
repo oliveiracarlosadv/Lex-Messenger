@@ -52,7 +52,7 @@ O **Lex Messenger** volta ao essencial. É **conversa pura**:
 - **Sem feed de canais.** A lista é das pessoas e dos grupos com quem você fala.
 - **Sem propaganda.** Nenhum anúncio, nenhum patrocinado, nenhum rastreador.
 - **Sem servidor no meio.** O app fala direto com o Telegram. Nada passa por nós, nada é coletado.
-- **Sem custo.** É gratuito e o código está todo aqui, aberto, para quem quiser conferir.
+- **Sem custo.** É gratuito e software livre: o código está todo aqui, sob a licença GPL-3.0, para quem quiser conferir.
 
 Ele usa a **API oficial do Telegram**, então você entra com a sua conta de sempre e conversa com qualquer pessoa que
 tenha Telegram, use ela o Lex ou não. Tudo o que é conversa está aqui: texto, áudio, foto, vídeo, recado, arquivos,
@@ -120,6 +120,12 @@ Passo a passo completo, com o primeiro acesso: [Manual](docs/MANUAL.md).
 O Lex Messenger conversa **direto** com o Telegram. Não há servidor nosso no meio, nem coleta de dados. A sessão fica
 guardada criptografada no seu computador (no Mac, pelo Chaveiro). Detalhes em [Privacidade](docs/PRIVACIDADE.md).
 
+## Licença
+
+O Lex Messenger é **software livre**, sob a [Licença Pública Geral GNU, versão 3 (GPL-3.0)](LICENSE). Você pode usar,
+estudar, copiar, modificar e redistribuir. Quem distribuir uma versão modificada precisa mantê-la aberta, sob a mesma
+licença, com os créditos do autor.
+
 ## Para desenvolvedores
 
 Electron (computador) e Capacitor (Android) + React + TypeScript + Vite + Tailwind, com [GramJS](https://github.com/gram-js/gramjs) (MTProto).
@@ -127,6 +133,6 @@ Como compilar e publicar: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ---
 
-<sub>Lex Messenger © 2026 Carlos Alexandre Albuquerque Oliveira · Lex Tecnologias. Gratuito e de código aberto.<br>
+<sub>Lex Messenger © 2026 Carlos Alexandre Albuquerque Oliveira · Lex Tecnologias. Software livre, licença <a href="LICENSE">GPL-3.0</a>.<br>
 O Lex Messenger é um aplicativo independente. Não é afiliado ao Telegram nem à Microsoft.
 “Telegram” e “MSN” são marcas de seus respectivos donos; o visual é apenas uma homenagem, com desenhos e sons próprios.</sub>

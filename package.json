@@ -18,7 +18,7 @@
     "manual": "npx electron scripts/make-manual-pdf.cjs"
   },
   "author": "Carlos Alexandre Albuquerque Oliveira (Lex Tecnologias)",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-only",
   "type": "commonjs",
   "dependencies": {
     "@capacitor/android": "^8.5.3",

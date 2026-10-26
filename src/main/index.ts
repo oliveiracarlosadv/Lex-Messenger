@@ -671,7 +671,7 @@ if (!app.requestSingleInstanceLock()) {
       applicationName: 'Lex Messenger',
       applicationVersion: app.getVersion(),
       copyright: '© 2026 Carlos Alexandre Albuquerque Oliveira · Lex Tecnologias',
-      credits: 'Comunicação em primeiro lugar!\nConversa pura: sem stories, sem canais, sem propaganda. Gratuito e de código aberto.',
+      credits: 'Comunicação em primeiro lugar!\nConversa pura: sem stories, sem canais, sem propaganda. Gratuito, software livre (GPL-3.0).',
     });
     registerIpc();
     void desktopPlatform.clearTemp(); // restos de uma sessão anterior que não fechou direito

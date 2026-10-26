@@ -15,8 +15,8 @@ avisos de tudo o que não é gente falando com gente. A mensagem de quem importa
 - 💬 **Só conversa.** Pessoas e grupos com quem você fala. Mais nada.
 - 🚫 **Sem stories, sem feed de canais, sem propaganda.** Ficaram de fora de propósito.
 - 🔒 **Sem servidor no meio.** O app fala direto com o Telegram. Nada passa por nós, nada é coletado.
-- 🎁 **Gratuito e de código aberto.** Sem assinatura, sem versão “pro”. O código está todo no GitHub, para quem
-  quiser conferir.
+- 🎁 **Gratuito e software livre.** Sem assinatura, sem versão “pro”. O código está todo no GitHub, sob a licença
+  **GPL-3.0**: qualquer pessoa pode conferir, melhorar e compartilhar, desde que mantenha aberto.
 
 ## Com a sua conta do Telegram
 

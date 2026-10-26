@@ -12,7 +12,10 @@ Termos de Uso do Lex Messenger
    responde por perda de mensagens, indisponibilidade do Telegram ou uso indevido da conta. Para assuntos sigilosos,
    avalie os recursos de segurança do próprio Telegram (como os Chats Secretos, que este app não abre).
 4. Marcas. “Telegram” e “MSN” pertencem a seus donos. O Lex Messenger usa desenhos, ícones e sons próprios.
-5. Código aberto. O código-fonte está disponível em https://github.com/oliveiracarlosadv/Lex-Messenger.
+5. Código aberto. O código-fonte está disponível em https://github.com/oliveiracarlosadv/Lex-Messenger. O Lex Messenger é software livre, distribuído sob a
+   Licença Pública Geral GNU, versão 3 (GPL-3.0) (arquivo LICENSE). Você pode usar, estudar, copiar, modificar e
+   redistribuir o app; quem distribuir uma versão modificada deve mantê-la sob a mesma licença, com o código-fonte
+   disponível e os créditos do autor.
 6. Mudanças. Estes termos podem ser atualizados em novas versões; a data acima indica a versão vigente.
 7. Foro. Aplica-se a lei brasileira.
 
