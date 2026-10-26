@@ -47,7 +47,7 @@ public class LexPushService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage message) {
         try {
             String p = message.getData().get("p");
-            if (p == null) return;
+            if (p == null || MainActivity.visible) return; // com o app na tela, o próprio app avisa
             JSONObject json = decrypt(pushKey(this), Base64.decode(p, Base64.URL_SAFE | Base64.NO_WRAP));
             if (json == null) return;
             show(json);

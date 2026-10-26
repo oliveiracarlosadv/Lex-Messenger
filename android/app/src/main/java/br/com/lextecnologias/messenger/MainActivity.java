@@ -10,6 +10,9 @@ import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    /** O app está na tela? (aí quem avisa é o próprio app, não o push). */
+    static volatile boolean visible = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LexNativePlugin.class);
@@ -29,6 +32,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStart() {
         super.onStart();
+        visible = true;
         if (Build.VERSION.SDK_INT >= 34) {
             shotCallback = () -> LexNativePlugin.capture("screenshot");
             registerScreenCaptureCallback(getMainExecutor(), shotCallback);
@@ -43,6 +47,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onStop() {
+        visible = false;
         if (Build.VERSION.SDK_INT >= 34 && shotCallback != null) unregisterScreenCaptureCallback(shotCallback);
         if (Build.VERSION.SDK_INT >= 35 && recordingCallback != null) getWindowManager().removeScreenRecordingCallback(recordingCallback);
         super.onStop();

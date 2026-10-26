@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## v1.0.2
+- **Android: avisos com o app fechado** 🔔 pelo sistema de notificações do Google (Firebase), como no Telegram e no WhatsApp: as mensagens chegam mesmo depois de deslizar o app para fora da tela, sem o aviso fixo "Conectado".
+- O app pede para não ser limitado pela economia de bateria (Samsung, Xiaomi e outros seguram avisos de apps "adormecidos").
+
 ## v1.0.1
 - **Nova conversa** ✏️: contatos do Telegram (mesmo sem conversa ainda), **agenda do celular** no Android mostrando quem tem Telegram, busca por número e **convite por SMS** para quem não tem.
 - **Limpar conversa** 🧹: apaga todas as mensagens (para mim ou para os dois) e mantém a conversa na lista, com o aviso de que toda a conversa será limpa.

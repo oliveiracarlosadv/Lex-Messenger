@@ -237,7 +237,8 @@ export class MobileBridge {
       console.warn('Push indisponível:', e);
     }
     await this.applyBackground();
-    if (!this.pushToken && this.prefs.background && !this.prefs.batteryAsked) {
+    // Mesmo com push, a liberação de bateria evita que Samsung/Xiaomi segurem os avisos com o app fechado.
+    if (this.prefs.background && !this.prefs.batteryAsked) {
       const { unrestricted } = await LexNative.batteryStatus().catch(() => ({ unrestricted: true }));
       await this.savePrefs({ batteryAsked: true });
       if (!unrestricted) await LexNative.requestBatteryExemption().catch(() => {});
