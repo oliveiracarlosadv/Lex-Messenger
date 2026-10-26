@@ -279,12 +279,12 @@ export class MobileBridge {
   }
 
   /** photoId: de quem é a foto (num grupo, a de quem mandou; senão, a da conversa). */
-  private notify(chatId: string, title: string, body: string, actionTypeId?: string, photoId = chatId) {
+  private notify(chatId: string, title: string, body: string, actionTypeId?: string, photoId = chatId, msgId?: number) {
     if (!this.prefs.notifications) return;
     const id = this.notifId++;
     this.shown.set(chatId, [...(this.shown.get(chatId) ?? []), id]);
-    // Com push ligado e o app em segundo plano, quem avisa é o push (evita aviso duplicado).
-    if (this.pushToken && document.visibilityState !== 'visible') return;
+    // O app conectado sempre avisa (com o app em segundo plano o Telegram não manda o push, porque a conexão está aberta).
+    // Se o push do Google também chegar, o Android mostra só um aviso por mensagem (chave conversa:mensagem).
     if (isAndroid) {
       // Notificação nativa do Lex, com a foto redonda de quem mandou.
       void this.tg
@@ -301,6 +301,7 @@ export class MobileBridge {
             avatar: url?.split(',')[1],
             silent: this.prefs.silent,
             nudge: actionTypeId === 'NUDGE',
+            key: msgId ? `${chatId}:${msgId}` : undefined,
           });
         })
         .catch(() => {});
@@ -365,7 +366,7 @@ export class MobileBridge {
         if (this.currentChat !== m.chatId) this.emit('nudge-popup', { chatId: m.chatId, name: who, hasPhoto: !!c?.hasPhoto });
       }
       // Na barra de notificações, sempre: "Fulano chamou a sua atenção! Deseja abrir a conversa?" com botões.
-      if (!(visible && this.currentChat === m.chatId)) this.notify(m.chatId, `📳 ${who} chamou a sua atenção!`, 'Deseja abrir a conversa?', 'NUDGE', inGroup ? m.senderId : m.chatId);
+      if (!(visible && this.currentChat === m.chatId)) this.notify(m.chatId, `📳 ${who} chamou a sua atenção!`, 'Deseja abrir a conversa?', 'NUDGE', inGroup ? m.senderId : m.chatId, m.id);
       return;
     }
     if (this.currentChat === m.chatId && visible) return;
@@ -374,7 +375,7 @@ export class MobileBridge {
       this.sound('message');
       if (this.prefs.notifications && !this.prefs.silent)
         this.emit('toast', { kind: 'message', chatId: m.chatId, title, body, hasPhoto: !!c?.hasPhoto, name: c?.name ?? m.senderName });
-    } else this.notify(m.chatId, `${title} diz:`, body, undefined, inGroup ? m.senderId : m.chatId);
+    } else this.notify(m.chatId, `${title} diz:`, body, undefined, inGroup ? m.senderId : m.chatId, m.id);
   }
 
   private onContactOnline(c: Contact) {

@@ -158,7 +158,8 @@ public class LexNativePlugin extends Plugin {
                 call.getString("body", ""),
                 call.getString("avatar", null),
                 Boolean.TRUE.equals(call.getBoolean("silent", false)),
-                Boolean.TRUE.equals(call.getBoolean("nudge", false)));
+                Boolean.TRUE.equals(call.getBoolean("nudge", false)),
+                call.getString("key", null));
         call.resolve();
     }
 

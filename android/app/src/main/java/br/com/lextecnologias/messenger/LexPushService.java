@@ -183,7 +183,8 @@ public class LexPushService extends FirebaseMessagingService {
         String avatar = group && !fromId.isEmpty() ? avatars.getString(fromId, null) : null;
         if (avatar == null) avatar = avatars.getString(chatId, null);
         int id = (int) (System.currentTimeMillis() & 0x7fffffff);
-        LexNotifier.show(this, id, chatId, title, body, avatar, silent, nudge);
+        String key = custom != null && custom.has("msg_id") ? chatId + ":" + custom.optString("msg_id") : null;
+        LexNotifier.show(this, id, chatId, title, body, avatar, silent, nudge, key);
         return true;
     }
 }

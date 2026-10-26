@@ -10,7 +10,7 @@ export interface LexNativePlugin {
   musicAccess(): Promise<{ granted: boolean }>;
   requestMusicAccess(): Promise<void>;
   nowPlaying(): Promise<{ granted: boolean; title?: string; artist?: string }>;
-  notify(o: { id: number; chatId: string; title: string; body: string; avatar?: string; silent?: boolean; nudge?: boolean }): Promise<void>;
+  notify(o: { id: number; chatId: string; title: string; body: string; avatar?: string; silent?: boolean; nudge?: boolean; key?: string }): Promise<void>;
   cancel(o: { ids: number[] }): Promise<void>;
   takePendingOpen(): Promise<{ chatId?: string | null }>;
   pushSetup(): Promise<{ token?: string; secret?: string; error?: string }>;

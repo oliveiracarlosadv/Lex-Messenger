@@ -94,7 +94,22 @@ public class LexNotifier {
         return PendingIntent.getActivity(ctx, requestCode, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** Mensagens já avisadas (o app conectado e o push do Google podem avisar a mesma mensagem). */
+    private static final java.util.LinkedHashSet<String> recent = new java.util.LinkedHashSet<>();
+
+    static synchronized boolean firstTime(String key) {
+        if (key == null || key.isEmpty() || key.endsWith(":")) return true;
+        if (!recent.add(key)) return false;
+        if (recent.size() > 300) recent.remove(recent.iterator().next());
+        return true;
+    }
+
     static void show(Context ctx, int id, String chatId, String title, String body, String avatarB64, boolean silent, boolean nudge) {
+        show(ctx, id, chatId, title, body, avatarB64, silent, nudge, null);
+    }
+
+    static void show(Context ctx, int id, String chatId, String title, String body, String avatarB64, boolean silent, boolean nudge, String key) {
+        if (!firstTime(key)) return;
         channels(ctx);
         Bitmap avatar = null;
         if (avatarB64 != null && !avatarB64.isEmpty()) {

@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## v1.1.5
+- **Android: avisos com o app em segundo plano** voltaram. Com o Lex conectado, o Telegram não manda o aviso pelo Google, e o app esperava por ele; agora o próprio app avisa, e o Android mostra só um aviso por mensagem, mesmo que o aviso do Google também chegue.
+
 ## v1.1.4
 - **Invisível** 👻: ao tocar, o botão sumia da tela (parecia que nada acontecia). Agora fica marcado em cinza.
 - **Desligado** ⏻: o painel de "por quanto tempo" ficava por baixo do fundo escuro e, no iPhone, fechava no mesmo toque. Agora abre por cima e fica aberto.
