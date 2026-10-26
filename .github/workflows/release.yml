@@ -83,8 +83,23 @@ jobs:
           else
             echo "::warning::Sem GOOGLE_SERVICES_JSON: o .apk sai sem notificações push (usa o modo conectado em segundo plano)."
           fi
+      - name: Chave de assinatura do Android (segredo)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/lex.keystore"
+            echo "LEX_KEYSTORE_FILE=$RUNNER_TEMP/lex.keystore" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::Cadastre os segredos ANDROID_KEYSTORE_BASE64 e ANDROID_KEYSTORE_PASSWORD antes de publicar."
+            exit 1
+          else
+            echo "::warning::Sem a chave oficial: o .apk de teste sai com assinatura de depuração."
+          fi
       - name: Gerar o .apk
         working-directory: android
+        env:
+          LEX_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon

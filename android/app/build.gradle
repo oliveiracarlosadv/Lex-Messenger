@@ -19,22 +19,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // Assinatura de TESTE (senha pública, guardada no repositório) para o .apk distribuído pelo GitHub:
-    // assim cada versão nova instala por cima da anterior. Para a Play Store, usar uma chave própria e secreta.
+    // Assinatura oficial: a chave é secreta e fica fora do repositório. No GitHub ela vem dos segredos
+    // ANDROID_KEYSTORE_BASE64 e ANDROID_KEYSTORE_PASSWORD; no computador, de LEX_KEYSTORE_FILE e LEX_KEYSTORE_PASSWORD.
+    // Sem a chave, o .apk sai com a assinatura de depuração (só para testes locais).
+    def ksFile = System.getenv('LEX_KEYSTORE_FILE')
+    def ksPass = System.getenv('LEX_KEYSTORE_PASSWORD')
+    def hasKey = ksFile && ksPass && file(ksFile).exists()
     signingConfigs {
-        lexTeste {
-            storeFile file('lex-teste.keystore')
-            storePassword 'lexmessenger'
-            keyAlias 'lex'
-            keyPassword 'lexmessenger'
+        if (hasKey) {
+            lexOficial {
+                storeFile file(ksFile)
+                storePassword ksPass
+                keyAlias 'lex'
+                keyPassword ksPass
+            }
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.lexTeste
-        }
         release {
-            signingConfig signingConfigs.lexTeste
+            signingConfig hasKey ? signingConfigs.lexOficial : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

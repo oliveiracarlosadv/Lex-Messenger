@@ -1,6 +1,7 @@
 # Histórico de versões
 
 ## v1.1.1
+- **Android: nova assinatura oficial e secreta** 🔐. A assinatura antiga estava pública e permitiria a alguém criar um app falso com o nome Lex. **Uma única vez**, desinstale o Lex do Android e instale esta versão (no Obtainium: remova o app e adicione de novo). Suas conversas não se perdem: ficam no Telegram; só é preciso entrar de novo.
 - **Sobre**: apresentação da Lex Tecnologias (lawtech de Belém/PA), missão e valores.
 - **Privacidade** atualizada: avisos do Android pelo Firebase (criptografados, o Google não lê), fotos dos avisos, widget e app do iPhone.
 

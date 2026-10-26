@@ -6,3 +6,5 @@ release/
 .DS_Store
 dist-mobile/
 android/app/google-services.json
+android/app/*.keystore
+*.jks
