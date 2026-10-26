@@ -95,9 +95,47 @@ jobs:
           name: instaladores-android
           path: release/*.apk
           if-no-files-found: error
+  ios:
+    # App do iPhone sem assinatura (.ipa): o Sideloadly (ou AltStore) assina com o Apple ID de quem instala.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir chaves do Telegram
+        run: |
+          if [ -z "$TELEGRAM_API_ID" ] || [ -z "$TELEGRAM_API_HASH" ]; then
+            echo "::error::Cadastre os segredos TELEGRAM_API_ID e TELEGRAM_API_HASH."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:mobile
+        env:
+          LEX_REQUIRE_KEYS: '1'
+      - run: npx cap sync ios
+      - name: Gerar o .ipa
+        run: |
+          set -o pipefail
+          v=$(node -p "require('./package.json').version")
+          code=$(node -p "v='$v'.split('.').map(Number); v[0]*10000+v[1]*100+v[2]")
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            MARKETING_VERSION="$v" CURRENT_PROJECT_VERSION="$code" build | tail -20
+          mkdir -p Payload release
+          cp -R build/ios/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr release/LexMessenger-iPhone.ipa Payload
+          ls -la release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-iphone
+          path: release/*.ipa
+          if-no-files-found: error
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, android]
+    needs: [build, android, ios]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

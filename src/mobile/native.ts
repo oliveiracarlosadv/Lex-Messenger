@@ -23,24 +23,25 @@ export interface LexNativePlugin {
   addListener(event: 'screenCapture', cb: (d: { kind: 'screenshot' | 'recording' | 'recording-stop' }) => void): Promise<{ remove: () => void }>;
 }
 
-export const LexNative = registerPlugin<LexNativePlugin>('LexNative', {
-  web: {
-    startKeepAlive: async () => {},
-    stopKeepAlive: async () => {},
-    batteryStatus: async () => ({ unrestricted: true }),
-    requestBatteryExemption: async () => {},
-    openNotificationSettings: async () => {},
-    musicAccess: async () => ({ granted: false }),
-    requestMusicAccess: async () => {},
-    nowPlaying: async () => ({ granted: false }),
-    notify: async () => {},
-    cancel: async () => {},
-    takePendingOpen: async () => ({ chatId: null }),
-    pushSetup: async () => ({}),
-    pushSilent: async () => {},
-    pushStatus: async () => ({ lastAt: 0, lastResult: '', count: 0 }),
-    cacheAvatar: async () => {},
-    clearAvatars: async () => {},
-    readContacts: async () => ({ granted: false, contacts: [] }),
-  } as unknown as LexNativePlugin,
-});
+// Sem as funções nativas próprias (navegador e app do iPhone): não fazem nada.
+const stub = {
+  startKeepAlive: async () => {},
+  stopKeepAlive: async () => {},
+  batteryStatus: async () => ({ unrestricted: true }),
+  requestBatteryExemption: async () => {},
+  openNotificationSettings: async () => {},
+  musicAccess: async () => ({ granted: false }),
+  requestMusicAccess: async () => {},
+  nowPlaying: async () => ({ granted: false }),
+  notify: async () => {},
+  cancel: async () => {},
+  takePendingOpen: async () => ({ chatId: null }),
+  pushSetup: async () => ({}),
+  pushSilent: async () => {},
+  pushStatus: async () => ({ lastAt: 0, lastResult: '', count: 0 }),
+  cacheAvatar: async () => {},
+  clearAvatars: async () => {},
+  readContacts: async () => ({ granted: false, contacts: [] }),
+} as unknown as LexNativePlugin;
+
+export const LexNative = registerPlugin<LexNativePlugin>('LexNative', { web: stub, ios: stub });

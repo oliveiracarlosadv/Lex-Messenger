@@ -8,6 +8,9 @@ import type { FileInput, Platform } from '../core/telegram';
 
 /** App instalado (Android) ou página aberta no navegador (iPhone pelo Safari). */
 export const isNative = Capacitor.isNativePlatform();
+/** App instalado no Android / no iPhone (o do iPhone não tem os recursos nativos próprios do Lex). */
+export const isAndroid = Capacitor.getPlatform() === 'android';
+export const isIOSApp = Capacitor.getPlatform() === 'ios';
 export const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 /** No navegador: entrega o arquivo ao sistema (no iPhone, abre a tela de Compartilhar/visualizar). */
@@ -42,7 +45,7 @@ async function shareFile(uri: string, title: string) {
 }
 
 export const mobilePlatform: Platform = {
-  deviceModel: isNative ? 'Lex Messenger (Android)' : isIOS ? 'Lex Messenger (iPhone)' : 'Lex Messenger (Web)',
+  deviceModel: isAndroid ? 'Lex Messenger (Android)' : isIOS ? 'Lex Messenger (iPhone)' : 'Lex Messenger (Web)',
   systemVersion:
     navigator.userAgent.match(/Android [\d.]+/)?.[0] ??
     (navigator.userAgent.match(/OS (\d+)_(\d+)/) ? `iOS ${RegExp.$1}.${RegExp.$2}` : 'Navegador'),

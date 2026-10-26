@@ -56,6 +56,37 @@ public class LexNotifier {
         return out;
     }
 
+    /** Sem foto: círculo colorido com a inicial do nome (a cor é sempre a mesma para a mesma conversa). */
+    static Bitmap initials(String name, String key) {
+        int size = 192;
+        int[] colors = {0xFF2B6CC4, 0xFF2E9E5B, 0xFFD9822B, 0xFF8E44AD, 0xFFC0392B, 0xFF16A085, 0xFF7F8C8D, 0xFFD35400};
+        int color = colors[Math.abs((key == null ? name : key).hashCode()) % colors.length];
+        String letter = "?";
+        if (name != null) {
+            for (int i = 0; i < name.length(); ) {
+                int cp = name.codePointAt(i);
+                if (Character.isLetterOrDigit(cp)) {
+                    letter = new String(Character.toChars(cp)).toUpperCase();
+                    break;
+                }
+                i += Character.charCount(cp);
+            }
+        }
+        Bitmap out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(out);
+        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bg.setColor(color);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, bg);
+        Paint t = new Paint(Paint.ANTI_ALIAS_FLAG);
+        t.setColor(0xFFFFFFFF);
+        t.setTextSize(size * 0.48f);
+        t.setTextAlign(Paint.Align.CENTER);
+        t.setFakeBoldText(true);
+        Paint.FontMetrics fm = t.getFontMetrics();
+        canvas.drawText(letter, size / 2f, size / 2f - (fm.ascent + fm.descent) / 2f, t);
+        return out;
+    }
+
     static PendingIntent openIntent(Context ctx, String chatId, int requestCode) {
         Intent i = new Intent(ctx, MainActivity.class)
                 .putExtra(EXTRA_CHAT, chatId)
@@ -74,6 +105,7 @@ public class LexNotifier {
             } catch (Exception ignored) {
             }
         }
+        if (avatar == null) avatar = initials(title.replaceFirst("^📳\\s*", ""), chatId);
         Person.Builder pb = new Person.Builder().setName(title);
         if (avatar != null) pb.setIcon(IconCompat.createWithBitmap(avatar));
         Person sender = pb.build();

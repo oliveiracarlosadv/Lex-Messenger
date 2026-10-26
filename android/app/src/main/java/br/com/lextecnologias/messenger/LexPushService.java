@@ -177,7 +177,11 @@ public class LexPushService extends FirebaseMessagingService {
         boolean silent = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("silent", false);
         String title = nudge ? "📳 " + who + " chamou a sua atenção!" : group && !where.isEmpty() ? who + " em " + where : who;
         if (nudge) body = "Deseja abrir a conversa?";
-        String avatar = getSharedPreferences("lex-avatars", MODE_PRIVATE).getString(chatId, null);
+        // Num grupo, a foto de quem mandou; senão (ou se não tiver), a da conversa.
+        SharedPreferences avatars = getSharedPreferences("lex-avatars", MODE_PRIVATE);
+        String fromId = custom != null ? custom.optString("from_id", "") : "";
+        String avatar = group && !fromId.isEmpty() ? avatars.getString(fromId, null) : null;
+        if (avatar == null) avatar = avatars.getString(chatId, null);
         int id = (int) (System.currentTimeMillis() & 0x7fffffff);
         LexNotifier.show(this, id, chatId, title, body, avatar, silent, nudge);
         return true;

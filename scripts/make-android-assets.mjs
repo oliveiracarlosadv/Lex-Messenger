@@ -69,4 +69,6 @@ png(legacy, 512, `${WEB}/icon-512.png`);
 const full = svg(1024, 1024, `<rect width="1024" height="1024" fill="url(#abg)"/><g transform="translate(512 512) scale(0.95) translate(-512 -555)">${bubbles}</g>`, bg);
 png(full, 180, `${WEB}/apple-touch-icon.png`);
 png(full, 512, `${WEB}/maskable-512.png`);
+// App nativo do iPhone (ícone único de 1024 px).
+png(full, 1024, 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
 console.log('ícones do iPhone/web gerados');

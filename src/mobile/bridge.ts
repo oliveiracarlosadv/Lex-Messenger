@@ -10,7 +10,8 @@ import { applyDemo } from '../shared/demoData';
 import { STATUS } from '../shared/status';
 import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents, type MyStatus, type Prefs } from '../shared/types';
 import { LexNative } from './native';
-import { isIOS, isNative, mobilePlatform, pickFiles } from './platform';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { isAndroid, isIOS, isIOSApp, mobilePlatform, pickFiles } from './platform';
 import type { NudgeData } from '../renderer/components/NudgePopup';
 
 declare const __APP_VERSION__: string;
@@ -267,24 +268,27 @@ export class MobileBridge {
     const ids = this.shown.get(chatId);
     if (!ids?.length) return;
     this.shown.delete(chatId);
-    if (isNative) void LexNative.cancel({ ids }).catch(() => {});
+    if (isAndroid) void LexNative.cancel({ ids }).catch(() => {});
     void LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => {});
     void LocalNotifications.removeDeliveredNotifications?.({ notifications: ids.map((id) => ({ id, title: '', body: '' })) }).catch(() => {});
   }
 
-  private notify(chatId: string, title: string, body: string, actionTypeId?: string) {
+  /** photoId: de quem é a foto (num grupo, a de quem mandou; senão, a da conversa). */
+  private notify(chatId: string, title: string, body: string, actionTypeId?: string, photoId = chatId) {
     if (!this.prefs.notifications) return;
     const id = this.notifId++;
     this.shown.set(chatId, [...(this.shown.get(chatId) ?? []), id]);
     // Com push ligado e o app em segundo plano, quem avisa é o push (evita aviso duplicado).
     if (this.pushToken && document.visibilityState !== 'visible') return;
-    if (isNative) {
+    if (isAndroid) {
       // Notificação nativa do Lex, com a foto redonda de quem mandou.
       void this.tg
-        .avatar(chatId)
+        .avatar(photoId)
         .catch(() => null)
-        .then((url) =>
-          LexNative.notify({
+        .then((url) => {
+          // Guarda a foto também para os avisos push (que chegam com o app fechado).
+          if (url) void LexNative.cacheAvatar({ chatId: photoId, avatar: url.split(',')[1] }).catch(() => {});
+          return LexNative.notify({
             id,
             chatId,
             title,
@@ -292,9 +296,18 @@ export class MobileBridge {
             avatar: url?.split(',')[1],
             silent: this.prefs.silent,
             nudge: actionTypeId === 'NUDGE',
-          }),
-        )
+          });
+        })
         .catch(() => {});
+      return;
+    }
+    if (isIOSApp) {
+      // iPhone: a foto de quem mandou vai junto do aviso (o iOS mostra ao lado do texto).
+      void this.iosAttachment(photoId).then((attachments) =>
+        LocalNotifications.schedule({
+          notifications: [{ id, title, body, extra: { chatId }, actionTypeId, threadIdentifier: chatId, attachments, sound: this.prefs.silent ? undefined : 'default' }],
+        }).catch(() => {}),
+      );
       return;
     }
     LocalNotifications.schedule({
@@ -315,6 +328,23 @@ export class MobileBridge {
     }).catch(() => {});
   }
 
+  /** Grava a foto num arquivo temporário para anexar ao aviso do iPhone (o iOS move o arquivo para si). */
+  private async iosAttachment(photoId: string) {
+    try {
+      const url = await this.tg.avatar(photoId);
+      if (!url) return undefined;
+      const r = await Filesystem.writeFile({
+        path: `avisos/${photoId.replace(/\W/g, '_')}-${Date.now()}.jpg`,
+        data: url.split(',')[1],
+        directory: Directory.Cache,
+        recursive: true,
+      });
+      return [{ id: 'foto', url: r.uri }];
+    } catch {
+      return undefined;
+    }
+  }
+
   private onIncoming(m: ChatMessage, c: Contact | undefined) {
     if (c?.kind === 'channel' || c?.muted) return;
     const visible = document.visibilityState === 'visible';
@@ -330,7 +360,7 @@ export class MobileBridge {
         if (this.currentChat !== m.chatId) this.emit('nudge-popup', { chatId: m.chatId, name: who, hasPhoto: !!c?.hasPhoto });
       }
       // Na barra de notificações, sempre: "Fulano chamou a sua atenção! Deseja abrir a conversa?" com botões.
-      if (!(visible && this.currentChat === m.chatId)) this.notify(m.chatId, `📳 ${who} chamou a sua atenção!`, 'Deseja abrir a conversa?', 'NUDGE');
+      if (!(visible && this.currentChat === m.chatId)) this.notify(m.chatId, `📳 ${who} chamou a sua atenção!`, 'Deseja abrir a conversa?', 'NUDGE', inGroup ? m.senderId : m.chatId);
       return;
     }
     if (this.currentChat === m.chatId && visible) return;
@@ -339,7 +369,7 @@ export class MobileBridge {
       this.sound('message');
       if (this.prefs.notifications && !this.prefs.silent)
         this.emit('toast', { kind: 'message', chatId: m.chatId, title, body, hasPhoto: !!c?.hasPhoto, name: c?.name ?? m.senderName });
-    } else this.notify(m.chatId, `${title} diz:`, body);
+    } else this.notify(m.chatId, `${title} diz:`, body, undefined, inGroup ? m.senderId : m.chatId);
   }
 
   private onContactOnline(c: Contact) {
@@ -369,9 +399,9 @@ export class MobileBridge {
     const tg = this.tg;
     return {
       version: __APP_VERSION__,
-      platform: isNative ? 'android' : isIOS ? 'ios' : 'web',
+      platform: isAndroid ? 'android' : isIOS ? 'ios' : 'web',
       // No iPhone (Safari) não há como saber a música tocando.
-      features: { music: isNative, mobile: true },
+      features: { music: isAndroid, mobile: true },
       on: (event, cb) => this.on(event, cb as Listener),
       authState: async () => tg.authState(),
       loginStart: async (method) => void tg.login(method),
@@ -391,7 +421,7 @@ export class MobileBridge {
       avatar: async (id) => {
         const url = await tg.avatar(id);
         // Guarda a foto (pequena) para as notificações push, que chegam com o app fechado.
-        if (url && isNative && id !== 'me') void LexNative.cacheAvatar({ chatId: id, avatar: url.split(',')[1] }).catch(() => {});
+        if (url && isAndroid && id !== 'me') void LexNative.cacheAvatar({ chatId: id, avatar: url.split(',')[1] }).catch(() => {});
         return url;
       },
       history: (id, before) => tg.history(id, before),
@@ -466,7 +496,7 @@ export class MobileBridge {
       telegramContacts: () => tg.telegramContacts(),
       lookupPhones: (people) => tg.lookupPhones(people),
       deviceContacts: async () => {
-        if (!isNative) return null;
+        if (!isAndroid) return null;
         const r = await LexNative.readContacts().catch(() => null);
         return r?.granted ? r.contacts : null;
       },
