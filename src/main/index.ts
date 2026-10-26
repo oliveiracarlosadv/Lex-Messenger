@@ -691,6 +691,13 @@ if (!app.requestSingleInstanceLock()) {
     });
     // Computador voltou da suspensão: reconecta e busca o que chegou.
     powerMonitor.on('resume', () => setTimeout(() => void tg.resync(), 3000));
+    // Computador parado (2 min) ou bloqueado: aparece offline para o Telegram, que então avisa no celular.
+    let locked = false;
+    const checkInUse = () => void tg.setInUse(!locked && powerMonitor.getSystemIdleTime() < 120);
+    powerMonitor.on('lock-screen', () => ((locked = true), checkInUse()));
+    powerMonitor.on('unlock-screen', () => ((locked = false), checkInUse()));
+    powerMonitor.on('suspend', () => void tg.setInUse(false));
+    setInterval(checkInUse, 20 * 1000);
     tray = new Tray(trayIcon());
     tray.setToolTip('Lex Messenger');
     tray.on('click', () => (process.platform === 'darwin' ? tray?.popUpContextMenu() : showList()));

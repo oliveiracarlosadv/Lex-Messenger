@@ -55,6 +55,7 @@ export class MobileBridge {
   private recordingNotified = false;
   /** Push do Telegram (Firebase) ligado: as notificações com o app fechado vêm por ele. */
   private pushToken: string | null = null;
+  private pushError = '';
   /** Arquivos escolhidos esperando a confirmação de envio (só na memória). */
   private picked = new Map<string, { name: string; data: Uint8Array }>();
   private pickSeq = 1;
@@ -158,6 +159,12 @@ export class MobileBridge {
   }
 
   /** Ao voltar para o app: busca o que chegou enquanto ele estava parado. */
+  /** App foi para a frente ou para o fundo: fora da tela, aparece offline para o Telegram mandar push. */
+  setForeground(active: boolean) {
+    if (this.demo) return;
+    void this.tg.setInUse(active);
+  }
+
   resync() {
     if (this.demo) return;
     // Prazo do "Desligado" venceu enquanto o app estava parado: liga de novo.
@@ -227,9 +234,13 @@ export class MobileBridge {
     // Push do Telegram: se o Firebase estiver configurado, as notificações chegam na hora, com o app fechado,
     // e o aviso fixo "Conectado ao Telegram" deixa de ser necessário.
     try {
-      const { token, secret } = await LexNative.pushSetup();
+      const { token, secret, error } = await LexNative.pushSetup();
+      if (error) this.pushError = error;
       if (token && secret && !this.demo) {
-        await this.tg.registerPush(token, secret);
+        await this.tg.registerPush(token, secret).catch((e) => {
+          this.pushError = 'Telegram recusou o registro: ' + ((e as Error).message || 'erro');
+          throw e;
+        });
         this.pushToken = token;
         await LexNative.pushSilent({ silent: this.prefs.silent });
       }
@@ -492,6 +503,10 @@ export class MobileBridge {
       getSelfDestruct: async (id) => tg.getSelfDestruct(id),
       openSystemNotificationSettings: () => void LexNative.openNotificationSettings().catch(() => {}),
       pushActive: async () => !!this.pushToken,
+      pushInfo: async () => {
+        const s = await LexNative.pushStatus().catch(() => ({ lastAt: 0, lastResult: '', count: 0 }));
+        return { active: !!this.pushToken, error: this.pushError, ...s };
+      },
       copyText: (text) => void navigator.clipboard?.writeText(text).catch(() => {}),
       pathForFile: () => '',
       typing: (id) => tg.typing(id),

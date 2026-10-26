@@ -181,6 +181,7 @@ public class LexNativePlugin extends Plugin {
         try {
             com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(t -> {
                 JSObject r = new JSObject();
+                if (!t.isSuccessful()) r.put("error", "Google: " + (t.getException() != null ? t.getException().getMessage() : "sem código"));
                 if (t.isSuccessful() && t.getResult() != null) {
                     r.put("token", t.getResult());
                     r.put("secret", android.util.Base64.encodeToString(key, android.util.Base64.NO_WRAP));
@@ -188,8 +189,21 @@ public class LexNativePlugin extends Plugin {
                 call.resolve(r);
             });
         } catch (Exception e) {
-            call.resolve(new JSObject()); // Firebase não configurado neste aplicativo
+            JSObject r = new JSObject();
+            r.put("error", "Firebase: " + e.getClass().getSimpleName());
+            call.resolve(r); // Firebase não configurado neste aplicativo
         }
+    }
+
+    /** Diagnóstico do push: último aviso que chegou do Google e o que aconteceu com ele. */
+    @PluginMethod
+    public void pushStatus(PluginCall call) {
+        android.content.SharedPreferences sp = getContext().getSharedPreferences(LexPushService.PREFS, Context.MODE_PRIVATE);
+        JSObject r = new JSObject();
+        r.put("lastAt", sp.getLong("lastAt", 0));
+        r.put("lastResult", sp.getString("lastResult", ""));
+        r.put("count", sp.getInt("count", 0));
+        call.resolve(r);
     }
 
     /** O modo silencioso também vale para as notificações push. */

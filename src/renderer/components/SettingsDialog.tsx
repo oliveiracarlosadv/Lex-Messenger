@@ -27,8 +27,10 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
   const [loadErr, setLoadErr] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [push, setPush] = useState<boolean | null>(null);
+  const [pushInfo, setPushInfo] = useState<Awaited<ReturnType<NonNullable<typeof lex.pushInfo>>> | null>(null);
   useEffect(() => {
     void lex.pushActive?.().then(setPush);
+    void lex.pushInfo?.().then(setPushInfo);
   }, []);
 
   const reload = () =>
@@ -98,6 +100,14 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
                       ? '✅ Notificações instantâneas (push) ligadas: chegam na hora, mesmo com o Lex fechado.'
                       : 'Notificações push ainda não configuradas neste aplicativo. Enquanto isso, use a opção abaixo.'}
                   </p>
+                  {pushInfo && (
+                    <p className="hint push-diag">
+                      🔎 Diagnóstico: {pushInfo.error ? `${pushInfo.error}. ` : ''}
+                      {pushInfo.count
+                        ? `${pushInfo.count} aviso(s) recebido(s) do Google; o último em ${new Date(pushInfo.lastAt).toLocaleString('pt-BR')} (${pushInfo.lastResult}).`
+                        : 'nenhum aviso recebido do Google ainda. Feche o app e peça para alguém te mandar uma mensagem.'}
+                    </p>
+                  )}
                   {!push &&
                     toggle(
                       'background',

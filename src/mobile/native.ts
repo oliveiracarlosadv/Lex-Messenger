@@ -13,7 +13,8 @@ export interface LexNativePlugin {
   notify(o: { id: number; chatId: string; title: string; body: string; avatar?: string; silent?: boolean; nudge?: boolean }): Promise<void>;
   cancel(o: { ids: number[] }): Promise<void>;
   takePendingOpen(): Promise<{ chatId?: string | null }>;
-  pushSetup(): Promise<{ token?: string; secret?: string }>;
+  pushSetup(): Promise<{ token?: string; secret?: string; error?: string }>;
+  pushStatus(): Promise<{ lastAt: number; lastResult: string; count: number }>;
   pushSilent(o: { silent: boolean }): Promise<void>;
   cacheAvatar(o: { chatId: string; avatar: string }): Promise<void>;
   clearAvatars(): Promise<void>;
@@ -37,6 +38,7 @@ export const LexNative = registerPlugin<LexNativePlugin>('LexNative', {
     takePendingOpen: async () => ({ chatId: null }),
     pushSetup: async () => ({}),
     pushSilent: async () => {},
+    pushStatus: async () => ({ lastAt: 0, lastResult: '', count: 0 }),
     cacheAvatar: async () => {},
     clearAvatars: async () => {},
     readContacts: async () => ({ granted: false, contacts: [] }),

@@ -26,8 +26,12 @@ void CapApp.addListener('backButton', () => {
 
 // Voltou para o app: busca o que chegou enquanto estava em segundo plano.
 void CapApp.addListener('appStateChange', ({ isActive }) => {
+  bridge.setForeground(isActive);
   if (isActive) bridge.resync();
 }).catch(() => {});
+
+// Navegador (iPhone): aba escondida conta como fora de uso.
+document.addEventListener('visibilitychange', () => bridge.setForeground(document.visibilityState === 'visible'));
 
 void bridge.start();
 

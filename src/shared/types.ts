@@ -322,6 +322,7 @@ export interface LexApi {
   openSystemNotificationSettings?(): void;
   /** Celular: as notificações push (Firebase) estão funcionando? */
   pushActive?(): Promise<boolean>;
+  pushInfo?(): Promise<{ active: boolean; error: string; lastAt: number; lastResult: string; count: number }>;
   copyText(text: string): void;
   pathForFile(file: File): string;
   typing(chatId: string): void;

@@ -43,15 +43,48 @@ public class LexPushService extends FirebaseMessagingService {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("token", token).putBoolean("tokenChanged", true).apply();
     }
 
+    /** Guarda o que aconteceu com o último aviso (aparece em Configurações > Avisos). */
+    void note(String result) {
+        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        sp.edit().putLong("lastAt", System.currentTimeMillis()).putString("lastResult", result).putInt("count", sp.getInt("count", 0) + 1).apply();
+    }
+
     @Override
     public void onMessageReceived(RemoteMessage message) {
         try {
-            String p = message.getData().get("p");
-            if (p == null || MainActivity.visible) return; // com o app na tela, o próprio app avisa
-            JSONObject json = decrypt(pushKey(this), Base64.decode(p, Base64.URL_SAFE | Base64.NO_WRAP));
-            if (json == null) return;
-            show(json);
-        } catch (Exception ignored) {
+            java.util.Map<String, String> data = message.getData();
+            String p = data.get("p");
+            if (MainActivity.visible) {
+                note("app aberto (o próprio app avisou)");
+                return;
+            }
+            JSONObject json = null;
+            if (p != null) {
+                try {
+                    json = decrypt(pushKey(this), Base64.decode(p, Base64.URL_SAFE | Base64.NO_WRAP));
+                } catch (Exception e) {
+                    json = null;
+                }
+                if (json == null) {
+                    note("chegou, mas não deu para ler (chave)");
+                    int id = (int) (System.currentTimeMillis() & 0x7fffffff);
+                    LexNotifier.show(this, id, "", "Lex Messenger", "Nova mensagem no Telegram", null, false, false);
+                    return;
+                }
+            } else if (data.containsKey("loc_key")) {
+                json = new JSONObject();
+                json.put("loc_key", data.get("loc_key"));
+                String a = data.get("loc_args");
+                json.put("loc_args", a != null ? new JSONArray(a) : new JSONArray());
+                String c = data.get("custom");
+                if (c != null) json.put("custom", new JSONObject(c));
+            } else {
+                note("chegou sem conteúdo: " + data.keySet());
+                return;
+            }
+            note(show(json) ? "mostrado" : "aviso do sistema (" + json.optString("loc_key", "sem tipo") + ")");
+        } catch (Exception e) {
+            note("erro: " + e.getClass().getSimpleName());
         }
     }
 
@@ -120,11 +153,11 @@ public class LexPushService extends FirebaseMessagingService {
         return custom.optString("from_id", "");
     }
 
-    void show(JSONObject json) throws Exception {
+    boolean show(JSONObject json) throws Exception {
         String locKey = json.optString("loc_key", "");
         JSONArray args = json.optJSONArray("loc_args");
         JSONObject custom = json.optJSONObject("custom");
-        if (locKey.isEmpty() || args == null || args.length() == 0) return; // ex.: aviso de leitura em outro aparelho
+        if (locKey.isEmpty() || args == null || args.length() == 0) return false; // ex.: aviso de leitura em outro aparelho
         String chatId = peerId(custom);
         String who = args.optString(0, "Alguém");
         boolean group = locKey.startsWith("CHAT_") || locKey.startsWith("CHANNEL_");
@@ -147,5 +180,6 @@ public class LexPushService extends FirebaseMessagingService {
         String avatar = getSharedPreferences("lex-avatars", MODE_PRIVATE).getString(chatId, null);
         int id = (int) (System.currentTimeMillis() & 0x7fffffff);
         LexNotifier.show(this, id, chatId, title, body, avatar, silent, nudge);
+        return true;
     }
 }

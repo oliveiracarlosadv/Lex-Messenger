@@ -1831,6 +1831,15 @@ ${rows.join('\n')}
 
   // ---------- Meu perfil: status, bio, nome e foto ----------
 
+  /** Em uso = a pessoa está com o app na frente. Fora de uso, o Telegram precisa vê-la offline,
+   *  senão não manda os avisos (push) para o celular. */
+  private inUse = true;
+  async setInUse(v: boolean) {
+    if (v === this.inUse) return;
+    this.inUse = v;
+    await this.applyStatus();
+  }
+
   async setAppearOffline(offline: boolean) {
     this.appearOffline = offline;
     await this.applyStatus();
@@ -1838,7 +1847,7 @@ ${rows.join('\n')}
 
   private async applyStatus() {
     if (!this.client || this.state !== 'ready' || this.paused) return;
-    await this.client.invoke(new Api.account.UpdateStatus({ offline: this.appearOffline })).catch(() => {});
+    await this.client.invoke(new Api.account.UpdateStatus({ offline: this.appearOffline || !this.inUse })).catch(() => {});
   }
 
   /** Desliga a conexão (aparece offline e não recebe nada). until: hora em ms, ou -1 = até ligar de novo. */
