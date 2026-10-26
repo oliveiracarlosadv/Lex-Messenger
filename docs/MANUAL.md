@@ -79,7 +79,25 @@ atualizações.
   os botões **Abrir conversa** e **Agora não**.
 - Notificações de uma conversa **somem da barra** quando ela é lida (aqui ou em outro aparelho).
 
-### iPhone (sem App Store)
+### iPhone pelo Sideloadly (app instalado, com widget)
+O [Sideloadly](https://sideloadly.io) é um programa gratuito para Mac e Windows que instala apps no iPhone usando o seu
+próprio Apple ID, sem App Store.
+1. No computador, baixe o **Sideloadly** em <https://sideloadly.io> e o arquivo do Lex para iPhone:
+   [LexMessenger-iPhone.ipa](https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-iPhone.ipa). (No Windows, o Sideloadly pede o iTunes e o iCloud baixados do site da Apple, não
+   da Microsoft Store.)
+2. Ligue o iPhone no computador pelo cabo. No iPhone, toque em **Confiar** e digite o código.
+3. Abra o Sideloadly, arraste o arquivo `.ipa` para a janela, escreva o seu **Apple ID** (o e-mail da sua conta Apple) e
+   clique em **Start**. Ele pede a senha do Apple ID só para assinar o app; a senha vai direto para a Apple.
+4. No iPhone, ligue o **Modo de Desenvolvedor**: **Ajustes > Privacidade e Segurança > Modo de Desenvolvedor**, ative e
+   reinicie quando pedir.
+5. Libere o app: **Ajustes > Geral > VPN e Gerenciamento de Dispositivo**, toque no seu Apple ID e em **Confiar**.
+6. Abra o **Lex Messenger** e entre com o número de telefone.
+
+**Importante:** com um Apple ID gratuito, a Apple deixa o app funcionar por **7 dias**. Antes de vencer, ligue o iPhone no
+computador e clique em **Start** de novo no Sideloadly (ou ative o **Auto-refresh** dele, que renova sozinho pelo Wi-Fi
+com o computador ligado). Suas conversas não se perdem, porque ficam no Telegram. O widget precisa do iOS 17 ou mais novo.
+
+### iPhone pelo Safari (sem instalar nada)
 1. No iPhone, abra o **Safari** (precisa ser o Safari) e entre em **https://oliveiracarlosadv.github.io/Lex-Messenger/**.
 2. Toque em **Compartilhar** (o quadrado com a seta para cima) e depois em **“Adicionar à Tela de Início”** > **Adicionar**.
 3. Abra o **Lex Messenger** pelo ícone novo na tela de início e entre com o número de telefone.
@@ -161,6 +179,16 @@ Toque em **✏️** ao lado da engrenagem:
   para quem não tem. Os números são enviados ao Telegram só para essa conferência e ficam salvos como contatos lá.
 - No computador e no iPhone não há acesso à agenda, mas a aba “Contatos do Telegram” já traz os contatos que o seu
   Telegram sincronizou pelo celular.
+
+### Widget “Online agora” 🟢 (Android e iPhone)
+Na tela inicial do celular, um quadrinho mostra **quem está online**, com foto, nome e status (Ocupado, Ausente…).
+Toque num contato para abrir a conversa.
+- **Android:** toque e segure num espaço vazio da tela inicial > **Widgets** > **Lex Messenger** > arraste o **Online
+  agora** para a tela. Dá para aumentar ou diminuir o tamanho.
+- **iPhone** (app instalado pelo Sideloadly, iOS 17 ou mais novo): toque e segure na tela inicial > **Editar** >
+  **Adicionar Widget** > **Lex Messenger**. Há três tamanhos: pequeno (4 fotos), médio (4 contatos) e grande (10).
+- O widget é atualizado enquanto o Lex está aberto ou em segundo plano. Com o app fechado, ele mostra a última lista e
+  a hora em que foi atualizada (“Atualizado às 14:30”).
 
 ### Favoritos ⭐ e grupos 👥
 - **Favoritar**: clique com o botão direito num contato (no celular, toque e segure) e escolha **Adicionar aos

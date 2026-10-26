@@ -15,6 +15,7 @@ export interface LexNativePlugin {
   takePendingOpen(): Promise<{ chatId?: string | null }>;
   pushSetup(): Promise<{ token?: string; secret?: string; error?: string }>;
   pushStatus(): Promise<{ lastAt: number; lastResult: string; count: number }>;
+  updateWidget(o: { data: string }): Promise<void>;
   pushSilent(o: { silent: boolean }): Promise<void>;
   cacheAvatar(o: { chatId: string; avatar: string }): Promise<void>;
   clearAvatars(): Promise<void>;
@@ -39,6 +40,7 @@ const stub = {
   pushSetup: async () => ({}),
   pushSilent: async () => {},
   pushStatus: async () => ({ lastAt: 0, lastResult: '', count: 0 }),
+  updateWidget: async () => {},
   cacheAvatar: async () => {},
   clearAvatars: async () => {},
   readContacts: async () => ({ granted: false, contacts: [] }),

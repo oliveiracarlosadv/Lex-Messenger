@@ -4,4 +4,7 @@
     <string name="title_activity_main">Lex Messenger</string>
     <string name="package_name">br.com.lextecnologias.messenger</string>
     <string name="custom_url_scheme">br.com.lextecnologias.messenger</string>
+    <string name="widget_title">Online agora</string>
+    <string name="widget_empty">Ninguém online agora.\nAbra o Lex para atualizar.</string>
+    <string name="widget_description">Mostra quais contatos estão online. Toque num contato para conversar.</string>
 </resources>

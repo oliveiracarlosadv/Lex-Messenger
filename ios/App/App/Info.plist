@@ -32,6 +32,17 @@
 	<string>Para salvar fotos e vídeos quando você pedir.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>br.com.lextecnologias.messenger</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lexmessenger</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

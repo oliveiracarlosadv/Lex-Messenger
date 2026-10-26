@@ -126,6 +126,10 @@ jobs:
             MARKETING_VERSION="$v" CURRENT_PROJECT_VERSION="$code" build | tail -20
           mkdir -p Payload release
           cp -R build/ios/Build/Products/Release-iphoneos/App.app Payload/
+          # Assinatura provisória com as permissões (grupo compartilhado app + widget); quem instala assina de novo.
+          codesign -f -s - --entitlements ios/App/LexWidget/LexWidget.entitlements Payload/App.app/PlugIns/LexWidget.appex
+          codesign -f -s - --entitlements ios/App/App/App.entitlements Payload/App.app
+          codesign -d --entitlements - Payload/App.app | grep -q application-groups
           zip -qr release/LexMessenger-iPhone.ipa Payload
           ls -la release
       - uses: actions/upload-artifact@v4

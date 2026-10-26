@@ -12,6 +12,7 @@ import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents
 import { LexNative } from './native';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { isAndroid, isIOS, isIOSApp, mobilePlatform, pickFiles } from './platform';
+import { WidgetFeed } from './widget';
 import type { NudgeData } from '../renderer/components/NudgePopup';
 
 declare const __APP_VERSION__: string;
@@ -67,6 +68,7 @@ export class MobileBridge {
   /** Conversa aberta na tela agora (o celular só mostra uma por vez). */
   currentChat: string | null = null;
   readonly demo: boolean;
+  private widget: WidgetFeed | null = null;
 
   constructor() {
     this.demo = /[?&]demo\b/.test(location.search);
@@ -106,6 +108,7 @@ export class MobileBridge {
         musicPermissionHint: 'Libere o Lex em Ajustes > Notificações > Acesso a notificações (toque em 🎵 de novo para abrir).',
       },
     );
+    this.widget = new WidgetFeed(this.tg);
     if (this.demo) applyDemo(this.tg, /demo=login/.test(location.search));
   }
 
@@ -191,6 +194,8 @@ export class MobileBridge {
       void this.savePrefs({ offlineUntil: 0 });
       void this.applyBackground();
     }
+    // Widget "Online agora": acompanha quem entra e sai.
+    if ((event === 'contacts:changed' || event === 'contact:patch') && !this.demo) this.widget?.schedule();
     // Conversa lida (aqui ou em outro aparelho): some da barra de notificações.
     if (event === 'contact:patch') {
       const p = data as LexEvents['contact:patch'];
@@ -412,6 +417,7 @@ export class MobileBridge {
         if (this.pushToken) await tg.unregisterPush(this.pushToken);
         this.pushToken = null;
         await LexNative.clearAvatars().catch(() => {});
+        await this.widget?.clear();
         await LexNative.stopKeepAlive().catch(() => {});
         await tg.logout();
       },

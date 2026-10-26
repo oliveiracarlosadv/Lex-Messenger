@@ -195,6 +195,15 @@ public class LexNativePlugin extends Plugin {
         }
     }
 
+    /** Widget "Online agora": guarda a lista de quem está online e redesenha o widget. */
+    @PluginMethod
+    public void updateWidget(PluginCall call) {
+        String data = call.getString("data", "{}");
+        getContext().getSharedPreferences(LexOnlineWidget.PREFS, Context.MODE_PRIVATE).edit().putString("data", data).apply();
+        LexOnlineWidget.refresh(getContext());
+        call.resolve();
+    }
+
     /** Diagnóstico do push: último aviso que chegou do Google e o que aconteceu com ele. */
     @PluginMethod
     public void pushStatus(PluginCall call) {

@@ -33,6 +33,14 @@ void CapApp.addListener('appStateChange', ({ isActive }) => {
 // Navegador (iPhone): aba escondida conta como fora de uso.
 document.addEventListener('visibilitychange', () => bridge.setForeground(document.visibilityState === 'visible'));
 
+// Toque num contato do widget do iPhone (lexmessenger://chat/<id>): abre a conversa.
+const openFromUrl = (url?: string) => {
+  const m = url?.match(/^lexmessenger:\/\/chat\/(.+)$/);
+  if (m) setTimeout(() => bridge.openChat(decodeURIComponent(m[1])), 600);
+};
+void CapApp.addListener('appUrlOpen', ({ url }) => openFromUrl(url)).catch(() => {});
+void CapApp.getLaunchUrl().then((r) => openFromUrl(r?.url)).catch(() => {});
+
 void bridge.start();
 
 // Versão pelo navegador (iPhone): registra o serviço que permite abrir sem internet.

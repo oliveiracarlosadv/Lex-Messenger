@@ -12,6 +12,7 @@ Com o jeitinho dos mensageiros dos anos 2000 e a sua conta do Telegram. Gratuito
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-x64.dmg"><b>⬇️ Mac (Intel)</b></a> ·
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Windows-Instalador.exe"><b>⬇️ Windows</b></a> ·
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-Android.apk"><b>⬇️ Android</b></a> ·
+  <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-iPhone.ipa"><b>⬇️ iPhone (.ipa, Sideloadly)</b></a> ·
   <a href="https://oliveiracarlosadv.github.io/Lex-Messenger/"><b>📱 iPhone (pelo Safari)</b></a>
 </p>
 
@@ -79,6 +80,7 @@ dispute a sua atenção com elas.
 - **Lista de tarefas** 📋 na conversa: você cria, a outra pessoa marca como feito, e os dois veem o progresso.
 - **Figurinhas e GIFs** 🎞️ (recentes, seus pacotes, GIFs salvos e busca), tocando dentro da conversa — assim como **vídeos e áudios**.
 - **Nova conversa** ✏️ com os seus contatos do Telegram e, no Android, a **agenda do celular** (mostra quem tem Telegram e convida quem não tem).
+- **Widget “Online agora”** 🟢 na tela inicial do Android e do iPhone: quem está online, com foto e status; toque para conversar.
 - **Favoritos** ⭐ no topo da lista (pasta “Favoritos” do Telegram, igual em todos os aparelhos) e **criar grupos** 👥.
 - **Câmera na conversa** 📷: tire foto, grave vídeo ou mande um **recado** (o vídeo redondo do Telegram), com prévia antes de enviar.
 - **Mensagens de áudio** 🎤: segure para gravar e solte para enviar, ou use o modo **mãos livres** (um toque grava sem segurar). Tocador com a onda sonora, velocidade 1x/1,5x/2x e **“ouvir em sequência”**.
@@ -111,7 +113,11 @@ no [Manual](docs/MANUAL.md#android).
 e abra **https://oliveiracarlosadv.github.io/Lex-Messenger/obtainium.html** no celular (ou, no Obtainium, toque em **Adicionar app** e cole
 `https://github.com/oliveiracarlosadv/Lex-Messenger`). Ele instala o Lex direto daqui e avisa quando sai versão nova.
 
-**iPhone (sem App Store):** abra **https://oliveiracarlosadv.github.io/Lex-Messenger/** no **Safari**, toque em
+**iPhone (app instalado, com widget):** baixe o [LexMessenger-iPhone.ipa](https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-iPhone.ipa) e instale pelo
+[Sideloadly](https://sideloadly.io), de graça, com o seu Apple ID. Com Apple ID gratuito, o app precisa ser renovado a cada
+7 dias pelo Sideloadly. Passo a passo no [Manual](docs/MANUAL.md#iphone-pelo-sideloadly-app-instalado-com-widget).
+
+**iPhone pelo Safari (sem instalar nada):** abra **https://oliveiracarlosadv.github.io/Lex-Messenger/** no **Safari**, toque em
 **Compartilhar** e em **“Adicionar à Tela de Início”**. O Lex vira um ícone na tela, igual a um app. No iPhone, os avisos
 só chegam com o app aberto (a Apple não deixa apps fora da App Store rodarem em segundo plano).
 
