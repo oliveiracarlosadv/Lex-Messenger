@@ -1,5 +1,6 @@
 import Capacitor
 import Foundation
+import UIKit
 import UserNotifications
 import WidgetKit
 
@@ -26,8 +27,15 @@ public class LexWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     /// Número de mensagens não lidas no ícone do app (a "bolinha vermelha").
     @objc func setBadge(_ call: CAPPluginCall) {
         let count = max(0, call.getInt("count") ?? 0)
-        UNUserNotificationCenter.current().setBadgeCount(count) { _ in
-            call.resolve()
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(count) { _ in
+                call.resolve()
+            }
+        } else {
+            DispatchQueue.main.async {
+                UIApplication.shared.applicationIconBadgeNumber = count
+                call.resolve()
+            }
         }
     }
 }
