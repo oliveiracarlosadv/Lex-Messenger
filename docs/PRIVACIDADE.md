@@ -1,6 +1,6 @@
 # Política de Privacidade do Lex Messenger
 
-Última atualização: 25/10/2026 (versão 0.5.0).
+Última atualização: 26/10/2026 (versão 1.0.3). Responsável: Carlos Alexandre Albuquerque Oliveira (Lex Tecnologias).
 
 1. **Sem servidor intermediário.** O Lex Messenger se conecta diretamente aos servidores do Telegram, com o protocolo
    oficial (MTProto). Nenhuma mensagem, contato ou arquivo passa por servidores da Lex Tecnologias.

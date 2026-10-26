@@ -2,6 +2,16 @@
 
 *Comunicação em primeiro lugar!*
 
+## Bem-vindo
+
+O Lex Messenger é um mensageiro para **conversar, e só**. Ele usa a sua conta do Telegram (pela API oficial), então
+você fala com qualquer pessoa que tenha Telegram, mesmo que ela não use o Lex. Não tem stories, não tem feed de canais,
+não tem propaganda e não tem servidor no meio: o app conversa direto com o Telegram e nada é coletado. É gratuito e de
+código aberto.
+
+Foi idealizado e criado por **Carlos Alexandre Albuquerque Oliveira**, advogado, pela **Lex Tecnologias**, com o
+jeitinho dos mensageiros dos anos 2000: lista de contatos, janelinha no canto da tela, sons e “chamar atenção”.
+
 ## 1. Instalar
 
 ### Mac

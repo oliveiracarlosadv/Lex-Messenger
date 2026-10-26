@@ -17,7 +17,7 @@
     "android": "npm run build:mobile && npx cap sync android",
     "manual": "npx electron scripts/make-manual-pdf.cjs"
   },
-  "author": "Lex Tecnologias",
+  "author": "Carlos Alexandre Albuquerque Oliveira (Lex Tecnologias)",
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
@@ -63,7 +63,7 @@
   "build": {
     "appId": "br.com.lextecnologias.messenger",
     "productName": "Lex Messenger",
-    "copyright": "© 2026 Lex Tecnologias",
+    "copyright": "© 2026 Carlos Alexandre Albuquerque Oliveira · Lex Tecnologias",
     "directories": {
       "output": "release",
       "buildResources": "build"

@@ -2,7 +2,8 @@ Termos de Uso do Lex Messenger
 
 Última atualização: 25/10/2026.
 
-1. O que é. O Lex Messenger é um aplicativo gratuito e independente, da Lex Tecnologias, que permite usar a sua
+1. O que é. O Lex Messenger é um aplicativo gratuito, de código aberto e independente,
+   criado por Carlos Alexandre Albuquerque Oliveira (Lex Tecnologias), que permite usar a sua
    própria conta do Telegram com uma interface inspirada nos mensageiros clássicos. Não é um produto oficial do
    Telegram nem da Microsoft, e não tem vínculo com essas empresas.
 2. Sua conta. Você continua sujeito aos Termos de Serviço do Telegram (https://telegram.org/tos). Use o app de

@@ -4,8 +4,8 @@
 
 <p align="center"><b><i>Comunicação em primeiro lugar!</i></b></p>
 
-<p align="center">O jeitinho dos mensageiros dos anos 2000, com a sua conta do Telegram.<br>
-Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e envio de arquivos.</p>
+<p align="center">Um mensageiro para conversar — e só.<br>
+Com o jeitinho dos mensageiros dos anos 2000 e a sua conta do Telegram. Gratuito e de código aberto.</p>
 
 <p align="center">
   <a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases/latest/download/LexMessenger-macOS-arm64.dmg"><b>⬇️ Mac (Apple M1, M2, M3, M4)</b></a> ·
@@ -15,7 +15,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
   <a href="https://oliveiracarlosadv.github.io/Lex-Messenger/"><b>📱 iPhone (pelo Safari)</b></a>
 </p>
 
-<p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/MANUAL.md">Manual</a> (<a href="docs/Manual-Lex-Messenger.pdf">PDF</a>) · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
+<p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/LANCAMENTO.md">Conheça o Lex</a> · <a href="docs/MANUAL.md">Manual</a> (<a href="docs/Manual-Lex-Messenger.pdf">PDF</a>) · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
 
 ---
 
@@ -38,10 +38,38 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 
 <sub>As imagens usam contatos fictícios.</sub>
 
+## Por que o Lex Messenger existe
+
+Lembra quando abrir o mensageiro era só para **conversar**? A lista de amigos, a janelinha subindo no canto da tela com
+“Fulano diz:”, o barulhinho de mensagem nova, a janela tremendo quando alguém chamava a sua atenção.
+
+Com o tempo, os mensageiros viraram outra coisa: stories, canais, feeds, anúncios, sugestões, figurinhas pagas,
+notificações de tudo que não é conversa. A mensagem de quem importa ficou perdida no meio do barulho.
+
+O **Lex Messenger** volta ao essencial. É **conversa pura**:
+
+- **Sem stories.** Ninguém precisa assistir à vida de ninguém para conversar.
+- **Sem feed de canais.** A lista é das pessoas e dos grupos com quem você fala.
+- **Sem propaganda.** Nenhum anúncio, nenhum patrocinado, nenhum rastreador.
+- **Sem servidor no meio.** O app fala direto com o Telegram. Nada passa por nós, nada é coletado.
+- **Sem custo.** É gratuito e o código está todo aqui, aberto, para quem quiser conferir.
+
+Ele usa a **API oficial do Telegram**, então você entra com a sua conta de sempre e conversa com qualquer pessoa que
+tenha Telegram, use ela o Lex ou não. Tudo o que é conversa está aqui: texto, áudio, foto, vídeo, recado, arquivos,
+grupos, mensagens que se autodestroem. O resto ficou de fora de propósito.
+
+**Comunicação em primeiro lugar!**
+
+### Quem fez
+
+O Lex Messenger foi idealizado e criado por **Carlos Alexandre Albuquerque Oliveira**, advogado, pela
+**Lex Tecnologias**. Nasceu de uma vontade simples: ter um lugar para conversar com as pessoas sem que o aplicativo
+dispute a sua atenção com elas.
+
 ## O que ele faz
 
 - **Entra com a sua conta do Telegram**, pelo QR Code (aponte a câmera do celular) ou pelo número de telefone — e quem **não tem Telegram** pode **criar a conta** ali mesmo.
-- **Lista de contatos** separada em Online, Offline, Grupos e Canais, com quem está ausente e mensagens não lidas.
+- **Lista de contatos** separada em Favoritos, Online, Offline e Grupos, com quem está ausente e mensagens não lidas.
 - **Uma janela para cada conversa**: cada mensagem com o nome de quem enviou e a hora em cima, fotos de perfil e o aviso “está digitando…”.
 - **Mensagens que se autodestroem** ⏱: escolha 30 s, 1 min, 5 min, 1 h ou 24 h; a mensagem some para os dois lados e o aviso 🔥 também some em 12 horas.
 - **Mídia sensível** 🔞: fotos, vídeos e recados chegam cobertos e só aparecem quando a pessoa toca; ao fechar, voltam a ficar cobertos.
@@ -54,7 +82,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 - **Tudo o que se faz numa conversa do Telegram**: responder citando, editar, apagar (para mim ou para todos), encaminhar, reagir com emoji, copiar, ✓✓ de lido, prévias de links e silenciar a conversa (🔕).
 - **Configurações do Telegram**: avisos, privacidade (visto por último, foto, telefone, grupos, encaminhamentos, chamadas), aparelhos conectados, bloqueados e verificação em duas etapas.
 - **Telegram Premium**: se a sua conta for Premium, o Lex transcreve áudios em texto e envia arquivos de até 4 GB; quem assina aparece com ⭐.
-- **Android em segundo plano**: continua recebendo e avisando com o app fora da tela.
+- **Avisos no Android mesmo com o app fechado** 🔔, como no Telegram e no WhatsApp, com a foto de quem mandou.
 - **Aviso no canto da tela**, como no MSN: sobe uma janelinha com a foto, “Fulano diz:” e o começo da mensagem; clique para abrir a conversa. Também avisa quando um contato entra.
 - **Status do MSN**: Disponível, Ocupado, Ausente, Volto já, Em horário de almoço, Ao telefone e Aparecer offline, e “Ausente” automático com o computador parado.
 - **Música que estou ouvindo** 🎵: mostra a música do Apple Music ou do Spotify (no Windows, do player que estiver tocando) na sua mensagem pessoal.
@@ -99,5 +127,6 @@ Como compilar e publicar: [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
 
 ---
 
-<sub>O Lex Messenger é um aplicativo independente da Lex Tecnologias. Não é afiliado ao Telegram nem à Microsoft.
+<sub>Lex Messenger © 2026 Carlos Alexandre Albuquerque Oliveira · Lex Tecnologias. Gratuito e de código aberto.<br>
+O Lex Messenger é um aplicativo independente. Não é afiliado ao Telegram nem à Microsoft.
 “Telegram” e “MSN” são marcas de seus respectivos donos; o visual é apenas uma homenagem, com desenhos e sons próprios.</sub>
