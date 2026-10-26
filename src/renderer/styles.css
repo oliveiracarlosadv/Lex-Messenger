@@ -2554,3 +2554,82 @@ body.toast-body {
   padding: 6px 2px;
   line-height: 1.5;
 }
+
+/* ---------- Sobre ---------- */
+.lexabout-panel h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--blue-dark);
+}
+.lexabout-panel h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+}
+.lexabout-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 4px 0 8px;
+}
+.lexabout-head img {
+  border-radius: 16px;
+  box-shadow: 0 3px 10px rgba(23, 74, 143, 0.25);
+}
+.lexabout-motto {
+  margin: 2px 0;
+  font-style: italic;
+  color: #4a5a72;
+}
+.lexabout-version {
+  margin: 0;
+  font-size: 12px;
+  color: #4a5a72;
+}
+.lexabout-intro {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+.lexabout-principles {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.lexabout-principles li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #f3f7fd;
+  border: 1px solid #dde7f4;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.lexabout-principles li > span {
+  font-size: 18px;
+  line-height: 1.2;
+}
+.lexabout-principles b {
+  display: block;
+  font-size: 13px;
+}
+.lexabout-principles li div span {
+  font-size: 12px;
+  color: #4a5a72;
+}
+.lexabout-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lexabout-links .btn {
+  margin: 0;
+}
+.lexabout-legal {
+  margin-top: 14px;
+  font-size: 11px;
+  line-height: 1.45;
+}

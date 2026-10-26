@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { AccountSettings, Me, Prefs, PrivacyKey, PrivacyValue } from '../../shared/types';
 import { lex } from '../lib/api';
+import { AboutPanel } from './AboutPanel';
 
 const PRIVACY_LABELS: [PrivacyKey, string][] = [
   ['lastSeen', 'Visto por último e online'],
@@ -16,7 +17,7 @@ const VALUES: [PrivacyValue, string][] = [
   ['nobody', 'Ninguém'],
 ];
 
-type Tab = 'avisos' | 'privacidade' | 'aparelhos' | 'bloqueados' | 'conta';
+type Tab = 'avisos' | 'privacidade' | 'aparelhos' | 'bloqueados' | 'conta' | 'sobre';
 
 const clean = (e: unknown) => (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
@@ -78,6 +79,7 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
               ['aparelhos', '💻 Aparelhos'],
               ['bloqueados', '🚫 Bloqueados'],
               ['conta', '👤 Conta'],
+              ['sobre', 'ℹ️ Sobre'],
             ] as [Tab, string][]
           ).map(([t, label]) => (
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
@@ -243,6 +245,8 @@ export function SettingsDialog({ me, prefs, onClose, onProfile }: { me: Me; pref
               <p className="hint">Versão do Lex Messenger: {lex.version}</p>
             </>
           )}
+
+          {tab === 'sobre' && <AboutPanel />}
         </div>
 
         {msg && <p className={msg.ok ? 'ok' : 'error'}>{msg.text}</p>}

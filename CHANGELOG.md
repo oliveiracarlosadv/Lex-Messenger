@@ -1,6 +1,7 @@
 # Histórico de versões
 
 ## v1.1.0
+- **Tela “Sobre”** ℹ️ (Configurações > Sobre): versão, diretrizes do Lex, quem fez, licença e links para manual, privacidade e termos.
 - **Widget “Online agora”** 🟢 para Android e iPhone: mostra na tela inicial quem está online, com foto, nome e status; toque num contato para abrir a conversa.
 - **App do iPhone** 📱 (arquivo `LexMessenger-iPhone.ipa`), para instalar pelo **Sideloadly** com o seu Apple ID, sem App Store. O site pelo Safari continua funcionando.
 - **Foto de quem mandou nos avisos**: no iPhone, a foto aparece ao lado do aviso; no Android, nos grupos aparece a foto de quem mandou, e quem não tem foto aparece com a inicial num círculo colorido.
