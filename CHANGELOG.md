@@ -1,6 +1,7 @@
 # Histórico de versões
 
 ## v1.0.1
+- **Nova conversa** ✏️: contatos do Telegram (mesmo sem conversa ainda), **agenda do celular** no Android mostrando quem tem Telegram, busca por número e **convite por SMS** para quem não tem.
 - **Limpar conversa** 🧹: apaga todas as mensagens (para mim ou para os dois) e mantém a conversa na lista, com o aviso de que toda a conversa será limpa.
 
 ## v1.0.0

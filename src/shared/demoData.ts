@@ -76,6 +76,13 @@ export function applyDemo(tg: object, loggedOut = false) {
   t.getSensitive = () => false;
   t.deleteChat = async () => {};
   t.clearChat = async () => {};
+  t.telegramContacts = async () => [
+    { id: '101', name: 'Ana Paula', phone: '+5591988880001', onTelegram: true, online: true, hasPhoto: true },
+    { id: '108', name: 'Bruno Tavares', phone: '+5591988880002', onTelegram: true },
+    { id: '109', name: 'Cláudia Ramos', phone: '+5591988880003', onTelegram: true, online: true },
+  ];
+  t.lookupPhones = async (ps: { name: string; phone: string }[]) => ps.map((p, i) => ({ id: i % 2 ? '' : `20${i}`, name: p.name, phone: p.phone, onTelegram: i % 2 === 0 }));
+  t.startChat = async () => {};
   t.setBlockedContact = async () => {};
   t.setSensitive = () => {};
   t.setSelfDestruct = () => {};

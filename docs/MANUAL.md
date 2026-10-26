@@ -127,6 +127,17 @@ O Telegram só conhece “online” e “offline”. Por isso o Lex Messenger co
 esse texto no seu perfil. **Aparecer offline** deixa você offline no Telegram e não mostra status nem música. Ao sair
 do Lex Messenger, a bio volta a ser só a sua mensagem pessoal.
 
+### Nova conversa ✏️ (contatos do Telegram e da agenda)
+Toque em **✏️** ao lado da engrenagem:
+- **Por número**: digite o celular com DDD e toque em **Procurar**. Se a pessoa tiver Telegram, aparece
+  **Conversar**; se não, **Convidar por SMS** (abre o app de mensagens com um convite e o link do Lex).
+- **✈️ Contatos do Telegram**: todos os seus contatos que têm Telegram, **mesmo os com quem você nunca conversou**.
+- **📒 Agenda do celular** (Android): toque em **Procurar na agenda**. O Android pede permissão para ler os contatos; o
+  Lex confere no Telegram quem tem conta (como o app oficial faz) e mostra **Conversar** para quem tem e **Convidar**
+  para quem não tem. Os números são enviados ao Telegram só para essa conferência e ficam salvos como contatos lá.
+- No computador e no iPhone não há acesso à agenda, mas a aba “Contatos do Telegram” já traz os contatos que o seu
+  Telegram sincronizou pelo celular.
+
 ### Favoritos ⭐ e grupos 👥
 - **Favoritar**: clique com o botão direito num contato (no celular, toque e segure) e escolha **Adicionar aos
   favoritos**, ou toque na **☆** no alto da conversa. Os favoritos ficam na seção **⭐ Favoritos**, no topo da lista.

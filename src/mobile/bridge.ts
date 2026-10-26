@@ -451,6 +451,17 @@ export class MobileBridge {
       },
       setBlockedContact: (id, b) => tg.setBlockedContact(id, b),
       clearChat: (id, all) => tg.clearChat(id, all),
+      telegramContacts: () => tg.telegramContacts(),
+      lookupPhones: (people) => tg.lookupPhones(people),
+      deviceContacts: async () => {
+        if (!isNative) return null;
+        const r = await LexNative.readContacts().catch(() => null);
+        return r?.granted ? r.contacts : null;
+      },
+      startChat: async (id) => {
+        await tg.startChat(id);
+        this.openChat(id);
+      },
       reportView: (id, view) => {
         if (view) this.views.set(id, view);
         else this.views.delete(id);

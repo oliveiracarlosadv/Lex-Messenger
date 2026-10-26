@@ -9,6 +9,7 @@ import { ContactIcon } from './ContactIcon';
 import { ProfileDialog } from './ProfileDialog';
 import { SettingsDialog } from './SettingsDialog';
 import { NewGroupDialog } from './NewGroupDialog';
+import { NewChatDialog } from './NewChatDialog';
 import { QuickBar } from './QuickBar';
 import { DeleteChatDialog, toggleBlock } from './ChatActions';
 
@@ -49,6 +50,7 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
+  const [newChat, setNewChat] = useState(false);
   const [rowMenu, setRowMenu] = useState<{ c: Contact; x: number; y: number } | null>(null);
   const [deleting, setDeleting] = useState<Contact | null>(null);
   const [clearingC, setClearingC] = useState<Contact | null>(null);
@@ -197,6 +199,9 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
         <button className="gear-btn" onClick={() => setSettingsOpen(true)} title="Configurações" aria-label="Configurações">
           ⚙️
         </button>
+        <button className="gear-btn" onClick={() => setNewChat(true)} title="Nova conversa (contatos do Telegram e da agenda)" aria-label="Nova conversa">
+          ✏️
+        </button>
         <button className="gear-btn" onClick={() => setGroupOpen(true)} title="Criar um grupo" aria-label="Criar um grupo">
           👥
         </button>
@@ -264,6 +269,7 @@ export function ContactList({ connecting = false }: { connecting?: boolean }) {
       </footer>
       {profileOpen && me && prefs && <ProfileDialog me={me} prefs={prefs} presence={presence} onClose={() => setProfileOpen(false)} />}
       {groupOpen && <NewGroupDialog onClose={() => setGroupOpen(false)} />}
+      {newChat && <NewChatDialog onClose={() => setNewChat(false)} />}
       {deleting && <DeleteChatDialog contact={deleting} onClose={() => setDeleting(null)} />}
       {clearingC && <DeleteChatDialog contact={clearingC} mode="clear" onClose={() => setClearingC(null)} />}
       {rowMenu && (

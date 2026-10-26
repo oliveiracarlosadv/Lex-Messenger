@@ -582,6 +582,12 @@ function registerIpc() {
     const w = chatWins.get(String(chatId));
     if (w && !w.isDestroyed()) w.close();
   });
+  ipcMain.handle('people:telegram', () => tg.telegramContacts());
+  ipcMain.handle('people:lookup', (_e, people: { name: string; phone: string }[]) => tg.lookupPhones(people));
+  ipcMain.handle('people:start', async (_e, id: string) => {
+    await tg.startChat(String(id));
+    openChat(String(id));
+  });
   ipcMain.handle('chat:clear', (_e, chatId: string, all: boolean) => tg.clearChat(String(chatId), !!all));
   ipcMain.handle('chat:block', (_e, chatId: string, b: boolean) => tg.setBlockedContact(String(chatId), !!b));
   ipcMain.on('chat:view', (_e, chatId: string, view: ChatView | null) => {

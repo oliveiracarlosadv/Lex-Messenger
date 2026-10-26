@@ -47,6 +47,7 @@ Lista de contatos, uma janela para cada conversa, “chamar atenção”, sons e
 - **Mídia sensível** 🔞: fotos, vídeos e recados chegam cobertos e só aparecem quando a pessoa toca; ao fechar, voltam a ficar cobertos.
 - **Lista de tarefas** 📋 na conversa: você cria, a outra pessoa marca como feito, e os dois veem o progresso.
 - **Figurinhas e GIFs** 🎞️ (recentes, seus pacotes, GIFs salvos e busca), tocando dentro da conversa — assim como **vídeos e áudios**.
+- **Nova conversa** ✏️ com os seus contatos do Telegram e, no Android, a **agenda do celular** (mostra quem tem Telegram e convida quem não tem).
 - **Favoritos** ⭐ no topo da lista (pasta “Favoritos” do Telegram, igual em todos os aparelhos) e **criar grupos** 👥.
 - **Câmera na conversa** 📷: tire foto, grave vídeo ou mande um **recado** (o vídeo redondo do Telegram), com prévia antes de enviar.
 - **Mensagens de áudio** 🎤: segure para gravar e solte para enviar, ou use o modo **mãos livres** (um toque grava sem segurar). Tocador com a onda sonora, velocidade 1x/1,5x/2x e **“ouvir em sequência”**.

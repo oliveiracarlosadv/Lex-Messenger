@@ -37,6 +37,11 @@ export function snapshot(h: SnapHooks) {
     h.emit('typing', { chatId: '101', name: 'Ana Paula' });
     await wait(1500);
     writeFileSync(join(dir, 'contatos.png'), (await list.webContents.capturePage()).toPNG());
+    await list.webContents.executeJavaScript("document.querySelector('[aria-label=\"Nova conversa\"]')?.click()");
+    await wait(800);
+    writeFileSync(join(dir, 'nova-conversa.png'), (await list.webContents.capturePage()).toPNG());
+    await list.webContents.executeJavaScript("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))");
+    await wait(300);
     writeFileSync(join(dir, 'conversa.png'), (await chat.webContents.capturePage()).toPNG());
     await chat.webContents.executeJavaScript("document.querySelector('[aria-label=\"Mais opções\"]')?.click()");
     await wait(400);

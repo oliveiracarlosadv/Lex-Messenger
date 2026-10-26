@@ -21,18 +21,21 @@
    a música que está tocando. A bio é visível para quem pode ver o seu perfil no Telegram, conforme as suas
    configurações de privacidade lá. A leitura da música é **desligada por padrão**: só acontece se você ativar o botão
    🎵, e o app lê apenas o nome da música e do artista no Apple Music, no Spotify ou nos controles de mídia do Windows.
-5. **Android — “Acesso a notificações”.** Só é pedido se você ligar a “música que estou ouvindo”, porque é o único
+5. **Agenda do celular (Android).** Só é lida se você tocar em **Procurar na agenda** e der a permissão. Os números são
+   enviados ao Telegram apenas para conferir quem tem conta (o mesmo que o app oficial faz) e ficam salvos como seus
+   contatos no Telegram. O Lex não guarda a agenda.
+6. **Android — “Acesso a notificações”.** Só é pedido se você ligar a “música que estou ouvindo”, porque é o único
    jeito de o Android dizer qual música está tocando. O Lex lê apenas o título e o artista da música; não lê o
    conteúdo das suas notificações.
-6. **Microfone e câmera.** Usados só enquanto você grava um áudio (🎤) ou está com a câmera da conversa aberta (📷).
+7. **Microfone e câmera.** Usados só enquanto você grava um áudio (🎤) ou está com a câmera da conversa aberta (📷).
    Fotos, vídeos e áudios vão direto para o Telegram; o Lex não guarda gravações.
-7. **Transcrição de áudio.** Ao tocar em **Aa**, o pedido de transcrição é feito ao Telegram (recurso Premium), que
+8. **Transcrição de áudio.** Ao tocar em **Aa**, o pedido de transcrição é feito ao Telegram (recurso Premium), que
    devolve o texto.
-8. **Bio dos contatos.** Para mostrar a mensagem pessoal dos seus contatos, o app consulta a bio deles no Telegram,
+9. **Bio dos contatos.** Para mostrar a mensagem pessoal dos seus contatos, o app consulta a bio deles no Telegram,
    como o app oficial faz ao abrir um perfil. Nada disso é guardado em disco.
-9. **Telegram.** O tratamento dos dados da sua conta pelo Telegram segue a política dele:
+10. **Telegram.** O tratamento dos dados da sua conta pelo Telegram segue a política dele:
    <https://telegram.org/privacy>.
-10. **Como apagar tudo.** Use **Desconectar conta…** no menu e, se quiser, apague o app. No Mac, os dados ficam em
+11. **Como apagar tudo.** Use **Desconectar conta…** no menu e, se quiser, apague o app. No Mac, os dados ficam em
    `~/Library/Application Support/Lex Messenger`; no Windows, em `%APPDATA%\Lex Messenger`; no Android, basta
    desinstalar o app (ou limpar os dados dele em Configurações > Apps).
-11. **Contato.** Dúvidas: abra uma “issue” em <https://github.com/oliveiracarlosadv/Lex-Messenger/issues>.
+12. **Contato.** Dúvidas: abra uma “issue” em <https://github.com/oliveiracarlosadv/Lex-Messenger/issues>.

@@ -118,6 +118,17 @@ export interface CaptureOpts {
   height?: number;
 }
 
+/** Pessoa para começar conversa: contato do Telegram ou da agenda do celular. */
+export interface PersonEntry {
+  /** Id no Telegram (vazio se a pessoa não tem Telegram). */
+  id: string;
+  name: string;
+  phone?: string;
+  hasPhoto?: boolean;
+  online?: boolean;
+  onTelegram: boolean;
+}
+
 export interface Reaction {
   emoji: string;
   count: number;
@@ -290,6 +301,14 @@ export interface LexApi {
   setBlockedContact(chatId: string, blocked: boolean): Promise<void>;
   /** Limpa todas as mensagens, mas mantém a conversa na lista (para mim, ou para os dois). */
   clearChat(chatId: string, forEveryone: boolean): Promise<void>;
+  /** Contatos salvos no Telegram (inclusive com quem nunca conversou). */
+  telegramContacts(): Promise<PersonEntry[]>;
+  /** Confere no Telegram quais destes números têm conta. */
+  lookupPhones(people: { name: string; phone: string }[]): Promise<PersonEntry[]>;
+  /** Celular (Android): lê a agenda do aparelho (pede permissão). null = sem permissão / indisponível. */
+  deviceContacts?(): Promise<{ name: string; phone: string }[] | null>;
+  /** Abre (ou cria) a conversa com uma pessoa do Telegram. */
+  startChat(userId: string): Promise<void>;
   /** O que está na tela da conversa agora (para avisar sobre prints e gravações). */
   reportView(chatId: string, view: { lastId: number; sensitive: boolean; temporary: boolean } | null): void;
   getSensitive(chatId: string): Promise<boolean>;

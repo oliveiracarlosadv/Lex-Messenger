@@ -2513,3 +2513,44 @@ body.toast-body {
 .head-menu-wrap {
   z-index: 72;
 }
+
+/* ---------- Nova conversa ---------- */
+.modal.new-chat {
+  max-width: 440px;
+}
+.phone-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.phone-row input {
+  flex: 1;
+  border: 1px solid #a8c0e0;
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+.pick-item.person {
+  cursor: default;
+}
+.person-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.person-text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-text .hint {
+  margin: 0;
+}
+.pick-item.person .btn {
+  padding: 3px 10px;
+  flex-shrink: 0;
+}
+.agenda-consent {
+  padding: 6px 2px;
+  line-height: 1.5;
+}

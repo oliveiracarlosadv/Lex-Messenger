@@ -19,9 +19,16 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.JSArray;
+import com.getcapacitor.PermissionState;
+import android.Manifest;
+import android.database.Cursor;
+import android.provider.ContactsContract;
 
 /** Funções nativas do Android usadas pelo Lex: segundo plano, bateria e ajustes de notificação. */
-@CapacitorPlugin(name = "LexNative")
+@CapacitorPlugin(name = "LexNative", permissions = { @Permission(strings = { Manifest.permission.READ_CONTACTS }, alias = "contacts") })
 public class LexNativePlugin extends Plugin {
 
     @PluginMethod
@@ -214,5 +221,50 @@ public class LexNativePlugin extends Plugin {
         JSObject d = new JSObject();
         d.put("kind", kind);
         instance.notifyListeners("screenCapture", d);
+    }
+
+    // ---------- Agenda do celular (para achar quem tem Telegram) ----------
+
+    @PluginMethod
+    public void readContacts(PluginCall call) {
+        if (getPermissionState("contacts") != PermissionState.GRANTED) {
+            requestPermissionForAlias("contacts", call, "contactsPermCallback");
+            return;
+        }
+        readAgenda(call);
+    }
+
+    @PermissionCallback
+    private void contactsPermCallback(PluginCall call) {
+        if (getPermissionState("contacts") == PermissionState.GRANTED) readAgenda(call);
+        else {
+            JSObject r = new JSObject();
+            r.put("granted", false);
+            r.put("contacts", new JSArray());
+            call.resolve(r);
+        }
+    }
+
+    private void readAgenda(PluginCall call) {
+        new Thread(() -> {
+            JSArray list = new JSArray();
+            String[] cols = { ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER };
+            try (Cursor c = getContext().getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, cols, null, null,
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC")) {
+                if (c != null) {
+                    while (c.moveToNext()) {
+                        JSObject o = new JSObject();
+                        o.put("name", c.getString(0) == null ? "" : c.getString(0));
+                        o.put("phone", c.getString(1) == null ? "" : c.getString(1));
+                        list.put(o);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            JSObject r = new JSObject();
+            r.put("granted", true);
+            r.put("contacts", list);
+            call.resolve(r);
+        }).start();
     }
 }

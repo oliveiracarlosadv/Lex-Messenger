@@ -23,6 +23,7 @@ import {
   type CaptureOpts,
   type MediaInfo,
   type Me,
+  type PersonEntry,
   type PickItem,
   type PrivacyKey,
   type StickerPack,
@@ -1243,6 +1244,69 @@ export class TelegramService {
       if ((x instanceof Api.UpdateNewMessage || x instanceof Api.UpdateNewChannelMessage) && x.message instanceof Api.Message) return x.message;
     }
     return undefined;
+  }
+
+  // ---------- Contatos: do Telegram, da agenda e por número ----------
+
+  private person(u: Api.User): PersonEntry {
+    const id = u.id.toString();
+    this.entities.set(id, u);
+    return {
+      id,
+      name: fullName(u),
+      phone: u.phone ? `+${u.phone}` : undefined,
+      hasPhoto: u.photo instanceof Api.UserProfilePhoto,
+      online: u.status instanceof Api.UserStatusOnline,
+      onTelegram: true,
+    };
+  }
+
+  async telegramContacts(): Promise<PersonEntry[]> {
+    const r = await this.client!.invoke(new Api.contacts.GetContacts({ hash: bigInt(0) }));
+    if (!(r instanceof Api.contacts.Contacts)) return [];
+    return r.users
+      .filter((u): u is Api.User => u instanceof Api.User && !u.deleted && !u.bot && !u.self)
+      .map((u) => this.person(u))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }
+
+  /** Mesmo processo do app oficial: envia os números ao Telegram, que diz quem tem conta (e salva como contato). */
+  async lookupPhones(people: { name: string; phone: string }[]): Promise<PersonEntry[]> {
+    const c = this.client!;
+    const norm = (p: string) => {
+      const d = p.replace(/[^\d+]/g, '');
+      return d.startsWith('+') ? d : d.length <= 11 ? `+55${d.replace(/^0+/, '')}` : `+${d}`;
+    };
+    const unique = [...new Map(people.filter((p) => p.phone.replace(/\D/g, '').length >= 8).map((p) => [norm(p.phone), p])).entries()];
+    const found = new Map<string, PersonEntry>();
+    for (let i = 0; i < unique.length; i += 100) {
+      const batch = unique.slice(i, i + 100);
+      const r = await c.invoke(
+        new Api.contacts.ImportContacts({
+          contacts: batch.map(([phone, p], j) => {
+            const [firstName, ...rest] = p.name.trim().split(/\s+/);
+            return new Api.InputPhoneContact({ clientId: bigInt(i + j), phone, firstName: firstName || phone, lastName: rest.join(' ') });
+          }),
+        }),
+      );
+      const users = new Map(r.users.filter((u): u is Api.User => u instanceof Api.User).map((u) => [u.id.toString(), u]));
+      for (const imp of r.imported) {
+        const u = users.get(imp.userId.toString());
+        const [phone] = batch[Number(imp.clientId) - i] ?? [];
+        if (u && phone) found.set(phone, this.person(u));
+      }
+    }
+    return unique.map(([phone, p]) => found.get(phone) ?? { id: '', name: p.name, phone, onTelegram: false });
+  }
+
+  /** Abre a conversa com alguém que ainda não está na lista. */
+  async startChat(userId: string) {
+    if (this.contacts.has(userId)) return;
+    let e = this.entities.get(userId);
+    if (!e) e = (await this.client!.getEntity(userId)) as Entity;
+    this.entities.set(userId, e);
+    this.contacts.set(userId, this.contactFromEntity(userId, e, { lastDate: Math.floor(Date.now() / 1000) }));
+    this.emitContacts();
   }
 
   // ---------- Excluir conversa e bloquear ----------
