@@ -452,7 +452,21 @@ export class TelegramService {
           },
         );
       } else {
+        // Código por SMS: pede ao Telegram para mandar o código por mensagem de texto para o número.
+        // Se o Telegram não oferecer SMS para esse número, o código chega pelo app do Telegram (como antes).
+        const sendCode = client.sendCode.bind(client);
+        client.sendCode = async (cred, phone) => {
+          try {
+            return await sendCode(cred, phone, true);
+          } catch (e) {
+            const code = (e as { errorMessage?: string }).errorMessage ?? '';
+            if (code.startsWith('FLOOD_WAIT') || code.startsWith('PHONE_NUMBER') || code === 'PHONE_MIGRATE') throw e;
+            console.warn('SMS indisponível, usando o código pelo app:', code || e);
+            return sendCode(cred, phone, false);
+          }
+        };
         await client.start({
+          forceSMS: true,
           phoneNumber: () => this.ask({ step: 'phone' }),
           phoneCode: (viaApp) => this.ask({ step: 'code', viaApp: !!viaApp }),
           password: (hint) => this.ask({ step: 'password', hint }),

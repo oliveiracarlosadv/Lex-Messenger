@@ -37,8 +37,8 @@ advogado. A tela **Configurações > ℹ️ Sobre** mostra a versão, as diretri
    toque em **Configurações**, ative **Permitir desta fonte** e volte.
 3. Toque em **Instalar**. Se aparecer um aviso do Google Play Protect, toque em **Instalar mesmo assim** (o app ainda
    não está na Play Store).
-4. Abra o **Lex Messenger** e toque em **Entrar com número de telefone**. O Telegram manda o código dentro do próprio
-   app do Telegram, no mesmo celular: copie e volte para o Lex.
+4. Abra o **Lex Messenger** e toque em **Entrar com número de telefone**. O código chega **por SMS** no número
+   informado: digite e pronto.
 5. Permita as **notificações** quando o Android perguntar.
 
 #### Android pelo Obtainium (atualiza sozinho)
@@ -120,7 +120,7 @@ Você precisa ter uma conta no Telegram (no celular). Há dois jeitos de entrar:
 
 **Pelo número de telefone**
 1. Clique em **Entrar com número de telefone** e digite seu celular com DDD.
-2. O Telegram envia um código **dentro do próprio app do Telegram** no celular (ou por SMS). Digite o código.
+2. O Telegram envia um código **por SMS** para o número informado. Digite o código. (Se o Telegram não oferecer SMS para o seu número, o código chega dentro do app do Telegram.)
 
 Se você ativou a **verificação em duas etapas** no Telegram, o app também pede essa senha.
 
@@ -380,7 +380,7 @@ sessão pelo celular, em **Configurações > Dispositivos**.
 | Problema | O que fazer |
 | --- | --- |
 | “Muitas tentativas. Aguarde…” | O Telegram bloqueia por alguns minutos após muitos códigos. Espere o tempo indicado. |
-| O código não chegou | Veja dentro do app do Telegram no celular (vem de “Telegram”, não por SMS). |
+| O código não chegou | Espere até um minuto pelo SMS. Se a tela disser que o código foi para o app do Telegram, veja lá (vem de “Telegram”). |
 | O QR Code expirou | Ele se renova sozinho a cada 30 segundos; aponte de novo. |
 | Não ouço sons | Confira o ícone da barra de menus > **Sons**, e o volume do computador. |
 | Um contato aparece sempre Offline | Ele esconde o “visto por último” no Telegram. |

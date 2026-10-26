@@ -89,17 +89,28 @@ export const mobilePlatform: Platform = {
 };
 
 /** Abre o seletor de arquivos do Android e devolve os arquivos escolhidos já lidos. */
-export function pickFiles(accept = '*/*', multiple = true): Promise<{ name: string; data: Uint8Array }[]> {
+export function pickFiles(accept = '', multiple = true): Promise<{ name: string; data: Uint8Array }[]> {
   return new Promise((resolve) => {
+    // O seletor precisa estar dentro da página: o app do iPhone (WKWebView) não abre um seletor "solto".
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = accept;
+    // Sem filtro, o iPhone oferece Fotos, Câmera e Arquivos; '*/*' faz ele não mostrar nada.
+    if (accept && accept !== '*/*') input.accept = accept;
     input.multiple = multiple;
+    input.style.cssText = 'position:fixed;left:-1000px;top:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(input);
+    let done = false;
+    const finish = (files: { name: string; data: Uint8Array }[]) => {
+      if (done) return;
+      done = true;
+      input.remove();
+      resolve(files);
+    };
     input.onchange = async () => {
       const files = [...(input.files ?? [])];
-      resolve(await Promise.all(files.map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) }))));
+      finish(await Promise.all(files.map(async (f, i) => ({ name: f.name || `foto-${i + 1}.jpg`, data: new Uint8Array(await f.arrayBuffer()) }))));
     };
-    input.oncancel = () => resolve([]);
+    input.oncancel = () => finish([]);
     input.click();
   });
 }

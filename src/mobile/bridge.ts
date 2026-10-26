@@ -444,7 +444,7 @@ export class MobileBridge {
         return true;
       },
       pickFiles: async (images) => {
-        const files = await pickFiles(images ? 'image/*,video/*' : '*/*');
+        const files = await pickFiles(images ? 'image/*,video/*' : '');
         return files.map((f) => {
           const key = `escolhido:${this.pickSeq++}`;
           this.picked.set(key, f);
@@ -454,7 +454,7 @@ export class MobileBridge {
       sendFiles: async (id, ids, images, sensitive) => {
         const files = ids?.length
           ? ids.map((k) => this.picked.get(k)).filter((f): f is { name: string; data: Uint8Array } => !!f)
-          : await pickFiles(images ? 'image/*,video/*' : '*/*');
+          : await pickFiles(images ? 'image/*,video/*' : '');
         ids?.forEach((k) => this.picked.delete(k));
         if (files.length) await tg.sendFiles(id, files, !!sensitive);
       },

@@ -171,7 +171,7 @@ export function Login({ auth }: { auth: AuthState }) {
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
               />
-              <p className="hint">{step.viaApp ? 'O Telegram enviou o código no próprio app, no celular.' : 'Enviamos o código por SMS.'}</p>
+              <p className="hint">{step.viaApp ? 'Para este número, o Telegram mandou o código dentro do app do Telegram (no celular ou no computador onde ele estiver aberto).' : '📩 Enviamos o código por SMS para o seu número. Pode levar até um minuto.'}</p>
             </>
           )}
           {step.step === 'password' && (
