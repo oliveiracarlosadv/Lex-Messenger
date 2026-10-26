@@ -41,8 +41,12 @@ for (const f of ['mipmap-anydpi-v26/ic_launcher.xml', 'mipmap-anydpi-v26/ic_laun
 }
 
 // Tela de abertura: fundo azul-claro com o ícone no centro.
-for (const dir of readdirSync(RES).filter((d) => d.startsWith('drawable'))) {
-  const file = join(RES, dir, 'splash.png');
+const IOS_SPLASH = 'ios/App/App/Assets.xcassets/Splash.imageset';
+const splashFiles = [
+  ...readdirSync(RES).filter((d) => d.startsWith('drawable')).map((d) => join(RES, d, 'splash.png')),
+  ...['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png'].map((f) => join(IOS_SPLASH, f)),
+];
+for (const file of splashFiles) {
   let size;
   try {
     size = pngSize(file);
