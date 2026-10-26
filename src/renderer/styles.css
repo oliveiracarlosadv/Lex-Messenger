@@ -2633,3 +2633,26 @@ body.toast-body {
   font-size: 11px;
   line-height: 1.45;
 }
+.lexabout-mission {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--blue);
+  background: #f3f7fd;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+}
+.lexabout-values {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lexabout-values li {
+  font-size: 11.5px;
+  background: #e8f0fb;
+  color: var(--blue-dark);
+  border-radius: 12px;
+  padding: 3px 10px;
+}

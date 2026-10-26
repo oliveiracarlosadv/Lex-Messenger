@@ -21,6 +21,9 @@ const LINKS: [string, string][] = [
   ['💻 Código-fonte', REPO],
 ];
 
+/** Valores da Lex Tecnologias (Visão institucional). */
+const VALUES = ['Feito por quem advoga', 'Simplicidade', 'Seus dados ficam com você', 'Sigilo e ética profissional', 'Tecnologia acessível'];
+
 const PLATFORM: Record<string, string> = { mac: 'Mac', darwin: 'Mac', win32: 'Windows', windows: 'Windows', android: 'Android', ios: 'iPhone', web: 'Navegador' };
 
 /** Tela “Sobre”: versão, diretrizes, autor, licença e links. */
@@ -61,6 +64,22 @@ export function AboutPanel() {
       <p>
         Idealizado e criado por <b>Carlos Alexandre Albuquerque Oliveira</b>, advogado, pela <b>Lex Tecnologias</b>.
       </p>
+
+      <h4>Lex Tecnologias</h4>
+      <p className="lexabout-intro">
+        Uma <b>lawtech</b> de <b>Belém/PA</b>, criada por um advogado em atuação para resolver problemas que ele mesmo
+        vive na rotina do escritório. O Lex Messenger nasceu da mesma ideia: conversar com clientes e equipe sem que o
+        aplicativo dispute a sua atenção.
+      </p>
+      <blockquote className="lexabout-mission">
+        <b>Missão:</b> devolver tempo e segurança ao advogado, com ferramentas simples, confiáveis e acessíveis.
+      </blockquote>
+      <ul className="lexabout-values">
+        {VALUES.map((v) => (
+          <li key={v}>{v}</li>
+        ))}
+      </ul>
+      <p className="hint">Também da Lex: Lex Calendário (agenda jurídica com prazos pelo CPC) e Lex Audio (transcrição de áudio offline).</p>
 
       <h4>Saiba mais</h4>
       <div className="lexabout-links">

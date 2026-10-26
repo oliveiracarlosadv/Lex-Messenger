@@ -53,6 +53,12 @@ O Lex Messenger foi idealizado e criado por **Carlos Alexandre Albuquerque Olive
 **Lex Tecnologias**. A ideia é simples: ter um lugar para conversar com as pessoas sem que o aplicativo dispute a sua
 atenção com elas.
 
+**Lex Tecnologias** é uma *lawtech* de Belém/PA, criada por um advogado em atuação para resolver problemas que ele
+mesmo vive na rotina do escritório. Missão: **devolver tempo e segurança ao advogado**, com ferramentas simples,
+confiáveis e acessíveis. Valores: feito por quem advoga · simplicidade · seus dados ficam com você · sigilo e ética
+profissional · tecnologia acessível. Também da Lex: **Lex Calendário** (agenda jurídica com prazos pelo CPC) e
+**Lex Audio** (transcrição de áudio offline).
+
 Ele foi feito para comunicar. **Puramente comunicação.**
 
 ---

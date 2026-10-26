@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## v1.1.1
+- **Sobre**: apresentação da Lex Tecnologias (lawtech de Belém/PA), missão e valores.
+- **Privacidade** atualizada: avisos do Android pelo Firebase (criptografados, o Google não lê), fotos dos avisos, widget e app do iPhone.
+
 ## v1.1.0
 - **Tela “Sobre”** ℹ️ (Configurações > Sobre): versão, diretrizes do Lex, quem fez, licença e links para manual, privacidade e termos.
 - **Widget “Online agora”** 🟢 para Android e iPhone: mostra na tela inicial quem está online, com foto, nome e status; toque num contato para abrir a conversa.

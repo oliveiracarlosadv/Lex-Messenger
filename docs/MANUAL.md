@@ -11,6 +11,8 @@ software livre (licença GPL-3.0).
 
 Foi idealizado e criado por **Carlos Alexandre Albuquerque Oliveira**, advogado, pela **Lex Tecnologias**, com o
 jeitinho dos mensageiros dos anos 2000: lista de contatos, janelinha no canto da tela, sons e “chamar atenção”.
+A Lex Tecnologias é uma *lawtech* de Belém/PA, feita por quem advoga, com a missão de devolver tempo e segurança ao
+advogado. A tela **Configurações > ℹ️ Sobre** mostra a versão, as diretrizes do Lex e estes dados.
 
 ## 1. Instalar
 
