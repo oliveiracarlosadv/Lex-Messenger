@@ -39,6 +39,20 @@ jeitinho dos mensageiros dos anos 2000: lista de contatos, janelinha no canto da
    app do Telegram, no mesmo celular: copie e volte para o Lex.
 5. Permita as **notificações** quando o Android perguntar.
 
+#### Android pelo Obtainium (atualiza sozinho)
+O [Obtainium](https://github.com/ImranR98/Obtainium) é um app gratuito e de código aberto que instala apps direto do
+GitHub do desenvolvedor e avisa (ou atualiza sozinho) quando sai versão nova. Sem loja no meio e sem cadastro.
+1. Baixe o Obtainium em <https://github.com/ImranR98/Obtainium/releases/latest>: o arquivo `app-release.apk`. Instale
+   como no passo 2 acima.
+2. No celular, abra **https://oliveiracarlosadv.github.io/Lex-Messenger/obtainium.html** e toque em **Adicionar o Lex no Obtainium**. (Ou, dentro do Obtainium, toque em
+   **Adicionar app** e cole `https://github.com/oliveiracarlosadv/Lex-Messenger`.)
+3. Toque em **Instalar**. Na primeira vez, o Android pede para permitir que o Obtainium instale apps: permita.
+4. Pronto: quando sair uma versão nova do Lex, o Obtainium avisa. Para ele atualizar sem perguntar, abra o Lex dentro
+   do Obtainium e ligue a atualização automática.
+
+Se você já tinha instalado o Lex pelo arquivo, não precisa desinstalar: o Obtainium reconhece e passa a cuidar das
+atualizações.
+
 **No celular é um pouco diferente:**
 - A lista de contatos é a tela inicial; **toque** num contato para abrir a conversa e use **‹ Contatos** ou o botão
   voltar do Android para sair dela.

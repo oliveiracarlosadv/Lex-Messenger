@@ -15,6 +15,9 @@ Com o jeitinho dos mensageiros dos anos 2000 e a sua conta do Telegram. Gratuito
   <a href="https://oliveiracarlosadv.github.io/Lex-Messenger/"><b>📱 iPhone (pelo Safari)</b></a>
 </p>
 
+<p align="center"><a href="https://oliveiracarlosadv.github.io/Lex-Messenger/obtainium.html"><img src="docs/imagens/obtainium.png" height="48" alt="Instalar pelo Obtainium"></a><br>
+<sub>Android: instale pelo Obtainium e receba as atualizações sozinho.</sub></p>
+
 <p align="center"><a href="https://github.com/oliveiracarlosadv/Lex-Messenger/releases">Todas as versões</a> · <a href="docs/LANCAMENTO.md">Conheça o Lex</a> · <a href="docs/MANUAL.md">Manual</a> (<a href="docs/Manual-Lex-Messenger.pdf">PDF</a>) · <a href="docs/PRIVACIDADE.md">Privacidade</a> · <a href="docs/TERMOS.md">Termos</a></p>
 
 ---
@@ -103,6 +106,10 @@ Lex Messenger para a pasta Aplicativos. Na primeira vez, o macOS avisa que não 
 **Android:** baixe o `LexMessenger-Android.apk` no celular e toque nele para instalar. O Android pede para
 permitir a instalação "desta fonte" (o navegador ou o app de arquivos): permita e toque em **Instalar**. Passo a passo
 no [Manual](docs/MANUAL.md#android).
+
+**Android, com atualização automática (grátis):** instale o [Obtainium](https://github.com/ImranR98/Obtainium/releases/latest)
+e abra **https://oliveiracarlosadv.github.io/Lex-Messenger/obtainium.html** no celular (ou, no Obtainium, toque em **Adicionar app** e cole
+`https://github.com/oliveiracarlosadv/Lex-Messenger`). Ele instala o Lex direto daqui e avisa quando sai versão nova.
 
 **iPhone (sem App Store):** abra **https://oliveiracarlosadv.github.io/Lex-Messenger/** no **Safari**, toque em
 **Compartilhar** e em **“Adicionar à Tela de Início”**. O Lex vira um ícone na tela, igual a um app. No iPhone, os avisos

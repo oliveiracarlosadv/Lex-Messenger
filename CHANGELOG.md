@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Próxima versão
+- **Android pelo Obtainium**: instale e receba as atualizações sozinho, direto do GitHub (página `obtainium.html` e botão no README).
+- Licença **GPL-3.0** e apresentação do Lex (conversa pura) na documentação.
+
 ## v1.0.3
 - **Avisos no celular com o Lex aberto no computador**: o Telegram não manda aviso para o celular enquanto a conta aparece online. Agora o Lex só fica online quando você está usando: no computador, fica offline para o Telegram depois de 2 minutos parado ou com a tela bloqueada; no celular, assim que o app sai da tela.
 - **Diagnóstico dos avisos** em Configurações > Avisos (Android): mostra se o aviso chegou do Google e o que aconteceu com ele.
