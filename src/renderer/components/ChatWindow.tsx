@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChatMessage, Contact, Me } from '../../shared/types';
 import { lex } from '../lib/api';
@@ -29,6 +30,9 @@ const TTL_OPTIONS: [number, string][] = [
   [86400, '24 horas'],
 ];
 
+/** No celular, o menu ⋯ abre como painel na parte de baixo da tela, por cima de tudo. */
+const wrapHeadMenu = (node: React.ReactNode) => (lex.features.mobile ? createPortal(node, document.body) : node);
+
 export function ChatWindow({ chatId }: { chatId: string }) {
   const [contact, setContact] = useState<Contact | null>(null);
   const [me, setMe] = useState<Me | null>(null);
@@ -54,7 +58,14 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   const [ttlMenu, setTtlMenu] = useState(false);
   const [newList, setNewList] = useState(false);
   const [sms, setSms] = useState(false);
-  const [headMenu, setHeadMenu] = useState(false);
+  const [headMenu, setHeadMenuState] = useState(false);
+  // O mesmo toque que abre o menu não pode fechá-lo (no iPhone o toque "vaza" para o fundo que aparece por baixo).
+  const headOpenedAt = useRef(0);
+  const setHeadMenu = (open: boolean) => {
+    if (!open && performance.now() - headOpenedAt.current < 450) return;
+    if (open) headOpenedAt.current = performance.now();
+    setHeadMenuState(open);
+  };
   const [deleting, setDeleting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [stickers, setStickers] = useState(false);
@@ -423,10 +434,11 @@ export function ChatWindow({ chatId }: { chatId: string }) {
               <button className="mute-btn" onClick={() => setHeadMenu(!headMenu)} title="Mais opções" aria-label="Mais opções" aria-expanded={headMenu}>
                 ⋯
               </button>
-              {headMenu && (
+              {headMenu &&
+                wrapHeadMenu(
                 <>
-                  <div className="menu-back" onMouseDown={() => setHeadMenu(false)} />
-                  <div className="msg-menu head-menu" role="menu">
+                  <div className={lex.features.mobile ? 'sheet-back always' : 'menu-back'} onMouseDown={() => setHeadMenu(false)} onClick={() => setHeadMenu(false)} />
+                  <div className={`msg-menu head-menu ${lex.features.mobile ? 'head-sheet' : ''}`} role="menu">
                     <button role="menuitem" onClick={() => (setHeadMenu(false), void exportChat())}>
                       📤 Exportar conversa
                     </button>
@@ -447,9 +459,14 @@ export function ChatWindow({ chatId }: { chatId: string }) {
                     <button role="menuitem" className="danger" onClick={() => (setHeadMenu(false), setDeleting(true))}>
                       🗑 {contact.kind === 'group' || contact.kind === 'channel' ? 'Sair e excluir conversa' : 'Excluir conversa'}
                     </button>
+                    {lex.features.mobile && (
+                      <button role="menuitem" className="sheet-cancel" onClick={() => setHeadMenu(false)}>
+                        Cancelar
+                      </button>
+                    )}
                   </div>
-                </>
-              )}
+                </>,
+                )}
             </div>
           )}
         </div>

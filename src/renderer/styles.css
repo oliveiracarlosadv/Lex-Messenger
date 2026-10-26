@@ -2656,3 +2656,40 @@ body.toast-body {
   border-radius: 12px;
   padding: 3px 10px;
 }
+
+/* Menu ⋯ da conversa no celular: painel na parte de baixo, por cima de tudo. */
+.msg-menu.head-sheet {
+  position: fixed;
+  top: auto;
+  left: 8px;
+  right: 8px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 90;
+  min-width: 0;
+  padding: 6px;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(15, 35, 70, 0.35);
+  animation: head-sheet-up 0.2s ease-out;
+}
+.msg-menu.head-sheet button {
+  padding: 13px 14px;
+  font-size: 16px;
+}
+.msg-menu.head-sheet .sheet-cancel {
+  margin-top: 4px;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+  color: var(--blue-dark);
+  background: #eef3fb;
+  border-radius: 12px;
+}
+.sheet-back.always {
+  z-index: 85;
+}
+@keyframes head-sheet-up {
+  from {
+    transform: translateY(30px);
+    opacity: 0.5;
+  }
+}

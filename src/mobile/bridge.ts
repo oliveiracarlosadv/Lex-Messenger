@@ -12,7 +12,7 @@ import { NUDGE_TEXT, type ChatMessage, type Contact, type LexApi, type LexEvents
 import { LexNative } from './native';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { isAndroid, isIOS, isIOSApp, mobilePlatform, pickFiles } from './platform';
-import { WidgetFeed } from './widget';
+import { setAppBadge, WidgetFeed } from './widget';
 import type { NudgeData } from '../renderer/components/NudgePopup';
 
 declare const __APP_VERSION__: string;
@@ -76,7 +76,7 @@ export class MobileBridge {
       {
         emit: (e, d) => this.emit(e, d),
         isChatOpenAndFocused: (id) => this.currentChat === id && document.visibilityState === 'visible',
-        unreadChanged: () => {},
+        unreadChanged: (total) => setAppBadge(total),
         ready: (me) => {
           this.presence.start(me);
           void this.setupBackground().then(() => {

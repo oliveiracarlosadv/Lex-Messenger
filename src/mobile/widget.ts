@@ -8,10 +8,20 @@ import { LexNative } from './native';
 import { isAndroid, isIOSApp } from './platform';
 
 /** Plugin do app do iPhone (ios/App/App/LexWidgetPlugin.swift). */
-const LexWidget = registerPlugin<{ update(o: { data: string }): Promise<void> }>('LexWidget', {
-  web: { update: async () => {} },
-  android: { update: async () => {} },
+const LexWidget = registerPlugin<{ update(o: { data: string }): Promise<void>; setBadge(o: { count: number }): Promise<void> }>('LexWidget', {
+  web: { update: async () => {}, setBadge: async () => {} },
+  android: { update: async () => {}, setBadge: async () => {} },
 });
+
+/** Contador de mensagens não lidas no ícone do app (iPhone; no Android, o próprio sistema conta pelos avisos). */
+export function setAppBadge(count: number) {
+  if (isIOSApp) void LexWidget.setBadge({ count }).catch(() => {});
+  else if (!isAndroid) {
+    // iPhone pelo Safari (app na Tela de Início, iOS 16.4+) e navegadores que aceitam.
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    void (count > 0 ? nav.setAppBadge?.(count) : nav.clearAppBadge?.())?.catch(() => {});
+  }
+}
 
 const MAX = 12;
 

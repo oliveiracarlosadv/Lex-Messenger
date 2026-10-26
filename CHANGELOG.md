@@ -3,6 +3,8 @@
 ## v1.1.2
 - **Código de entrada por SMS** 📩 em todas as versões (Mac, Windows, Android e iPhone): o Lex pede ao Telegram para mandar o código por mensagem de texto ao número informado. Se o Telegram não oferecer SMS para aquele número, o código chega pelo app do Telegram, como antes.
 - **iPhone: anexar fotos e arquivos** pelo 📎 e pela 🖼️ galeria voltou a funcionar no app instalado.
+- **Celular: menu ⋯ da conversa** abre como painel na parte de baixo da tela (no iPhone ele sumia logo ao abrir).
+- **iPhone: contador de mensagens não lidas no ícone** do app (a bolinha vermelha), também no app pelo Safari (iOS 16.4+).
 
 ## v1.1.1
 - **Android: nova assinatura oficial e secreta** 🔐. A assinatura antiga estava pública e permitiria a alguém criar um app falso com o nome Lex. **Uma única vez**, desinstale o Lex do Android e instale esta versão (no Obtainium: remova o app e adicione de novo). Suas conversas não se perdem: ficam no Telegram; só é preciso entrar de novo.
